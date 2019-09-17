@@ -1,0 +1,11 @@
+---
+- name: set known host
+  blockinfile:
+    block: "{{ hostvars[item].inventory_hostname }},{{ hostvars[item].hive_private_ip }} {{ hostvars[item].hive_safe_ssh_host_key.stdout }}"
+    dest: "{{ hive_home_dir }}/.ssh/known_hosts"
+    owner: "{{hive_safe_user.key}}"
+    group: "{{hive_safe_user.value.group}}"
+    mode: 0600
+    create: True
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+  with_items: "{{ play_hosts }}"

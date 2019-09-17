@@ -1,0 +1,61 @@
+- name: gather ec2 instance facts
+  ec2_instance_facts:
+    region: "{{ hive_region }}"
+    filters:
+      "tag:Name": "{{ item }}"
+  loop: "{{hive_safe_hosts }}"
+  register: hive_safe_instances
+
+- name: delete instance
+  ec2_instance:
+    state: absent
+    region: "{{ hive_region }}"
+    wait: yes
+    filters:
+      "tag:Name": "{{ item }}"
+  loop: "{{ hive_safe_hosts }}"
+  register: hive_safe_delete_instance
+
+- name: delete the elastic IP with instances
+  # release_on_disassociation does not work at 2.8 2019/09/15
+  ec2_eip:
+    in_vpc: True
+    region: "{{ hive_region }}"
+    public_ip: "{{ item }}"
+    state: absent
+  register: hive_safe_eip
+  loop: "{{ hive_safe_instances.results | map(attribute='instances') | flatten | selectattr('public_ip_address', 'defined') | map(attribute='public_ip_address') | difference(hive_safe_hosts | map('extract', hostvars) | selectattr('hive_published_ip', 'defined') | map(attribute='hive_published_ip') | list) | list }}"
+
+- name: get vpc info
+  ec2_vpc_net_facts:
+    filters:
+      "tag:Name": "{{ hive_safe_vpc_name }}"
+      cidr: "{{ hive_cidr }}"
+    region: "{{ hive_region }}"
+  register: hive_safe_aws_vpc_info
+
+- name: delete subnets
+  ec2_vpc_subnet:
+    state: absent
+    vpc_id: "{{ hive_safe_aws_vpc_info.vpcs[0].vpc_id }}"
+    region: "{{ hive_region }}"
+    az: "{{ item.available_zone }}"
+    cidr: "{{ item.cidr }}"
+    resource_tags:
+      Name: "{{ item.name }}"
+  loop: "{{ hive_subnets }}"
+
+- name: delete internet gateway for VPC
+  ec2_vpc_igw:
+    vpc_id: "{{ hive_safe_aws_vpc_info.vpcs[0].vpc_id }}"
+    region: "{{ hive_region }}"
+    state: absent
+    tags:
+      Name: "gateway for {{ hive_safe_vpc_name }}"
+
+- name: delete VPC
+  ec2_vpc_net:
+    name: "{{ hive_safe_vpc_name }}"
+    cidr_block: "{{ hive_cidr }}"
+    region: "{{ hive_region }}"
+    state: absent

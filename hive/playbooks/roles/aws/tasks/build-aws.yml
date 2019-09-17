@@ -1,0 +1,82 @@
+---
+- name: create VPC
+  ec2_vpc_net:
+    name: "{{ hive_safe_vpc_name }}"
+    cidr_block: "{{ hive_cidr }}"
+    region: "{{ hive_region }}"
+    state: present
+  register: hive_safe_aws_vpc
+
+- name: setup internet gateway for VPC
+  ec2_vpc_igw:
+    vpc_id: "{{ hive_safe_aws_vpc.vpc.id }}"
+    region: "{{ hive_region }}"
+    state: present
+    tags:
+      Name: "gateway for {{ hive_safe_vpc_name }}"
+  register: hive_safe_igw
+
+- name: build rule list tcp
+  set_fact:
+    hive_safe_inbound_rules: "{{ (hive_safe_inbound_rules |default([{'proto':'all', 'group_name': 'default'}])) + [{'proto':'tcp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
+- name: build rule list udp
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules  + [{'proto':'udp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ hive_published_ports_udp }}"
+
+- name: set for published port and name tag to default security group for VPC
+  ec2_group:
+    state: present
+    name: default
+    tags:
+      Name: "group-{{ hive_safe_vpc_name }}"
+    vpc_id: "{{hive_safe_aws_vpc.vpc.id }}"
+    description: "default VPC security group"
+    region: "{{ hive_region }}"
+    rules: "{{ hive_safe_inbound_rules }}"
+  register: hive_safe_group
+
+- name: setup subnet for VPC
+  ec2_vpc_subnet:
+    state: present
+    region: "{{ hive_region }}"
+    az: "{{ item.available_zone }}"
+    vpc_id: "{{ hive_safe_aws_vpc.vpc.id }}"
+    cidr: "{{ item.cidr }}"
+    resource_tags:
+      Name: "{{ item.name }}"
+  loop: "{{ hive_subnets }}"
+  register: hive_safe_subnets_info
+
+- name: gather default route table facts
+  ec2_vpc_route_table_facts:
+    region: "{{ hive_region }}"
+    filters:
+      vpc-id: "{{ hive_safe_aws_vpc.vpc.id }}"
+  register: hive_safe_rtb
+
+- name: set up public subnet route table
+  ec2_vpc_route_table:
+    vpc_id: "{{ hive_safe_aws_vpc.vpc.id }}"
+    route_table_id: "{{ hive_safe_rtb.route_tables[0].id }}"
+    region: "{{ hive_region }}"
+    lookup: id
+    tags:
+      Name: Public for subnet
+    subnets: "{{ hive_safe_subnets_info.results | selectattr('item.value.gateway', 'defined') | map(attribute='subnet.id') | list }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{ hive_safe_igw.gateway_id }}"
+
+- name: create key pair using key_material obtained using 'file' lookup plugin
+  ec2_key:
+    name: "{{ hive_aws_key_name | default('awsroot') }}"
+    region: "{{ hive_region }}"
+    key_material: "{{ lookup('file', hive_public_key_path) }}"
+
+- name: create instances
+  include_tasks: create_instance.yml
+  loop: "{{ hive_safe_hosts }}"
+  loop_control:
+    loop_var: aws_host

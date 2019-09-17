@@ -1,0 +1,59 @@
+---
+- name: install dependent packages
+  apk:
+    name:
+      - sudo
+      - build-base
+      - git
+      - libffi-dev
+      - openldap-dev
+      # - python3-dev
+      - mariadb-connector-c-dev
+      # - python3
+      - xmlsec-dev
+      - sqlite
+      - supervisor
+      - yarn
+    state: present
+    update_cache: yes
+- name: download source code
+  git:
+    repo: https://github.com/ngoduykhanh/PowerDNS-Admin
+    dest: /powerdns-admin
+    force: True
+- name: upgrade pip
+  pip:
+    executable: pip3
+    name: pip
+    state: latest
+- name: install python packages in requirements.txt
+  pip:
+    executable: pip3
+    requirements: /powerdns-admin/requirements.txt
+- name : copy files
+  copy:
+    src: "{{ item }}"
+    dest: "/powerdns-admin"
+  with_items:
+    - config.py
+- name: install endpoint shell
+  copy: src=docker-entrypoint.sh dest=/ mode=0775
+- name: install create admin script
+  copy: src=create_admin.py dest=/powerdns-admin mode=0775
+- name: build initial database
+  shell: |
+    cd /powerdns-admin
+    mkdir -p /initdb /powerdns-admin/data
+    flask db migrate -m "Init DB"
+    flask db upgrade
+    ./init_data.py
+    mkdir -p node_modules
+    adduser -D www-data
+    chown -R www-data:www-data .
+    su -s /bin/sh -c 'yarn install --pure-lockfile' www-data
+    su -s /bin/sh -c 'flask assets build' www-data
+    cp data/padmin.sqlite /initdb
+    rm data/padmin.sqlite
+  register: shell_log
+  args:
+    creates: /initdb/padmin.sqlite

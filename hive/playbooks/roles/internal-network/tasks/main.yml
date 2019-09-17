@@ -1,0 +1,26 @@
+---
+# - name: install needed network manager libs
+#   yum:
+#     name: '{{ item }}'
+#     state: installed
+#   with_items:
+#     - NetworkManager-glib
+# ansible nmcli module is unstable for centos 7
+# so use command: nmcli ... check and go strategy
+- name: install packages
+  yum: name=NetworkManager state=present
+- name: enable and start services
+  service: name=NetworkManager enabled=yes state=started
+- name: check internal network
+  command: nmcli connect show 'internal_net'
+  register: internal_net_setup
+  changed_when: false
+  failed_when: internal_net_setup.rc != 0 and internal_net_setup.rc != 10
+- name: create internal network
+  command: nmcli conn add type ethernet ifname {{ hive_internal_net_if }} con-name internal_net
+  when: internal_net_setup.rc == 10
+  notify: require reboot
+- name: assign ip address to internal network
+  command: "nmcli conn modify internal_net ipv4.method manual ipv4.addresses {{ hive_private_ip }}/{{ hive_internal_net_cidr }}"
+  when: internal_net_setup.rc == 10
+  notify: require reboot

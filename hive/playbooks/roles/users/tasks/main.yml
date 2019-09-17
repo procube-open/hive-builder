@@ -1,0 +1,41 @@
+---
+- name: add user groups
+  group:
+    name: "{{ item.key }}"
+    gid: "{{ item.value.gid }}"
+    state: present
+  with_dict: "{{ hive_user_groups }}"
+- name: "Allow  passwordless sudo to user groups"
+  template:
+    src: sudoer.j2
+    dest: "/etc/sudoers.d/{{item.key}}"
+  with_dict: "{{ hive_user_groups }}"
+- name: add hive_users
+  user:
+    name: "{{ item.key }}"
+    uid: "{{ item.value.uid }}"
+    group: "{{ item.value.group }}"
+    state: present
+  with_dict: "{{ hive_users }}"
+- name: set authorized key for hive_users
+  authorized_key:
+    user: "{{ item.key }}"
+    state: present
+    key: "{{ item.value.id_rsa_pub }}"
+  with_dict: "{{ hive_users }}"
+- name: prohibit login as root for sshd
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PermitRootLogin"
+    insertafter: "^#PermitRootLogin"
+    line: "PermitRootLogin no"
+- name: gather ssh host keys
+  shell: cat /etc/ssh/ssh_host_ecdsa_key.pub
+  changed_when: False
+  check_mode: False
+  register: hive_safe_ssh_host_key
+- name: generate known_hosts for all hive_users
+  include_tasks: known-hosts.yml
+  with_dict: "{{hive_users}}"
+  loop_control:
+    loop_var: hive_safe_user

@@ -1,0 +1,61 @@
+---
+- set_fact:
+    hive_safe_name: "{{ aws_host.split('.')[0] }}"
+- set_fact:
+    hive_safe_disks: []
+  # the root default volume is used when volumes does not include /dev/sda
+- set_fact:
+    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sda1', 'ebs': {'volume_size': hostvars[aws_host].hive_disk_size | default(omit), 'delete_on_termination': True} }]}}"
+- set_fact:
+    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sdb', 'ebs': {'volume_size': hostvars[aws_host].hive_mirrored_disk_size, 'delete_on_termination': True} }]}}"
+  when: hostvars[aws_host].hive_mirrored_disk_size is defined
+
+- name: build ec2 instance
+  ec2_instance:
+    region: "{{ hive_region }}"
+    vpc_subnet_id: "{{ ( hive_safe_subnets_info.results | selectattr('item.name', 'equalto', hostvars[aws_host].hive_subnet) | list)[0].subnet.id }}"
+    image_id: "{{ hive_safe_image_id }}"
+    instance_type: "{{ hostvars[aws_host].hive_instance_type }}"
+    key_name: "{{ hive_aws_key_name | default('awsroot') }}"
+    volumes: "{{ hive_safe_disks }}"
+    network:
+      assign_public_ip: False
+      private_ip_address: "{{ hostvars[aws_host].hive_private_ip }}"
+    wait: yes
+    security_group: default
+    termination_protection: no
+    tags:
+      Name: "{{ aws_host }}"
+    state: running
+  register: hive_safe_ec2
+
+- name: associate the elastic IP with instances
+  # support only for private_ip, secondary_ip or auxiliary_networks are not supported
+  ec2_eip:
+    device_id: "{{ hive_safe_ec2.instances[0].instance_id }}"
+    in_vpc: True
+    release_on_disassociation: "{{ hostvars[aws_host].hive_published_ip is not defined }}"
+    reuse_existing_ip_allowed: "{{ hostvars[aws_host].hive_published_ip is defined }}"
+    region: "{{ hive_region }}"
+    public_ip: "{{ hostvars[aws_host].hive_published_ip | default(omit) }}"
+  register: hive_safe_eip
+- debug: var=hive_safe_eip
+
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ aws_host }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ aws_host }}
+        HostName {{ hive_safe_eip.public_ip }}
+        UserKnownHostsFile /dev/null
+        User {{ hive_safe_admin }}
+        StrictHostKeyChecking no
+        PasswordAuthentication no
+        IdentityFile {{ hive_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+

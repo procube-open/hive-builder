@@ -1,0 +1,8 @@
+---
+# this handler never notified in mother host
+- name: update trust store
+  shell: update-ca-trust
+  listen: update CA cert
+- name: restart docker daemon
+  service: name=docker state=restarted
+  listen: update CA cert

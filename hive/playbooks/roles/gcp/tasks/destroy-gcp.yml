@@ -1,0 +1,65 @@
+- name: delete instances
+  gcp_compute_instance:
+    state: absent
+    name: "{{ item.split('.')[0] }}"
+    metadata:
+      hostname: "{{ item }}"
+      ssh-keys: "{{ hive_safe_admin }}:{{ lookup('file', hostvars[item].hive_public_key_path) }}"
+    zone: "{{ hostvars[item].hive_available_zone }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+  register: hive_safe_delete_instance
+  loop: "{{ hive_safe_hosts }}"
+  until: not hive_safe_delete_instance.failed
+  retries: 3
+- name: delete global ip
+  gcp_compute_address:
+    name: "gip-{{ item.split('.')[0] }}"
+    region: "{{ hive_region }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: absent
+  register: gip
+  with_items: "{{ hive_safe_hosts }}"
+- name: delete firewall for internal communication
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'internal-' + hive_name ) }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: absent
+- name: delete firewall for ssh and icmp
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'ssh-' + hive_name ) }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: absent
+- name: "get network facts"
+  gcp_compute_network_facts:
+    filters:
+    - name = {{ hive_safe_vpc_name }}
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+  register: gcp_vpcs
+- name: delete subnetworks
+  gcp_compute_subnetwork:
+    name: "{{ item.name }}"
+    region: "{{ hive_region }}"
+    network: "{{ gcp_vpcs }}"
+    ip_cidr_range: "{{ item.cidr }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: absent
+  loop: "{{ hive_subnets }}"
+- name: Delete VPC
+  gcp_compute_network:
+    state: absent
+    name: "{{ hive_safe_vpc_name }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"

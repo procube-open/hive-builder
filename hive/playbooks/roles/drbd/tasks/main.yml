@@ -1,0 +1,76 @@
+---
+- name: download drbd rpm files
+  unarchive:
+    src: https://github.com/procube-open/drbd9-rpm/releases/download/0.9.18/drbd9-rpm.tar.gz
+    remote_src: yes
+    dest: /root/
+- name: gather rpm file list
+  shell: ls -1 /root/RPMS/*/*.rpm
+  check_mode: False
+  changed_when: False
+  register: hive_safe_rpms
+- name: install packages
+  yum:
+    state: present
+    name: "{{ hive_safe_rpms.stdout_lines }}"
+  register: drbd_install
+- name: install LVM tools
+  yum:
+    state: present
+    name: lvm2
+- name: change usage count setting
+  lineinfile:
+    regexp: "usage-count .*;"
+    line: "usage-count no;"
+    path: /etc/drbd.d/global_common.conf
+    state: present
+- name: check if device exists
+  stat:
+    path: "{{ item }}"
+  register: hive_safe_device_names
+  loop:
+    - "{{ hive_mirrored_device_name | default('/dev/dummy_device_never_exist') }}"
+    - /dev/sdb
+    - /dev/xvdb
+    - /dev/nvme1n1
+- set_fact:
+    hive_safe_mirrored_device_name: "{{ (hive_safe_device_names.results | selectattr('stat.readable','defined') | map(attribute='item') |list)[0] }}"
+
+- name: create partition for drbd resource pool
+  parted:
+    device: "{{ hive_safe_mirrored_device_name }}"
+    number: "{{ hive_mirrored_disk_device_number | default ('1') }}"
+    flags: [ lvm ]
+    state: present
+- name: create volume group
+  lvg:
+    vg: drbdvg
+    pvs: "{{ hive_safe_mirrored_device_name }}{% if hive_safe_mirrored_device_name is match('/dev/nvme*') %}p{% endif %}{{ hive_mirrored_disk_device_number | default ('1') }}"
+- name: create a thin pool
+  lvol:
+    vg: drbdvg
+    thinpool: drbdpool
+    size: "{{ hive_mirrored_disk_size * 1024 - 60 }}m"
+- name: "insert allow drbd port rule into iptables (no internal network)"
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 7000:7999 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for drbd {{ item }}"
+  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
+  tags: iptables
+  when: hive_internal_net_addr is not defined
+- name: "insert allow drbd port rule into iptables for internal network"
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp  -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 7000:7999 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for drbd"
+  tags: iptables
+  when: hive_internal_net_addr is defined
+- name: "install drbd resource service template"
+  copy:
+    src: drbd-resource@.service
+    dest: /usr/lib/systemd/system/

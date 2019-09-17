@@ -1,0 +1,8 @@
+---
+hive_safe_tls_hostname: "{{ inventory_hostname }}"
+hive_safe_ca_dir: "{{ hive_context_dir }}/ca"
+hive_safe_sub_prefix: "/DC={{ hive_name.split('.') | reverse | join('/DC=') }}/"
+hive_safe_tls_valid_in: "{{ hive_valid_in | default(365 * 100) }}"
+hive_safe_tls_IP: "{{ hive_private_ip | default(ansible_host) }}"
+hive_safe_tls_dir: "{%if inventory_hostname in groups['mother']%}{{ hive_context_dir}}/tls{%else%}/etc/pki/tls{%endif%}"
+hive_safe_tls_become: "{{ inventory_hostname not in groups['mother'] }}"

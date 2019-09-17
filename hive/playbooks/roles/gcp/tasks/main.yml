@@ -1,0 +1,10 @@
+---
+- name: "build gcp"
+  import_tasks: build-gcp.yml
+  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+- name: "destroy gcp"
+  import_tasks: destroy-gcp.yml
+  when: hive_destroy  | default(false)
+- name: "stop gcp"
+  import_tasks: stop-gcp.yml
+  when: hive_halt  | default(false)

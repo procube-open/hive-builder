@@ -1,0 +1,71 @@
+---
+- name: create tls directory
+  file:
+    path: "{{ hive_safe_tls_dir }}/{{ item }}"
+    state: directory
+    mode: 0775
+  loop:
+    - misc
+    - private
+    - certs
+# do not use ansible openssl_privatekey,openssl_csr module
+# which needs pyOpenSLL on remote host
+- name: CSR
+  shell: |
+    openssl req -batch -new -newkey rsa:4096 -nodes -sha256 \
+      -subj '{{hive_safe_sub_prefix}}CN={{ hive_safe_tls_hostname }}' \
+      -keyout {{ hive_safe_tls_dir }}/private/{{ hive_safe_tls_hostname }}_key.pem \
+      -out {{ hive_safe_tls_dir }}/misc/{{ hive_safe_tls_hostname }}.csr
+  args:
+    creates: "{{ hive_safe_tls_dir }}/misc/{{ hive_safe_tls_hostname }}.csr"
+- name: make extra attributes file
+  tags: signed
+  template:
+    src: extfile.cnf
+    dest: "{{ hive_safe_tls_dir }}/misc/{{ hive_safe_tls_hostname }}-extfile.cnf"
+- name: fetch csr file and extfile into local
+  tags: signed
+  fetch:
+    src: "{{ hive_safe_tls_dir }}/misc/{{ item }}"
+    flat: yes
+    dest: "{{ hive_safe_ca_dir }}/{{ item }}"
+  loop:
+    - "{{ hive_safe_tls_hostname }}.csr"
+    - "{{ hive_safe_tls_hostname }}-extfile.cnf"
+  register: csr_fetched
+# - name: get whether cert file already exists or not
+#   stat: path="{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
+#   become: False
+#   delegate_to: "{{ (groups['mother'] | intersect(groups[hive_stage]))[0] }}"
+#   register: cert_stat
+- name: signed certificate
+  tags: signed
+  become: False
+  delegate_to: "{{ (groups['mother'] | intersect(groups[hive_stage]))[0] }}"
+  shell: |
+    openssl x509 -req -days "{{ hive_safe_tls_valid_in }}" -sha256 -in {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}.csr \
+    -CA  {{ hive_safe_ca_dir }}/cacert.pem \
+    -CAkey {{ hive_safe_ca_dir }}/cakey.pem -CAserial {{ hive_safe_ca_dir }}/cacert.srl \
+    -CAcreateserial -out {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem \
+    -extfile {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}-extfile.cnf
+  when: csr_fetched.results[0].changed or csr_fetched.results[1].changed or not ((hive_safe_ca_dir + '/' + hive_safe_tls_hostname + '_cert.pem') is exists)
+- name: install clinet cert files
+  tags: signed
+  copy:
+    src: "{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
+    dest: "{{ hive_safe_tls_dir }}/certs/{{ hive_safe_tls_hostname }}_cert.pem"
+    mode: 0644
+- name: install CA cert files
+  tags: signed
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: /etc/pki/ca-trust/source/anchors/cacert.pem
+    group: root
+    owner: root
+    mode: 0644
+  when: inventory_hostname not in groups['mother']
+  register: ca_certs
+- name: update trust store
+  shell: update-ca-trust
+  when: inventory_hostname not in groups['mother'] and ca_certs.changed
+  notify: update CA cert

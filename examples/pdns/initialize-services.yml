@@ -1,0 +1,60 @@
+---
+- name: gather global ips
+  gather_facts: False
+  hosts: hives
+
+  tasks:
+  - name: get my public IP
+    ipify_facts:
+    register: hive_safe_ipify_facts
+    when: hive_provider not in ['vagrant']
+  - name: set published IP
+    set_fact:
+      published_ip: "{% if hive_safe_ipify_facts is skipped %}{{ hive_private_ip }}{% else %}{{ hive_safe_ipify_facts.ansible_facts.ipify_public_ip }}{% endif %}"
+
+- name: initialize services
+  gather_facts: False
+  hosts: first_hive
+  vars:
+    delimiter: "','"
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+  tasks:
+  - name: install requests module
+    pip:
+      name: requests
+  - name: wait for powerdns api available
+    wait_for:
+      host: "{{ inventory_hostname }}"
+      port: 61001
+  - name: add zone
+    powerdns_zone:
+      name: "{{ hive_name }}.{{ domain }}."
+      nameservers: "{{ groups['hives'] | intersect(groups[hive_stage]) | map('regex_replace', '^(.*)$', '\\1.' + domain +'.' ) | list }}"
+      kind: native
+      state: present
+      pdns_host: "{{ inventory_hostname }}"
+      pdns_port: 61001
+      pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+  - name: add records for hives
+    powerdns_record:
+      name: "{{ item + '.' + domain + '.' }}"
+      zone: "{{ hive_name }}.{{ domain }}"
+      type: A
+      content: "{{ hostvars[item].published_ip }}"
+      ttl: 3600
+      pdns_host: "{{ inventory_hostname }}"
+      pdns_port: 61001
+      pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+    loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+  - name: add records for services 80
+    powerdns_record:
+      name: "{{ item + '.' }}"
+      zone: "{{ hive_name }}.{{ domain }}"
+      type: LUA
+      content: A "ifportup(80, {'{{ groups['hives'] | intersect(groups[hive_stage]) | map('extract', hostvars, ['published_ip']) | join(delimiter)}}'})"
+      ttl: 20
+      pdns_host: "{{ inventory_hostname }}"
+      pdns_port: 61001
+      pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+    loop: "{{ groups['services'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_labels') | select('defined') | map(attribute='published_fqdn') | select('defined') | list }}"

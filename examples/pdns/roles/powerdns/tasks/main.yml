@@ -1,0 +1,36 @@
+---
+- name: install powerdns
+  apk:
+    name:
+      - pdns
+      - pdns-backend-mysql
+      - pdns-backend-lua
+    state: present
+    repository:
+    - http://dl-cdn.alpinelinux.org/alpine/edge/community/
+    - http://dl-cdn.alpinelinux.org/alpine/edge/main/
+    update_cache: yes
+- name: install endpoint shell
+  copy: src=docker-entrypoint.sh dest=/ mode=0775
+- name: "patch default config file - set default"
+  lineinfile:
+    path: /etc/pdns/pdns.conf
+    regexp: "^(# *)?{{item.key}}=.*"
+    line: "{{ item.key }}={{ item.value }}"
+  with_items:
+    - key: daemon
+      value: "no"
+    - key: guardian
+      value: "no"
+    - key: launch
+      value: gmysql
+    - key: chroot
+      value: ""
+- name: "patch default config file - comment out"
+  lineinfile:
+    path: /etc/pdns/pdns.conf
+    regexp: "^(# *)?{{ item }}=.*"
+    line: "# {{ item }}="
+  with_items:
+    - use-logfile
+    - wildcards

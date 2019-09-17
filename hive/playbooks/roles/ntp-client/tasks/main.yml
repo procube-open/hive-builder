@@ -1,0 +1,18 @@
+---
+# Handlers for common notifications
+- name: configure chrony - remove centos default NTP servers
+  replace: >
+    dest=/etc/chrony.conf
+    regexp='^(server \d+.centos.pool.ntp.org iburst)'
+    replace='# \1'
+- name: configure chrony -  add NTP servers
+  blockinfile:
+    dest: /etc/chrony.conf
+    state: present
+    content: |
+      server {{ item }} iburst
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{item}}"
+  with_items: "{{ hive_ntp_servers }}"
+- name: enable choronyd
+  service: name=chronyd enabled=yes
+  notify: require reboot

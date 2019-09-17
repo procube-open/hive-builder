@@ -1,0 +1,135 @@
+---
+- name: setup docker ce repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: 0644
+- name: install docker package
+  yum:
+    name: docker-ce
+    state: present
+- name: add docker group
+  group:
+    name: docker
+    state: present
+- name: allow local connection to administrator
+  user:
+    name: "{{ hive_safe_admin }}"
+    append: True
+    groups: docker
+  when: hive_safe_admin is defined
+- name: insert allow api port rule into iptables (no internal network)
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 2376 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api {{ item }}"
+  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
+  when: hive_internal_net_addr is not defined
+  notify: require reboot
+- name: insert allow api port rule into iptables for internal network
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 2376 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api for internal network"
+  when: hive_internal_net_addr is defined
+  notify: require reboot
+# - name: insert allow api port rule into iptables for docker container
+#   blockinfile:
+#     dest: /etc/sysconfig/iptables
+#     insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#     block: |
+#       -A INPUT -p tcp -s 172.16.0.0/12 -m state --state NEW -m multiport --dport 2376 -j ACCEPT
+#     marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api"
+#   notify: require reboot
+- name: create directory /etc/docker
+  file:
+    dest: "/etc/docker"
+    state: directory
+    mode: 0700
+    owner: root
+    group: root
+- name: setup certificate for remote api
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: 0644
+- name: insert allow swarm port rule into iptables (no internal network)
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 2377,7946 -j ACCEPT
+      -A INPUT -p udp -s {{ item }} -m state --state NEW -m multiport --dport 7946,4789 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for swarm {{ item }}"
+  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
+  when: hive_internal_net_addr is not defined
+  notify: require reboot
+- name: insert allow swarm port rule into iptables for internal network
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 2377,7946 -j ACCEPT
+      -A INPUT -p udp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 7946,4789 -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for swarm"
+  when: hive_internal_net_addr is defined
+  notify: require reboot
+- name: insert allow published tcp port rule into iptables for global
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p tcp -m state --state NEW -m multiport --dport {{ hive_published_ports_tcp | join(',') }} -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for published tcp port"
+  when: hive_published_ports_tcp | length > 0
+  notify: require reboot
+- name: insert allow published udp port rule into iptables for global
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -A INPUT -p udp -m state --state NEW -m multiport --dport {{ hive_published_ports_udp | join(',') }} -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for published udp port"
+  when: hive_published_ports_udp | length > 0
+  notify: require reboot
+- name: check file 11-gce-network-security.conf
+  stat:
+    path: /etc/sysctl.d/11-gce-network-security.conf
+  register: gce_network_conf
+- name: "set kernel parameter for ip forwarding at gcp instance"
+  lineinfile:
+    regexp: "{{ item }}=[01]"
+    line: "{{ item }}=1"
+    path: /etc/sysctl.d/11-gce-network-security.conf
+    state: present
+  with_items:
+    - net.ipv4.ip_forward
+    - net.ipv4.conf.all.send_redirects
+    - net.ipv4.conf.default.send_redirects
+  notify: require reboot
+  when: gce_network_conf.stat.exists
+- name: add config RestartSec - create dir
+  file:
+    dest: /usr/lib/systemd/system/docker.service.d
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+- name: add config RestartSec - override.conf
+  template:
+    dest: /usr/lib/systemd/system/docker.service.d/override.conf
+    src: override.conf
+    mode: 0644
+    owner: root
+    group: root
+- name: enable service
+  service: name=docker enabled=yes
+  notify: require reboot

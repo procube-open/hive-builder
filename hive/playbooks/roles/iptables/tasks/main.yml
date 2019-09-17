@@ -1,0 +1,19 @@
+---
+# common utiility packages.
+
+- name: install packages
+  yum: name=iptables-services state=present
+- name: disable firewalld
+  yum: name=firewalld state=removed
+- name: enable services
+  service: name=iptables enabled=yes
+  notify: require reboot
+- name: permit access to any port from internal network
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -p icmp -j ACCEPT
+    block: |
+      -A INPUT -i {{hive_internal_net_if}} -s {{hive_internal_net_addr}}/{{hive_internal_net_cidr}} -m state --state NEW -j ACCEPT
+    marker: "# {mark} ANSIBLE MANAGED BLOCK INPUT"
+  notify: require reboot
+  when: hive_internal_net_if is defined and hive_internal_net_addr is defined

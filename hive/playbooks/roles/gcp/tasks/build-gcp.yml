@@ -1,0 +1,65 @@
+---
+- name: create networks
+  gcp_compute_network:
+    name: "{{ hive_safe_vpc_name }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auto_create_subnetworks: False
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: present
+  register: gcp_vpc
+
+- name: create firewall for internal communication
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'internal-' + hive_name ) }}"
+    description: "Allow internal traffic on the {{ hive_safe_vpc_name }} network"
+    source_ranges: "{{ hive_cidr }}"
+    network: "{{ gcp_vpc }}"
+    allowed:
+      - ip_protocol: 'tcp'
+        ports:
+          - "0-65535"
+      - ip_protocol: 'udp'
+        ports:
+          - "0-65535"
+      - ip_protocol: 'icmp'
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: present
+
+- name: create firewall for published_port
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'ssh-' + hive_name ) }}"
+    description: "Allow internal traffic on the {{ hive_safe_vpc_name }} network"
+    source_ranges: "0.0.0.0/0"
+    network: "{{ gcp_vpc }}"
+    allowed:
+    - ip_protocol: tcp
+      ports: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
+    - ip_protocol: icmp
+    - ip_protocol: udp
+      ports: "{{ hive_published_ports_udp }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: present
+
+- name: create subnetworks
+  gcp_compute_subnetwork:
+    name: "{{ item.name }}"
+    region: "{{ hive_region }}"
+    network: "{{ gcp_vpc }}"
+    ip_cidr_range: "{{ item.cidr }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: present
+  loop: "{{ hive_subnets }}"
+  register: subnets_facts
+
+- name: create instances
+  include_tasks: create_instance.yml
+  loop: "{{ hive_safe_hosts }}"
+  loop_control:
+    loop_var: gcp_host

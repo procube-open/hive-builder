@@ -1,0 +1,4 @@
+---
+# hive_registry_fqdn: "{{ (groups['repository'] | intersect(groups[hive_stage]))[0] }}"
+# hive_registry: "{{ hive_registry_fqdn }}:{{ hive_registry_port | default(5000) }}"
+# ansible_connection: docker

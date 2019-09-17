@@ -1,0 +1,6 @@
+---
+hive_timezone: "Asia/Tokyo"
+# hive_locale: "ja_JP.utf8"
+hive_ntp_servers:
+  - ntp.nict.jp
+hive_yum_url: http://ftp.riken.jp/Linux/centos

@@ -1,0 +1,8 @@
+{
+  "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"],
+  "tls": true,
+	"tlsverify": true,
+	"tlscacert": "/etc/pki/ca-trust/source/anchors/cacert.pem",
+	"tlscert": "/etc/pki/tls/certs/{{ inventory_hostname }}_cert.pem",
+	"tlskey": "/etc/pki/tls/private/{{ inventory_hostname }}_key.pem"
+}

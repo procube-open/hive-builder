@@ -1,0 +1,37 @@
+---
+- name: Put Vagrantfile
+  copy:
+    src: Vagrantfile
+    dest: "{{ hive_context_dir }}/Vagrantfile"
+  when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+- name: Put vagrant parameter file
+  template:
+    src: vagrant_vars.yml.j2
+    dest: "{{ hive_context_dir }}/vagrant_vars.yml"
+  when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+- name: invoke Vagrant
+  hive_vagrant:
+    vagrant_dir: "{{ hive_context_dir }}"
+    box_name: "{{ hive_vagrant_box_name | default('centos/7') }}"
+    instances: "{{ groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars) | list}}"
+    cmd: "{% if hive_destroy | default(false) %}destroy{% elif hive_halt | default(false) %}halt{% else %}up{% endif %}"
+  register: hive_vagrant_result
+
+- name: generate ssh-config
+  command: vagrant ssh-config
+  args:
+    chdir: "{{ hive_context_dir }}"
+  check_mode: False
+  register: hive_safe_vagrant_ssh_config
+  changed_when: False
+  when:
+    - not hive_destroy  | default(false) and not hive_halt  | default(false)
+    - not 'aborted' in (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hive_vagrant_result.status ))
+    - not 'absent' in (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hive_vagrant_result.status ))
+    - not 'not_created' in (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hive_vagrant_result.status ))
+- name: put ssh-config
+  copy:
+    content: "{{ hive_safe_vagrant_ssh_config.stdout }}"
+    dest: "{{ hive_context_dir }}/ssh_config"
+  when:
+    - not (hive_safe_vagrant_ssh_config.skipped | default(false))

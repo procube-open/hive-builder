@@ -1,0 +1,50 @@
+require 'yaml'
+
+Vagrant.configure("2") do |config|
+  vars = YAML.load_file 'vagrant_vars.yml'
+  if "#{vars['vagrant_ssh_insert_key']}" == "false"
+    config.ssh.insert_key = false
+  end
+  config.vm.box = "#{vars['vagrant_box_name']}"
+  _dir = "#{vars['hive_context_dir']}"
+  if Vagrant.has_plugin?("vagrant-proxyconf") and ENV.include?('HTTP_PROXY') and ENV['HTTP_PROXY'].length > 0
+    config.proxy.http = ENV['HTTP_PROXY']
+    config.proxy.https = ENV['HTTPS_PROXY']
+    config.proxy.no_proxy = ENV['NO_PROXY']
+  end
+
+  vars['vagrant_hosts'].each do |value|
+    # debug print
+    _name = value["name"]
+    _ip = value["ip"]
+    _netmask = value["netmask"]
+
+    # node list
+    config.vm.define "#{_name}" do |node|
+      # network
+      node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
+      node.vm.hostname = "#{_name}"
+      node.vm.provider "virtualbox" do |v|
+        v.name = "#{_name}"
+        if value.key?("memory_size")
+          v.memory = "#{value['memory_size']}"
+        end
+        if value.key?("cpus")
+          v.cpus = "#{value['cpus']}"
+        end
+        if value.key?("mirrored_disk_size")
+          drbdpool_disk = "#{_dir}/drbdpool#{_name}.vdi"
+          if !File.exist?(drbdpool_disk)
+            v.customize ['createhd', '--filename', drbdpool_disk, '--variant', 'Fixed', '--size', value['mirrored_disk_size'].to_i * 1024]
+          end
+          v.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', drbdpool_disk]
+        end
+      end
+      if value.key?("disk_size")
+        node.disksize.size = "#{value['disk_size']}GB"
+      end
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      # node.vm.synced_folder "#{value['hive_root_dir']}", "/vagrant", type: "#{value['vagrant_sync_type']}"
+    end
+  end
+end

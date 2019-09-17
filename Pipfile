@@ -1,0 +1,31 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+twine = "*"
+sphinx = "*"
+sphinx-autobuild = "*"
+
+[packages]
+ansible = "*"
+configparser = "*"
+lockfile = "*"
+python-vagrant = "*"
+requests = "*"
+google-auth = "*"
+backtrace = "*"
+boto = "*"
+boto3 = "*"
+
+[requires]
+python_version = "3.7"
+
+[scripts]
+deploy = "twine upload dist/*"
+test-deploy = "twine upload -r pypitest dist/*"
+build = "python setup.py sdist bdist_wheel"
+clean = "rm -rf build dist hive_builder.egg-info hive.egg-info .eggs"
+build-html = "make -C docs html"
+hive = "sh -c 'cd examples/pdns; python ../../hive/hive.py \"$0\" \"$@\"'"

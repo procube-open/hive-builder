@@ -1,0 +1,36 @@
+- name: inspect from image
+  docker_image_info:
+    name: "{{ hostvars[hive_safe_image].hive_from }}"
+  register: from_image_info
+  # prepare short cut variable
+- set_fact:
+    orig_config: "{{ from_image_info.images[0].Config }}"
+- name: reset build overrides
+  # original Config for alpine {"Cmd": ["/bin/sh"],"WorkingDir": "","Entrypoint": null}
+  # original Config for centos {"Cmd": ["/bin/bash"],"WorkingDir": "","Entrypoint": null}
+  set_fact:
+    reset_build_overrides: ""
+- set_fact:
+    # --change 'ENTRYPOINT []' does not set null, so set ["/bin/sh"]
+    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hostvars[hive_safe_image].hive_entrypoint is defined %}{{ hostvars[hive_safe_image].hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
+  when: hostvars[hive_safe_image].hive_standalone is not defined or not hostvars[hive_safe_image].hive_standalone
+- set_fact:
+    # --change CMD cannot set null, so set []
+    reset_build_overrides: "{{reset_build_overrides}} --change 'CMD {% if hostvars[hive_safe_image].hive_command is defined %}{{ hostvars[hive_safe_image].hive_command | to_json }}{% elif orig_config.Cmd == none %}[]{% else %}{{ orig_config.Cmd | to_json }}{% endif %}'"
+  when: hostvars[hive_safe_image].hive_standalone is not defined or not hostvars[hive_safe_image].hive_standalone
+- set_fact:
+    # --change WORKDIR cannot set "", so set /
+    reset_build_overrides: "{{reset_build_overrides}} --change 'WORKDIR {% if hostvars[hive_safe_image].hive_working_dir is defined %}{{ hostvars[hive_safe_image].hive_working_dir | to_json }}{% elif orig_config.WorkingDir == '' %}/{% else %}{{ orig_config.WorkingDir | to_json }}{% endif %}'"
+  when: hostvars[hive_safe_image].hive_working_dir is defined
+- debug: var=reset_build_overrides
+- name: commit image
+  shell: |
+    docker stop "build_{{ hive_safe_image }}"
+    docker commit {{ reset_build_overrides }} "build_{{ hive_safe_image }}"  "{{ hive_safe_image_tag_latest }}"
+  register: commit_result
+
+- name: push image
+  shell: |
+    docker push "{{ hive_safe_image_tag_latest }}"
+  when: commit_result is defined and commit_result.rc == 0
+  register: push

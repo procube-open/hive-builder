@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2018 Procube Co., Ltd.
+
+import docker
+from jinja2 import Template
+import os
+import codecs
+import logging
+import signal
+
+logging.basicConfig(level=os.environ.get('LOG_LEVEL', logging.INFO), format='%(asctime)-15s %(message)s')
+
+TEMPLATE = Template("""\
+server {
+  server_name {{ fqdn }};
+  listen 80;
+{% if cert_path  is defined %}
+  listen 443 ssl;
+  # Redirect setting for SSL auth
+  set $do_redirect 0;
+  if ($scheme = http) {
+      set $do_redirect 1;
+  }
+  if ($request_uri ~* /50x.html/) {
+      set $do_redirect 0;
+  }
+  if ($do_redirect = 1) {
+      return 301 https://$host:443$request_uri;
+  }
+  ssl_prefer_server_ciphers  on;
+  ssl_protocols TLSv1.2;
+  ssl_ciphers  'ECDH !aNULL !eNULL !SSLv2 !DH !RC4 !3DES';
+  ssl_certificate {{ cert_path }};
+  ssl_certificate_key {{ key_path }};
+  ssl_verify_client off;
+{% endif %}
+  location / {
+    proxy_pass http://{{ upstream }}:{{ port }};
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+  }
+
+  error_page   500 502 503 504  /50x.html;
+  location = /50x.html {
+      root   /usr/share/nginx/html;
+  }
+}
+""")
+
+
+class webserver:
+  def __init__(self, params):
+    self.params = params
+    if self.params['cert'] is not None and self.params['key'] is not None:
+      self.params['cert_path'] = f'/etc/nginx/conf.d/{params["fqdn"]}.cert'
+      self.params['key_path'] = f'/etc/nginx/conf.d/{params["fqdn"]}.key'
+
+  def __eq__(self, other):
+    return self.params == other.params
+
+  def __str__(self):
+    return TEMPLATE.render(self.params)
+
+  def render(self, logger):
+    if self.params['cert'] is not None and self.params['key'] is not None:
+      with codecs.open(self.params['cert_path'], 'w', 'utf-8') as cert:
+        print(self.params['cert'], file=cert)
+      logger.info(f'Rendering certificate into {self.params["cert_path"]}')
+      with codecs.open(self.params['key_path'], 'w', 'utf-8') as key:
+        print(self.params['key'], file=key)
+      logger.info(f'Rendering certificate into {self.params["key_path"]}')
+
+
+class servers:
+  def __init__(self):
+    self.client = docker.from_env()
+    self.current_servers = []
+    self.proxy_id = None
+    self.logger = logging.getLogger(__name__ + '@' + self.client.info()['Name'])
+
+  def check_render(self):
+    servers = []
+    for service in self.client.services.list():
+      labels = service.attrs.get('Spec', {}).get('Labels', {})
+      if 'published_fqdn' in labels:
+        self.logger.info(f'Upstream service { service.id } as { service.attrs["Spec"]["Name"] } is found (port = { labels.get("port", "undefined") }).')
+        params = {
+            'fqdn': labels['published_fqdn'],
+            'upstream': service.attrs['Spec']['Name'],
+            'port': labels.get('port', "80"),
+            'cert': labels.get('cert'),
+            'key': labels.get('key')
+        }
+        servers.append(webserver(params))
+    self.proxy_id = None
+    for container in self.client.containers.list():
+      if container.attrs.get('Config', {}).get('Labels', {}).get('com.docker.swarm.service.name') == 'proxy':
+        self.logger.info(f'Proxy container { container.id } is found.')
+        self.proxy_id = container.id
+    if servers != self.current_servers:
+      with codecs.open('/etc/nginx/conf.d/default.conf', 'w', 'utf-8') as conf:
+        print(*servers, sep='\n', file=conf)
+      self.logger.info('Rendering config into /etc/nginx/conf.d/default.conf')
+      for server in servers:
+        server.render(self.logger)
+      self.current_servers = servers
+      if self.proxy_id:
+        self.logger.info(f'Reload proxy { self.proxy_id }')
+        self.client.containers.get(self.proxy_id).kill(signal=signal.SIGHUP)
+
+  def run(self):
+    self.logger.info('Started')
+    self.check_render()
+    for ev in self.client.events(decode=True):
+      try:
+        if ev.get('Type') == 'service' and ev.get('Action') == 'update' and ev.get('Actor', {}).get('Attributes', {}).get('updatestate.new') == 'completed':
+          self.logger.info('Receive a service update completed event.')
+          self.check_render()
+      except Exception as e:
+        self.logger.exception(e)
+
+
+def main():
+  s = servers()
+  s.run()
+
+
+if __name__ == "__main__":
+    main()

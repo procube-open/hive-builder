@@ -1,0 +1,51 @@
+#!/bin/bash
+LOGGER=${0##*/}
+
+function message () {
+  echo "INFO: $LOGGER:" $*
+}
+
+function error () {
+  echo "ERROR: $LOGGER:" $* 1>&2
+  exit 1
+}
+
+usage_exit() {
+  error "Usage: $0 [-1 | -2 | -3] [-n] command ..."
+}
+
+no_arg=1
+exec_opts=-it
+
+while getopts 123nh OPT
+do
+  case $OPT in
+    1 | 2 | 3 ) no_arg=$OPT
+      ;;
+    n)  exec_opts=-i
+      ;;
+    h)  usage_exit
+      ;;
+    \?) usage_exit
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+export DOCKER_HOST={{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}:2376
+export DOCKER_TLS=1
+suffix={{ hive_name }}
+{% raw %}
+num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$1" | cut -f 1 -d /)
+if [ -z $num_replicas ]; then
+  error "service $1 is not found."
+fi
+if [ ${no_arg} -gt $num_replicas ]; then
+  error "the index ${no_arg} exceed the nubmer of replicas of the service $num_replicas."
+fi
+set -eo pipefail
+if docker_command=$(docker service ps "$1" --format "docker -H tcp://{{.Node}}.$suffix:2376 exec $exec_opts {{.Name}}.{{.ID}}" --filter desired-state=running --no-trunc | head -$no_arg | tail -1); then
+  shift
+  exec $docker_command "$@"
+fi
+{% endraw %}

@@ -1,0 +1,57 @@
+version: "3.4"
+services:
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:ubuntu-trunk
+    container_name: zabbix-server
+    environment:
+      TZ: "Asia/Tokyo"
+      DB_SERVER_HOST: mariadb
+      MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix
+      MYSQL_DATABASE: zabbix
+    ports:
+      - "10051:10051"
+    restart: unless-stopped
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-mysql:ubuntu-trunk
+    container_name: zabbix-web
+    environment:
+      TZ: "Asia/Tokyo"
+      DB_SERVER_HOST: mariadb
+      MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix
+      MYSQL_DATABASE: zabbix
+    ports:
+      - "10052:80"
+    restart: unless-stopped
+  # zabbix-agent:
+  #   image: zabbix/zabbix-agent:ubuntu-trunk
+  #   container_name: zabbix-agent
+  #   environment:
+  #     TZ: "Asia/Tokyo"
+  #   restart: unless-stopped
+  mariadb:
+    image: mariadb:10.4
+    container_name: mariadb
+    environment:
+      TZ: "Asia/Tokyo"
+      MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix
+      MYSQL_DATABASE: zabbix
+    volumes:
+      - data:/var/lib/mysql
+      - config:/etc/mysql/
+    hostname: mariadb
+    command:
+    - "--character-set-server=utf8mb4"
+    - "--collation-server=utf8mb4_unicode_ci"
+    expose:
+      - "3306"
+    restart: unless-stopped
+
+volumes:
+  data:
+  config:

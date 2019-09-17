@@ -1,0 +1,26 @@
+---
+- name: create CA directory
+  file:
+    path: "{{ hive_safe_ca_dir }}"
+    state: directory
+    mode: 0775
+- name: setup extra attribute file
+  copy:
+    src: extfile.cnf
+    dest: "{{ hive_safe_ca_dir }}/extfile-ca.cnf"
+- name: CA CSR
+  shell: |
+    openssl req -batch -new -newkey rsa:4096 -nodes -sha256 \
+      -subj '{{ hive_safe_sub_prefix }}/CN=ca.hive.procube-demo.jp' \
+      -keyout {{ hive_safe_ca_dir }}/cakey.pem \
+      -out {{ hive_safe_ca_dir }}/ca-ca.csr
+  args:
+    creates: "{{ hive_safe_ca_dir }}/ca-ca.csr"
+- name: CA certificate
+  shell: |
+    openssl x509 -req  -days "{{ hive_safe_ca_valid_in }}" -sha256 -in {{ hive_safe_ca_dir }}/ca-ca.csr \
+      -signkey {{ hive_safe_ca_dir }}/cakey.pem \
+      -out {{ hive_safe_ca_dir }}/cacert.pem \
+      -extfile {{ hive_safe_ca_dir }}/extfile-ca.cnf
+  args:
+    creates: "{{ hive_safe_ca_dir }}/cacert.pem"

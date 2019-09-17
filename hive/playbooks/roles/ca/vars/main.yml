@@ -1,0 +1,4 @@
+---
+hive_safe_ca_dir: "{{ hive_context_dir }}/ca"
+hive_safe_sub_prefix: "{%if hive_sub_prefix is defined %}{{ hive_sub_prefix }}{%else%}/DC={{ hive_name.split('.') | reverse | join('/DC=') }}/{%endif%}"
+hive_safe_ca_valid_in: "{{ hive_valid_in | default(365 * 100) }}"

@@ -1,0 +1,21 @@
+---
+- name: build infrastructure
+  hosts: mother
+
+  tasks:
+  - name: generate ssh keypair
+    openssh_keypair:
+      path: "{{ hive_private_key_path }}"
+    when: hive_provider not in ['vagrant']
+  - include_role:
+      name: "{{ hive_provider }}"
+  - import_role:
+      name: ca
+    when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+
+- name: wait for connectable
+  gather_facts: False
+  hosts: servers
+  tasks:
+  - wait_for_connection:
+    when: not hive_destroy  | default(false) and not hive_halt  | default(false)

@@ -1,0 +1,10 @@
+---
+- name: "build aws"
+  import_tasks: build-aws.yml
+  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+- name: "destroy aws"
+  import_tasks: destroy-aws.yml
+  when: hive_destroy  | default(false)
+- name: "stop aws ec2 instance"
+  import_tasks: stop-aws.yml
+  when: hive_halt  | default(false)

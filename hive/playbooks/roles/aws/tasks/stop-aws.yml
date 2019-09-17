@@ -1,0 +1,8 @@
+- name: stop instance
+  ec2_instance:
+    state: stopped
+    region: "{{ hive_region }}"
+    wait: yes
+    filters:
+      "tag:Name": "{{ item }}"
+  loop: "{{ hive_safe_hosts }}"

@@ -1,0 +1,9 @@
+[Unit]
+Description=Backup Job
+
+[Service]
+Type=oneshot
+WorkingDirectory={{ hive_home_dir }}
+ExecStart=/usr/bin/hive-backup.sh
+User={{ hive_safe_admin }}
+Group={{ hive_safe_admin }}

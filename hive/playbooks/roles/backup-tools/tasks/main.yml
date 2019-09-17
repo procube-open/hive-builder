@@ -1,0 +1,23 @@
+---
+- name: add backup service
+  become: True
+  template:
+    src: "{{item}}"
+    dest: /usr/lib/systemd/system
+    mode: 0644
+  with_items:
+    - backup.service
+    - backup.timer
+- name: enable and start backup timer service
+  become: True
+  service:
+    daemon_reload: True
+    name: "backup.timer"
+    enabled: True
+    state: started
+- name: add backup script
+  become: True
+  template:
+    src: hive-backup.sh
+    dest: /usr/bin/hive-backup.sh
+    mode: 0755

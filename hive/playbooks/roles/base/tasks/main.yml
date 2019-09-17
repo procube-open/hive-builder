@@ -1,0 +1,95 @@
+---
+# common utiility packages.
+- name: Disable yum-fastestmirror
+  lineinfile: >
+    dest="/etc/yum/pluginconf.d/fastestmirror.conf"
+    line="enabled=0"
+    state=present
+    regexp="^#?enabled="
+    insertafter=EOF
+    create=yes
+    owner=root group=root mode=0644
+  when: hive_yum_url is defined
+- name: fix yum download site - remove mirror list
+  replace:
+    path: /etc/yum.repos.d/CentOS-Base.repo
+    regexp: "^#?mirrorlist=(.*)$"
+    replace: "#mirrorlist=\\1"
+  when: hive_yum_url is defined
+- name: fix yum download site - set baseurl
+  replace:
+    path: /etc/yum.repos.d/CentOS-Base.repo
+    regexp: "^#?baseurl=.*/centos/(.*)$"
+    replace: "baseurl={{ hive_yum_url }}/\\1"
+  when: hive_yum_url is defined
+- name: install packages
+  yum:
+    state: present
+    name:
+      - bridge-utils
+      - wget
+      - vim
+      - unzip
+      - telnet
+      - sysstat
+      - strace
+      - tcpdump
+      - lsof
+- name: disable selinux
+  selinux: >
+    state=disabled
+  notify: require reboot
+- name: enable services
+  service: "name={{ item }} enabled=yes"
+  with_items:
+    - sysstat
+  notify: require reboot
+- name: set hostname
+  hostname:
+    name: "{{ inventory_hostname.split('.')[0] }}"
+- name: preserve hostname setting for ec2
+  lineinfile:
+    line: "preserve_hostname: true"
+    path: /etc/cloud/cloud.cfg
+    state: present
+  when: "'/etc/cloud' is exists"
+- name: "set timezone"
+  timezone:
+    name: "{{ hive_timezone }}"
+  when: hive_timezone is defined
+# setting up locale if hive_locale is defined
+- name: install packages for locale
+  yum:
+    name: glibc-common
+    state: latest
+  when: hive_locale is defined
+- name: gather locale info
+  command: localectl
+  check_mode: False
+  changed_when: False
+  register: hive_safe_current_locale
+  when: hive_locale is defined
+- name: "set locale"
+  shell: "localectl set-locale {{ hive_locale }}"
+  when: "hive_locale is defined and not hive_safe_current_locale.stdout.find('System Locale: ' + hive_locale)"
+# setting up sshd parameters
+- name: disable Password Authentication for sshd
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PasswordAuthentication"
+    insertafter: "^#PasswordAuthentication"
+    line: "PasswordAuthentication no"
+- name: disable Challenge Response Authentication for sshd
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^ChallengeResponseAuthentication"
+    insertafter: "^#ChallengeResponseAuthentication"
+    line: "ChallengeResponseAuthentication no"
+- name: "patch NetworkManager-wait-online.service to waiting for network　connectivity specifically"
+  # Avoid Error on network.service:
+  # Bringing up interface eth0:  Error: Connection activation failed: No suitable device found for this connection.
+  copy:
+    src: NetworkManager-wait-online.service.d
+    dest: /usr/lib/systemd/system/
+    mode: 0644
+    directory_mode: 0755

@@ -1,0 +1,3 @@
+---
+hive_safe_ca_dir: "{{ hive_context_dir }}/ca"
+hive_safe_tls_dir: "{%if inventory_hostname in groups['mother']%}{{ hive_context_dir}}/tls{%else%}/etc/pki/tls{%endif%}"

@@ -1,0 +1,10 @@
+---
+- name: build {{ hive_safe_image }}
+  hosts: all
+  gather_facts: False
+  connection: docker
+
+  roles:
+{% for role in hostvars[hive_safe_image].hive_roles %}
+    - {{ role }}
+{% endfor %}

@@ -1,0 +1,68 @@
+---
+- name: check drbd resource service is active
+  service_facts:
+  register: hive_safe_drbd_service_facts
+- set_fact:
+    hive_safe_drbd_service_not_exists: "{{ 'drbd-resource@' + hive_safe_volume.name + '.service' not in hive_safe_drbd_service_facts.ansible_facts.services }}"
+    hive_safe_drbd_with_disk: "{{ hive_safe_volume.drbd.diskless is not defined or inventory_hostname not in (hive_safe_volume.drbd.diskless | map('extract', groups['hives'] | intersect(groups[hive_stage]) | list) |list) }}"
+    hive_safe_first_disk: "{%if hive_safe_volume.drbd.diskless is not defined %}{{ 'first_hive' in group_names }}{%else%}{{ (groups['hives'] | intersect(groups[hive_stage]) | difference(hive_safe_volume.drbd.diskless | map('extract', groups['hives'] | intersect(groups[hive_stage]) | list) | list) | list)[0] == inventory_hostname }}{%endif%}"
+
+- name: put resource definition file
+  template:
+    src: volume.res
+    dest: "/etc/drbd.d/{{ hive_safe_volume.name }}.res"
+
+- name: create logical volume on LVM
+  lvol:
+    vg: drbdvg
+    lv: "{{hive_safe_volume.name}}"
+    thinpool: drbdpool
+    size: "{{ hive_safe_volume.drbd.size }}"
+  when: hive_safe_drbd_with_disk
+
+- name: get if drbd metadata exists or not
+  shell: "drbdadm dstate {{ hive_safe_volume.name }}"
+  changed_when: False
+  check_mode: False
+  failed_when: False
+  register: hive_safe_dstate
+  when: hive_safe_drbd_with_disk
+
+- name: create drbd metadata
+  shell: "drbdadm create-md --force {{ hive_safe_volume.name }}"
+  when: hive_safe_drbd_with_disk and hive_safe_dstate.rc != 0
+
+- name: gather drbd resource status
+  shell: "drbdadm adjust -d {{ hive_safe_volume.name }}"
+  changed_when: False
+  check_mode: False
+  register: hive_safe_adjust
+
+- name: adjust drbd resource
+  shell: "drbdadm adjust {{ hive_safe_volume.name }}"
+  when: (hive_safe_adjust.stdout_lines | length) > 0
+
+- name: gather if formatted or not
+  shell: 'blkid | grep ''^/dev/drbd{{ hive_safe_volume.drbd.device_id }}:.* TYPE="{{ hive_safe_volume.drbd.fstype }}"'''
+  changed_when: False
+  check_mode: False
+  failed_when: False
+  register: hive_safe_formatted
+  when: hive_safe_drbd_service_not_exists and hive_safe_first_disk
+
+- name: force primary drbd resource
+  shell: "drbdadm primary --force {{ hive_safe_volume.name }}"
+  when: hive_safe_drbd_service_not_exists and hive_safe_first_disk and hive_safe_formatted.rc != 0
+
+- name: format drbd disk
+  filesystem:
+    dev: "/dev/drbd{{ hive_safe_volume.drbd.device_id }}"
+    force: True
+    fstype: "{{ hive_safe_volume.drbd.fstype }}"
+  when: hive_safe_drbd_service_not_exists and hive_safe_first_disk and hive_safe_formatted.rc != 0
+
+- name: enable drbd resource service
+  service:
+    name: "drbd-resource@{{ hive_safe_volume.name }}.service"
+    enabled: True
+  notify: require reboot

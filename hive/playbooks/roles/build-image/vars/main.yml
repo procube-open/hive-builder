@@ -1,0 +1,5 @@
+---
+hive_playbook_command:  "{{ hive_home_dir }}/docker/bin/ansible-playbook"
+hive_safe_sleep_command: /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
+hive_safe_image_tag: "{{hive_registry}}/{{ hive_safe_image }}:{{ lookup('pipe', 'date +\"%Y%m%d%H%M%S\"') }}"
+hive_safe_image_tag_latest: "{{hive_registry}}/{{ hive_safe_image }}:latest"

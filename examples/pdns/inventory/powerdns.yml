@@ -1,0 +1,148 @@
+---
+plugin: hive_services
+services:
+  powerdns:
+    image: procube/powerdns:latest
+    environment:
+      MYSQL_PASSWORD: "{{db_password}}"
+      MYSQL_HOST: pdnsdb
+      MYSQL_DNSSEC: "yes"
+      PDNSCONF_DEFAULT_SOA_NAME: "{{ (groups['first_hive'] | intersect(groups[hive_stage]) | list)[0] + '.' + domain }}"
+    command:
+    - "--api=yes"
+    - "--api-key={{db_password}}"
+    - "--webserver=yes"
+    - "--webserver-address=0.0.0.0"
+    - "--webserver-allow-from=0.0.0.0/0"
+    ports:
+    - target_port: 53
+      published_port: 53
+      protocol: tcp
+    - target_port: 8081
+      published_port: 61001
+      protocol: tcp
+    - target_port: 53
+      published_port: 53
+      protocol: udp
+  pdnsdb:
+    image:
+      from: "mariadb:10.3"
+      roles:
+      - python-aptk
+      - powerdns-initdb
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{db_password}}"
+      MYSQL_USER: powerdns
+      MYSQL_PASSWORD: "{{db_password}}"
+      MYSQL_DATABASE: powerdns
+      # DEBUG: 15
+      # MCAST_IF: eth0
+    volumes:
+    - source: pdnsdb_data
+      target: /var/lib/mysql
+      type: volume
+      drbd:
+        fstype: xfs
+        device_id: 1
+        size: 500M
+        diskless: [0]
+    backup_scripts:
+    - name: pdnsdb
+      backup_command: "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
+      restore_command: "echo source /root/today.sql | mysql -B -u powerdns -p{{db_password}} -D powerdns"
+      backup_file: /root/today.sql
+      restore_file: /root/today.sql
+      ext: sql
+      cleanup_days_before: 10
+  pdnsadmin:
+    image:
+      from: python:3-alpine
+      roles:
+        - powerdns-admin
+      working_dir: /powerdns-admin
+      entrypoint: ['/docker-entrypoint.sh']
+    command: ['/usr/bin/supervisord', '-c', 'supervisord.conf']
+    volumes:
+    - source: pdnsadmin_data
+      target: /powerdns-admin/data
+      type: volume
+      drbd:
+        fstype: xfs
+        device_id: 2
+        size: 500M
+        diskless: [2]
+    environment:
+      PDA_PORT: "80"
+      PDA_BIND_ADDRESS: 0.0.0.0
+      # DEBUG: 15
+      PDNS_HOST: powerdns
+      PDNS_API_KEY: "{{db_password}}"
+    labels:
+      published_fqdn: pdnsadmin.pdns.procube-demo.jp
+      port: "9191"
+  proxy:
+    image: "procube/nginx:latest"
+    ports:
+    - target_port: 80
+      published_port: 80
+      protocol: tcp
+      mode: host
+    - target_port: 443
+      published_port: 443
+      protocol: tcp
+      mode: host
+    volumes:
+    - source: proxy_config
+      target: /etc/nginx/conf.d
+      type: volume
+    mode: global
+    endpoint_mode: dnsrr
+  configure:
+    image:
+      from: python:3-alpine
+      roles:
+        - proxy-configure
+      entrypoint:
+      - /usr/local/bin/python
+      command:
+      - /usr/sbin/proxy-configure
+    environment:
+      TZ: JST-9
+    volumes:
+    - source: proxy_config
+      target: /etc/nginx/conf.d
+      type: volume
+    - source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    mode: global
+  certbot:
+    image:
+      from: certbot/certbot:latest
+      roles:
+        - certbot-runner
+      entrypoint:
+      - /usr/local/bin/python
+      command:
+      - /usr/sbin/certbot-runner
+    environment:
+      TZ: JST-9
+      CERTBOT_EMAIL: "{{ hive_email | default(omit) }}"
+      CERTBOT_PDNS_API_KEY: "{{ db_password }}"
+      CERTBOT_PDNS_BASE_URL: "http://powerdns:8081/api/v1"
+    volumes:
+    - source: letsencrypt_data
+      target: /etc/letsencrypt
+      type: volume
+      drbd:
+        fstype: xfs
+        device_id: 3
+        size: 52M
+    - source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    backup_scripts:
+    - name: certificates
+      directory: /etc/letsencrypt
+      cleanup_days_before: 10
+    available_on:
+    - production
+    - staging

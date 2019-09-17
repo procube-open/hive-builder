@@ -1,0 +1,7 @@
+---
+- name: install docker-compose
+  become: False
+  pip:
+    name: docker-compose
+    state: present
+    virtualenv: "{{ hive_home_dir }}/docker"

@@ -1,0 +1,25 @@
+#!/bin/sh
+no_arg=-1
+container_name=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    "-1" | "-2" | "-3" ) no_arg=$1;;
+    -*) echo "unknown option $1." 1>&2; exit 1;;
+    *)
+      if [ "$container_name" != "" ]; then
+        echo "muatiple container name cannot be specified." 1>&2
+        exit 1
+      fi
+      container_name=$1;;
+  esac
+  shift
+done
+
+if [ "$container_name" == "" ]; then
+  echo "container name must be specified." 1>&2
+  exit 1
+fi
+
+
+set -- $no_arg $container_name /bin/sh -c "stty rows $(tput lines) cols $(tput cols) && export TERM=$TERM && if [ -x /bin/ash ]; then exec /bin/ash;elif [ -x /bin/bash ];then exec /bin/bash; else exec /bin/sh; fi"
+. /usr/bin/dexec

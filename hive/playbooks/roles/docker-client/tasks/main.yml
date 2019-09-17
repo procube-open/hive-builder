@@ -1,0 +1,40 @@
+---
+- name: "setup tls connection - create dir"
+  become: False
+  file:
+    path: "{{ hive_home_dir }}/.docker"
+    state: directory
+    mode: 0700
+- name: "setup tls connection - put ca certs"
+  become: False
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: "{{ hive_home_dir }}/.docker/ca.pem"
+    mode: 0600
+- name: "setup tls connection - put certs"
+  become: False
+  copy:
+    remote_src: True
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0600
+  with_items:
+    - src: "{{ hive_safe_tls_dir }}/private/{{ inventory_hostname }}_key.pem"
+      dest: "{{ hive_home_dir }}/.docker/key.pem"
+    - src: "{{ hive_safe_tls_dir }}/certs/{{ inventory_hostname }}_cert.pem"
+      dest: "{{ hive_home_dir }}/.docker/cert.pem"
+- name: install docker python module
+  become: False
+  pip:
+    name: docker
+    state: present
+    virtualenv: "{{ hive_home_dir }}/docker"
+- name: install utility comnand
+  template:
+    dest: /usr/bin/{{ item }}
+    src: "{{ item }}"
+    mode: 0755
+  loop:
+    - dexec
+    - dsh
+    - dcp

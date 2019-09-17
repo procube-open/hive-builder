@@ -1,0 +1,50 @@
+---
+- name: setup hive servers
+  hosts: servers
+  become: True
+  tags: setup-hosts
+
+  roles:
+    - base
+    - hostsfile
+    - role: ntp-client
+      when: hive_ntp_servers is defined
+    - iptables
+    - role: pip-venv
+      when: hive_safe_venvs is defined
+    - role: internal-network
+      when: hive_internal_net_if is defined
+    - role: auxiliary-networks
+      when: (hive_config_auxiliary_networks | default(False)) and hive_auxiliary_networks is defined
+    - role: users
+      when: users is defined
+    - strict-source-ip
+    - tls-certificate
+    - docker
+    - role: drbd
+      when: hive_mirrored_disk_size is defined
+    - addon
+    - docker-client
+    - reboot
+
+- name: setup repository and zabbix
+  hosts: repository
+  gather_facts: False
+  tags: registry
+
+  roles:
+    - docker-compose
+    - registry
+    - zabbix
+    - backup-tools
+
+- name: build cluster
+  hosts: hives
+  gather_facts: False
+  become: True
+  tags: build-cluster
+
+  roles:
+  - swarm
+  - zabbix-agent
+  - reboot

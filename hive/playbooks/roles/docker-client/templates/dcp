@@ -1,0 +1,64 @@
+#!/bin/bash
+LOGGER=${0##*/}
+
+function message () {
+  echo "INFO: $LOGGER:" $*
+}
+
+function error () {
+  echo "ERROR: $LOGGER:" $* 1>&2
+  exit 1
+}
+
+no_arg=1
+cp_opts=
+
+usage_exit() {
+  error "Usage: $0 [-1 | -2 | -3] [-a] [-L] command ..."
+}
+
+while getopts 123aL OPT
+do
+  case $OPT in
+    1 | 2 | 3 ) no_arg=$OPT
+      ;;
+    a | L)  cp_opts="$cp_opts -$OPT"
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+source=$1
+dest=$2
+if [ $# -gt 2 ]; then
+  error "too many argument."
+fi
+
+export DOCKER_HOST={{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}:2376
+export DOCKER_TLS=1
+suffix={{ hive_name }}
+
+{% raw %}
+if [ "${source%:*}" != "$source" ];then
+  service="${source%:*}"
+  cp_template="docker -H tcp://{{.Node}}.$suffix:2376 cp $cp_opts {{.Name}}.{{.ID}}:${source#*:} $dest"
+elif [ "${dest%:*}" != "$dest" ];then
+  service="${dest%:*}"
+  cp_template="docker -H tcp://{{.Node}}.$suffix:2376 cp $cp_opts $source {{.Name}}.{{.ID}}:${dest#*:}"
+else
+  error "no service prefix."
+fi
+
+num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$service" | cut -f 1 -d /)
+if [ -z $num_replicas ]; then
+  error "service $service is not found."
+fi
+if [ ${no_arg} -gt $num_replicas ]; then
+  error "the index ${no_arg} exceed the nubmer of replicas of the service $num_replicas."
+fi
+set -eo pipefail
+if docker_command=$(docker service ps "$service" --format "$cp_template" --filter desired-state=running --no-trunc | head -$no_arg | tail -1); then
+  shift
+  exec $docker_command
+fi
+{% endraw %}

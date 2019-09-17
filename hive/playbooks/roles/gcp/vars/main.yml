@@ -1,0 +1,9 @@
+---
+# Service Acccount Email only works with Machine Account-based authentication
+hive_safe_gcp_scope: "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/compute, https://www.googleapis.com/auth/devstorage.full_control"
+hive_safe_gcp_auth_kind: serviceaccount
+hive_safe_gcp_service_account_file: "{{ hive_root_dir }}/gcp_credential.json"
+hive_safe_gcp_project: "{{ (lookup('file', hive_safe_gcp_service_account_file) | from_json).project_id }}"
+hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
+hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+hive_safe_image_id: "{{ hive_image_name | default('projects/centos-cloud/global/images/family/centos-7') }}"

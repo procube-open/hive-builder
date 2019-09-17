@@ -1,0 +1,4 @@
+---
+- name: install python
+  raw: if [ -x /usr/bin/apt-get ]; then (apt-get update && apt-get -y install python); else (apk update && apk add python); fi
+  changed_when: False

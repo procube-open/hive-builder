@@ -1,0 +1,32 @@
+---
+- name: build container images
+  gather_facts: False
+  hosts: repository
+  vars:
+    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images'] | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images'] }}{% endif %}"
+    hive_safe_images_dir: "{{ hive_home_dir }}/images"
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+  tasks:
+  - name: setup ansible - install ansible
+    pip:
+      name: ansible
+      state: latest
+      virtualenv: "{{ hive_home_dir }}/docker"
+  - name: "setup ansible - create dir"
+    file:
+      path: "{{ hive_safe_images_dir }}/roles"
+      state: directory
+      mode: 0755
+  - name: login to private registry
+    docker_login:
+      registry: "{{ hive_registry }}"
+      username: "{{ hive_safe_docker_login_user }}"
+      password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
+      email: "{{ hive_safe_email }}"
+  - include_role:
+      name: build-image
+    loop: "{{ hive_safe_images }}"
+    loop_control:
+      loop_var: hive_safe_image
+

@@ -1,0 +1,5 @@
+---
+# Service Acccount Email only works with Machine Account-based authentication
+hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
+hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+hive_safe_image_id: "{{ hive_image_name | default('ami-045f38c93733dd48d') }}"

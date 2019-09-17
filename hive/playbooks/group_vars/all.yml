@@ -1,0 +1,25 @@
+---
+hive_context_dir: "{root_dir}/.hive/{stage}"
+hive_provider_admin_map:
+  vagrant: vagrant
+  aws: centos
+  gcp: centos
+hive_safe_email: "{{ hive_email | default('hive@example.com') }}"
+hive_safe_docker_login_user: "{{ hive_docker_login_user | default('hive') }}"
+hive_http_proxy: "lookup('env', 'HTTP_PROXY')"
+hive_https_proxy: "lookup('env', 'HTTPS_PROXY')"
+hive_no_proxy: "lookup('env', 'NO_PROXY')"
+hive_tmp_proxy_env_block: |
+  HTTP_PROXY={{ hive_http_proxy }}
+  HTTPS_PROXY={{ hive_https_proxy }}
+  NO_PROXY={{ hive_no_proxy }}
+hive_proxy_env_block: "{%if lookup('env', 'HTTP_PROXY') | length > 0 %}{{hive_tmp_proxy_env_block}}{%else%}{{omit}}{%endif%}"
+hive_registry: "{{ hive_registry_fqdn }}:{{ hive_registry_port | default(5000) }}"
+hive_private_key_path:  "{{ hive_context_dir + '/id_rsa'}}"
+hive_public_key_path:  "{{ hive_private_key_path + '.pub'}}"
+hive_published_ports_tcp: "{{ groups['services'] | map('extract', hostvars, 'hive_ports') | flatten | select('defined') | selectattr('protocol', 'eq', 'tcp') | selectattr('published_port', 'defined') | selectattr('published_port', 'lt', 10000) | map(attribute='published_port') | map('string') | list }}"
+hive_published_ports_udp: "{{ groups['services'] | map('extract', hostvars, 'hive_ports') | flatten | select('defined') | selectattr('protocol', 'eq', 'udp') | selectattr('published_port', 'defined') | selectattr('published_port', 'lt', 10000) | map(attribute='published_port') | map('string') |  list }}"
+hive_safe_admin: "{{ hive_admin | default(hive_provider_admin_map[hive_provider]) }}"
+hive_home_dir: "/home/{{ hive_safe_admin }}"
+hive_registry_fqdn: "{{ (groups['repository'] | intersect(groups[hive_stage]))[0] }}"
+hive_safe_sshd_port: "{{ hive_sshd_port | default(22) }}"

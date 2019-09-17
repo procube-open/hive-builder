@@ -1,0 +1,23 @@
+version: "3.4"
+services:
+  registry_server:
+    image: registry:2
+    container_name: registry
+    ports:
+      - "{{hive_private_ip}}:{{hive_registry_port | default(5000)}}:5000"
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED : 'True'
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/certs/{{ hive_registry_fqdn }}_cert.pem"
+      REGISTRY_HTTP_TLS_KEY: "/certs/private/{{ hive_registry_fqdn }}_key.pem"
+    volumes:
+      - "regdata:/var/lib/registry"
+      - "{{ hive_home_dir }}/registry:/auth"
+      - "/etc/pki/tls:/certs"
+    restart: always
+
+volumes:
+  regdata:
+

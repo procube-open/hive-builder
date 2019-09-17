@@ -1,0 +1,77 @@
+---
+- set_fact:
+    hive_safe_name: "{{ gcp_host.split('.')[0] }}"
+- name: create global ip
+  gcp_compute_address:
+    name: "gip-{{hive_safe_name }}"
+    region: "{{ hive_region }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    address: "{{ hostvars[gcp_host].hive_published_ip | default(omit) }}"
+    state: present
+  register: hive_safe_gip
+
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ gcp_host }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ gcp_host }}
+        HostName {{ hive_safe_gip.address }}
+        UserKnownHostsFile /dev/null
+        User {{ hive_safe_admin }}
+        StrictHostKeyChecking no
+        PasswordAuthentication no
+        IdentityFile {{ hive_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+- set_fact:
+    hive_safe_disks:
+    - auto_delete: True
+      boot: True
+      initialize_params:
+        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(16) }}"
+        disk_name: "boot-{{ hive_safe_name }}"
+        source_image: "{{ hive_safe_image_id }}"
+- set_fact:
+    hive_safe_disks:
+    - auto_delete: True
+      boot: True
+      initialize_params:
+        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(16) }}"
+        disk_name: "boot-{{ hive_safe_name }}"
+        source_image: "{{ hive_safe_image_id }}"
+    - auto_delete: True
+      boot: False
+      initialize_params:
+        disk_size_gb: "{{ hostvars[gcp_host].hive_mirrored_disk_size }}"
+        disk_name: "drbd-{{ hive_safe_name }}"
+  when: hostvars[gcp_host].hive_mirrored_disk_size is defined
+- name: create instances
+  gcp_compute_instance:
+    state: present
+    status: RUNNING
+    name: "{{ hive_safe_name }}"
+    machine_type: "{{ hostvars[gcp_host].hive_instance_type }}"
+    # empty metadata cause error 'gcp_compute_instance.py, line 1109, in metadata_encoder for key in metadata: TypeError: 'NoneType' object is not iterable'
+    metadata:
+      hostname: "{{ gcp_host }}"
+      ssh-keys: "{{ hive_safe_admin }}:{{ lookup('file', hostvars[gcp_host].hive_public_key_path) }}"
+    disks: "{{ hive_safe_disks }}"
+    network_interfaces:
+    - subnetwork: "{{ (subnets_facts.results | selectattr('name', 'equalto',  hostvars[gcp_host].hive_subnet) | list)[0] }}"
+      network_ip: "{{ hostvars[gcp_host].hive_private_ip }}"
+      access_configs:
+      - name: "ac_gip_{{ hive_safe_name }}"
+        nat_ip: "{{ hive_safe_gip }}"
+        type: 'ONE_TO_ONE_NAT'
+    zone: "{{ hostvars[gcp_host].hive_available_zone }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+  register: instance
+- debug: var=instance

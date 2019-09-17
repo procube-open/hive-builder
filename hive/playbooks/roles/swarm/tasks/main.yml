@@ -1,0 +1,41 @@
+---
+- name: gather docker info
+  shell: docker info | awk '/^ *Swarm:/ {print $2}'
+  register: hive_docker_info
+  changed_when: false
+  check_mode: False
+
+- name: set docker_gwbridge subnet
+  shell: "docker network create --subnet {{ hive_docker_gwbridge_subnet }} --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge"
+  when: hive_docker_gwbridge_subnet is defined and hive_docker_info.stdout == "inactive"
+
+- name: initialize master node
+  shell: "docker swarm init --advertise-addr {{ hive_private_ip }}"
+  when: "'first_hive' in group_names and hive_docker_info.stdout == 'inactive'"
+  register: swarm_init
+
+- name: remove ingress subnet
+  shell: "yes | docker network rm ingress"
+  when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
+
+- name: create ingress subnet
+  shell: "docker network create --driver overlay --ingress --subnet={{ hive_ingress_subnet }} --gateway={{ hive_ingress_subnet_gateway }} apiarist-ingress"
+  when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
+
+- name: get token for manager
+  delegate_to: "{{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}"
+  # ensure the task is executed even if invoked as ansible-playbook -l xxx where xxx is not first hive
+  shell: "docker swarm join-token {{ hive_swarm_mode | default('manager') }} | grep 'docker swarm join'"
+  register: hive_safe_swarm_join_token
+  changed_when: false
+  when: "'first_hive' not in group_names and hive_docker_info.stdout == 'inactive'"
+
+- name: join as manager nodes
+  shell: "{{ hive_safe_swarm_join_token.stdout }}"
+  when: "'first_hive' not in group_names and hive_docker_info.stdout == 'inactive'"
+  register: hive_safe_join_info
+
+- name: add labels for groups
+  delegate_to: "{{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}"
+  shell: "docker node update {% for g in group_names %}--label-add {{ g }}=true {% endfor %}{{ inventory_hostname.split('.')[0] }}"
+  when: swarm_init is not skipped or hive_safe_join_info is not skipped

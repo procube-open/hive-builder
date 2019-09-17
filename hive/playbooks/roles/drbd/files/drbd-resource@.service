@@ -1,0 +1,12 @@
+[Unit]
+Description=DRBD resource : %I
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/drbdadm adjust %I
+ExecStop=/sbin/drbdadm down %I
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

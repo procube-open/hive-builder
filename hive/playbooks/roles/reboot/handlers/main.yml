@@ -1,0 +1,15 @@
+---
+- name: reboot
+  shell: "sleep 2 && {{ hive_reboot_command | default('reboot')}}"
+  async: 1
+  poll: 0
+  tags: reboot
+  changed_when: false
+  listen: require reboot
+  register: reboot
+- name: wait for connectable
+  wait_for_connection:
+    delay: 30
+  tags: reboot
+  listen: require reboot
+  when: reboot is not skipped and hive_reboot_command is not defined

@@ -1,0 +1,50 @@
+---
+- name: create container
+  docker_container:
+    image: "{{ hostvars[hive_safe_image].hive_from }}"
+    name: "build_{{ hive_safe_image }}"
+    hostname: "{{ hive_safe_image }}"
+    env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"
+    env_file: "{%if hostvars[hive_safe_image].hive_proxy_env_block is defined %}/etc/environment{% else %}{{omit}}{% endif %}"
+    privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
+    entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hive_standalone %}{{omit}}{%else%}[]{%endif%}"
+    working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
+    command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+    stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
+    user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
+    state: present
+- name: start container
+  docker_container:
+    image: "{{ hostvars[hive_safe_image].hive_from }}"
+    name: "build_{{ hive_safe_image }}"
+    hostname: "{{ hive_safe_image }}"
+    env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"
+    env_file: "{%if hostvars[hive_safe_image].hive_proxy_env_block is defined %}/etc/environment{% else %}{{omit}}{% endif %}"
+    privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
+    entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hive_standalone %}{{omit}}{%else%}[]{%endif%}"
+    working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
+    command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+    stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
+    user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
+  changed_when: False
+- name: "setup ansible - build playbook"
+  template:
+    dest: "{{ hive_safe_images_dir }}/{{ hive_safe_image }}.yml"
+    src: playbook.yml.j2
+- name: "setup ansible - copy role definitions"
+  synchronize:
+    src: "{{ lookup('first_found', [hive_root_dir + '/roles/' + item, hive_playbooks_dir + '/builtin_roles/' + item]) }}"
+    dest: "{{ hive_safe_images_dir }}/roles"
+    use_ssh_args: True
+  loop: "{{ hostvars[hive_safe_image].hive_roles }}"
+- name: "execute ansible"
+  command: "{{ hive_playbook_command }} -i build_{{ hive_safe_image }}, {{ hive_safe_image }}.yml"
+  args:
+    chdir: "{{ hive_safe_images_dir }}"
+  register: plays
+  failed_when: plays.rc != 0 or plays.stdout is search('(failed|unreachable)=[1-9]')
+  changed_when: plays.stdout is search('changed=[1-9]')
+- debug:
+    var: plays.stdout
+- import_tasks: push-image.yml
+  when: plays.changed

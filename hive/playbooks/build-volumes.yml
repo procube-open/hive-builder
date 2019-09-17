@@ -1,0 +1,33 @@
+---
+- name: create volumes
+  gather_facts: False
+  hosts: hives
+  become: True
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+  tasks:
+  - include_role:
+      name: drbd-resource
+    loop: "{{ hive_prepared_volumes | selectattr('drbd', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
+    loop_control:
+      loop_var: hive_safe_volume
+    when: hive_prepared_volumes is defined
+  - name: create drbd volume
+    docker_volume:
+      name: "{{ item.name }}"
+      driver: "local"
+      driver_options:
+        type: "{{ item.drbd.fstype }}"
+        device: "/dev/drbd{{ item.drbd.device_id }}"
+    loop: "{{ hive_prepared_volumes | selectattr('drbd', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
+    when: hive_prepared_volumes is defined
+  - name: create another driver volume
+    docker_volume:
+      name: "{{ item.name }}"
+      driver: "{{ item.driver }}"
+      driver_options: "{{ item.dirver_options | default(omit) }}"
+    loop: "{{ hive_prepared_volumes | selectattr('driver', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
+    when: hive_prepared_volumes is defined
+  - import_role:
+      name: reboot

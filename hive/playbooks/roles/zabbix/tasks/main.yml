@@ -1,0 +1,67 @@
+---
+- name: "setup zabbix - create dir"
+  file:
+    path: "{{ hive_home_dir }}/zabbix"
+    state: directory
+    mode: 0755
+
+- name: "install zabbix docker-compose.yml"
+  template:
+    src: zabbix.yml.j2
+    dest: "{{ hive_home_dir }}/zabbix/docker-compose.yml"
+    mode: 0755
+
+- name: set ansible_python_interpreter
+  set_fact:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+- name: compose up zabbix container
+  docker_compose:
+    project_src: "{{ hive_home_dir }}/zabbix"
+
+- name: install zabbix api
+  become: False
+  pip:
+    name: zabbix-api
+    state: present
+    virtualenv: "{{ hive_home_dir }}/docker"
+
+- name: remove default Zabbix Server
+  zabbix_host:
+    server_url: http://{{ inventory_hostname }}:10052
+    login_user: admin
+    login_password: zabbix
+    host_name: Zabbix server
+    host_groups:
+    - Zabbix servers
+    state: absent
+  until: not zabbix_api_result.failed
+  retries: 10
+  register: zabbix_api_result
+- debug: var=zabbix_api_result
+
+- name: register hive hosts to zabbix
+  zabbix_host:
+    server_url: http://{{ inventory_hostname }}:10052
+    login_user: admin
+    login_password: zabbix
+    host_name: "{{ item }}"
+    host_groups:
+    - Linux servers
+    link_templates:
+    - Template OS Linux
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+        ip: "{{ hostvars[item].hive_private_ip }}"
+        dns: ""
+        port: 10050
+        status: enabled
+    state: present
+    inventory_mode: manual
+  loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+
+- name: reset ansible_python_interpreter
+  set_fact:
+    ansible_python_interpreter: "/usr/bin/python"

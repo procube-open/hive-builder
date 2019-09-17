@@ -1,0 +1,270 @@
+---
+# variable definition
+# description: description about this variable
+# type:
+#   string(default)
+#   enum
+#   boolean
+#   integer
+#   directory
+# options: array of valid value, only available when type == 'enum'
+# default: default value dictionary, value can reffer other variable by python format method string(ex {root_path}/{inventory_name})
+#   this can not be specify type == 'boolean', its default value is always False
+# stage 固有変数のデフォルト値なんていらない
+# phase 固有デフォルト値は仕様をむずかしくするのでやめる
+# name_in_ansible: the variable name in ansible playbook,
+#  if not specified then the variable can not refference in ansible
+# name_in_ansible_cfg: the variable name in default section of ansible.cfg,
+#  if not specified then the variable does not export into ansible.cfg
+# section_in_ansible_cfg: section name in ansible.cfg where the variable exported,
+#  only available when name_in_ansible_cfg is specified(default: defaults)
+# name_in_environment: the environment variable name when execute ansible-playbook command,
+#  if not specified then the variable can not refference in ansible
+# parsistent_scope:
+#   global(default)
+#   none
+#   stage
+# command_line_option: short option (ex. -s)
+#  if not specified then the variable can not set from command line
+# command_line_option_level:
+#   global(default)
+#   phase_local
+
+root_dir:
+  description: "directory where hold project inventory/settings(default: current directory)"
+  type: directory
+  name_in_ansible: hive_root_dir
+  persistent_scope: none
+  command_line_option: "-r"
+stage:
+  description: "stage name which is passed to ansible-playbook with --limit option as inventory group name"
+  type: enum
+  options:
+  - production
+  - staging
+  - private
+  name_in_ansible: hive_stage
+  default: private
+  command_line_option: "-s"
+inventory_path:
+  description: "path of inventory"
+  type: directory
+  default: "{root_dir}/inventory"
+  name_in_ansible_cfg: inventory
+  persistent_scope: global
+  command_line_option: "-i"
+context_dir:
+  description: "directory where save context(ex. VagrantFile, CA key, password)."
+  # this variable referrenced as direcgory where persistent_values.yml is stored
+  # so cannot move to group_vars/all.yml
+  type: directory
+  default: "{root_dir}/.hive/{stage}"
+  name_in_ansible: hive_context_dir
+  persistent_scope: stage
+  command_line_option: "-c"
+phase:
+  description: "phase name (= subcommand name)."
+  type: enum
+  options:
+  - build-infra
+  - setup-hosts
+  - build-images
+  - build-volumes
+  - build-networks
+  - deploy-services
+  - initialize-services
+  name_in_ansible: hive_phase
+  persistent_scope: none
+temp_dir:
+  description: "directory where save temporary file(ex. ansible.cfg, vars.yml)."
+  # this variable referrenced as direcgory where ansible.cfg, vars.yml is stored
+  # so cannot move to group_vars/all.yml
+  type: directory
+  default: "/var/tmp/hive"
+  name_in_ansible: hive_temp_dir
+  persistent_scope: none
+  command_line_option: "-W"
+local_python_path:
+  description: local python command path
+  name_in_ansible: hive_local_python_path
+  persistent_scope: none
+inventory_plugins:
+  description: "directory where hive inventory plugin is installed"
+  type: directory
+  default: "{install_dir}/plugins"
+  name_in_ansible_cfg: inventory_plugins
+library:
+  description: "directory where custom modules are installed"
+  type: directory
+  default: "{root_dir}/lib:{install_dir}/lib"
+  name_in_ansible_cfg: library
+enable_plugins:
+  description: "available plugins"
+  default: "host_list, script, auto, yaml, ini, toml, hive_inventory, hive_services"
+  name_in_ansible_cfg: enable_plugins
+unparsed_is_failed:
+  description: "If ‘true’ it is a fatal error if every single potential inventory source fails to parse, otherwise this situation will only attract a warning."
+  type: boolean
+  default: True
+  name_in_ansible_cfg: unparsed_is_failed
+  section_in_ansible_cfg: inventory
+playbooks_dir:
+  description: "path of hive playbooks(default: where hive.py is installed)"
+  name_in_ansible: hive_playbooks_dir
+  default: "{install_dir}/playbooks"
+  command_line_option: "-P"
+verbose:
+  description: "output verbose log"
+  type: boolean
+  name_in_ansible: hive_verbose
+  persistent_scope: stage
+  command_line_option: "-v"
+start_phase:
+  description: |
+    default start phase.
+    before hive command execute a phase specified by command line, all preceeding phase are executed implicitly from this value.
+    if success to execute the stage, then set persistently (saved into .hive/persistent_values.yml) the next stage to start_phase.
+  type: enum
+  options:
+  - build-infra
+  - setup-hosts
+  - build-images
+  - build-volumes
+  - build-networks
+  - deploy-services
+  - initialize-services
+  default: build-infra
+  persistent_scope: stage
+  command_line_option: "-S"
+  command_line_option_level: phase
+  command_line_mutually_exclusive_group: operation
+  command_line_option_available:
+  - build-infra
+  - setup-hosts
+  - build-images
+  - deploy-services
+  - initialize-services
+  - publish-serivces
+halt:
+  description: "stop {subject_name}"
+  type: boolean
+  persistent_scope: none
+  command_line_option: "-H"
+  command_line_option_level: phase
+  mutually_exclusive_group: operation
+  command_line_option_available:
+  - build-infra
+  name_in_ansible: hive_halt
+ssh_host:
+  description: "stop {subject_name}"
+  command_line_option: "-t"
+  command_line_option_level: phase
+  mutually_exclusive_group: operation
+  command_line_option_available:
+  - ssh
+destroy:
+  description: "destroy {subject_name}"
+  type: boolean
+  persistent_scope: none
+  command_line_option: "-D"
+  command_line_option_level: phase
+  mutually_exclusive_group: operation
+  command_line_option_available:
+  - build-infra
+  name_in_ansible: hive_destroy
+check_mode:
+  description: "check mode of ansible"
+  type: boolean
+  persistent_scope: none
+  command_line_option: "-C"
+  command_line_option_level: phase
+  mutually_exclusive_group: operation
+  command_line_option_available:
+  - build-infra
+  - setup-hosts
+  - build-images
+  - deploy-services
+  - initialize-services
+  - publish-serivces
+limit_target:
+  name_in_ansible: hive_limit
+  description: "limit target"
+  persistent_scope: phase
+  command_line_option: "-l"
+  command_line_option_level: phase
+  command_line_option_available:
+  - build-infra
+  - build-images
+  - setup-hosts
+  - deploy-services
+vagrant_box_name:
+  description: "box name for vagrant"
+  persitent_scope: stage
+  default: centos/7
+stdout_callback:
+  name_in_ansible_cfg: stdout_callback
+  description: "formatting ansible-playbook output"
+  default: yaml
+callback_whitelist:
+  name_in_ansible_cfg: callback_whitelist
+  description: "white list for callback plugin"
+  default: yaml
+bin_ansible_callbacks:
+  default: True
+  tupe: boolean
+  description: "enable yaml plugin"
+  name_in_ansible_cfg: bin_ansible_callbacks
+roles_path:
+  description: roles path for ansible-playbook
+  name_in_ansible_cfg: roles_path
+  default: "{root_dir}/roles:{playbooks_dir}/builtin_roles"
+forks:
+  description: max concurrent execution of ansible play
+  name_in_ansible_cfg: forks
+  type: int
+  default: 5
+pipelining:
+  description: whether use piplining mode at ansible play
+  name_in_ansible_cfg: pipelining
+  type: boolean
+  default: True
+force_handlers:
+  description: force invoke handler even if some task is failed
+  name_in_ansible_cfg: force_handlers
+  type: boolean
+  default: True
+ssh_args:
+  description: ssh command line option
+  name_in_ansible_cfg: ssh_args
+  section_in_ansible_cfg: ssh_connection
+  default: "-F {context_dir}/ssh_config -o ControlMaster=auto -o ControlPath={temp_dir}/mux-%r@%h:%p"
+repository_docker_socket:
+  description: "forwarded docker api socket of the repository server, which is last server of servers"
+  name_in_ansible: hive_repository_docker_socket
+  default: "{temp_dir}/repository_docker.sock"
+aws_access_key_id:
+  description: access key for AWS used only when provier is AWS
+  name_in_environment: AWS_ACCESS_KEY_ID
+  persistent_scope: stage
+aws_secret_access_key:
+  description: access secret key for AWS used only when provier is AWS
+  name_in_environment: AWS_SECRET_ACCESS_KEY
+  persistent_scope: stage
+# phase 固有変数は話を難しくする　→ 変数名に phase名のプリフィックスをつけるとかすれば必要ない
+# inventory_name:
+#   description: "inventory name, {root_path}/{inventory_name} is passed to ansible-playbook "
+#   type: enum
+#   options:
+#     - mother
+#     - infra
+#     - hosts
+#     - images
+#     - services
+#   default:
+#     global: services
+#     build-infra: infra
+#     setup-host: hosts
+#     build-image: images
+# inventory_path:
+#   description: "inventory path"
+#   default: "{root_path}/{inventory_name}"

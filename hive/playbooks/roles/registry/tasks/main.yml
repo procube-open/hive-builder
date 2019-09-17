@@ -1,0 +1,53 @@
+---
+- name: "setup registry - create dir"
+  file:
+    path: "{{ hive_home_dir }}/registry"
+    state: directory
+    mode: 0755
+
+- name: install httpd-tools package
+  become: True
+  yum:
+    name: httpd-tools
+    state: present
+
+- name: make htpasswd file
+  shell: "htpasswd -cBb {{ hive_home_dir }}/registry/htpasswd '{{ hive_safe_docker_login_user }}' '{{ lookup('password', hive_context_dir + '/registry_password length=15') }}'"
+  args:
+    creates: "{{ hive_home_dir }}/registry/htpasswd"
+
+- name: "install registry docker-compose.yml"
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0755
+  with_items:
+    - src: registry.yml.j2
+      dest: "{{ hive_home_dir }}/registry/docker-compose.yml"
+
+- name: set ansible_python_interpreter
+  set_fact:
+    # {{ '/var' + builder + '/docker/bin/python' | expanduser }} does not work
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+- name: compose up registry container
+  docker_compose:
+    project_src: "{{ hive_home_dir }}/registry"
+
+- name: install python-dxf
+# https://pypi.org/project/python-dxf/
+  pip:
+    name:
+    - python-dxf
+    virtualenv: "{{ hive_home_dir }}/docker"
+
+- name: setup environment variable
+  become: False
+  blockinfile:
+    path: "{{ hive_home_dir }}/.bashrc"
+    marker: "# {mark} environment variables for python-dxf"
+    block: |
+      export DXF_PASSWORD={{ lookup('password', hive_context_dir + '/registry_password length=15') }}
+      export DXF_USERNAME={{ hive_safe_docker_login_user }}
+      export DXF_HOST={{ hive_registry }}
+      export DXF_TLSVERIFY=/etc/pki/ca-trust/source/anchors/cacert.pem

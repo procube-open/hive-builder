@@ -1,0 +1,6 @@
+---
+ansible_python_interpreter: "{{ hive_local_python_path }}"
+ansible_connection: local
+hive_home_dir: "{{ hive_context_dir }}"
+# hive_published_ports_tcp: "{{ groups['services'] | map('extract', hostvars, 'hive_ports') | flatten | selectattr('protocol', 'eq', 'tcp') | select('published_port', 'defined') | map(attribute='published_port') | list }}"
+# hive_published_ports_udp: "{{ groups['services'] | map('extract', hostvars, 'hive_ports') | flatten | selectattr('protocol', 'eq', 'udp') | select('published_port', 'defined') | map(attribute='published_port') | list }}"

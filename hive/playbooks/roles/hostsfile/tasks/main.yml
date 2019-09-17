@@ -1,0 +1,10 @@
+---
+  - name: "Build hosts file"
+    become: True
+    blockinfile:
+      dest: /etc/hosts
+      insertafter: BOF
+      state: "present"
+      block: "{{ hostvars[item].hive_private_ip }} {{ item }}"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+    with_items: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"

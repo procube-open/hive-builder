@@ -1,0 +1,2 @@
+extendedKeyUsage = clientAuth,serverAuth
+subjectAltName = DNS:{{ hive_safe_tls_hostname }},{%if inventory_hostname not in groups['mother']%}IP:{{ hive_safe_tls_IP }},{%endif%}IP:127.0.0.1
