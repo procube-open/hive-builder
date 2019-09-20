@@ -164,6 +164,7 @@ class hiveContext:
       yaml.dump(self.persistent_values, envf, default_flow_style=False)
 
   def set_persistent(self, name, value):
+    self.initialize()
     if name not in self.variables_metainf:
       raise Error(f'unknown variable {name}')
     metainf = self.variables_metainf[name]

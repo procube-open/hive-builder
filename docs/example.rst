@@ -62,8 +62,8 @@ hive 用の仮想環境を作成し、activate します。仮想環境ツール
 
 ::
 
-  pyenv virtualenv hive 3.7.3
-  pynev local hive
+  pyenv virtualenv 3.7.3 hive
+  pyenv local hive
 
 virtualenv, pipenv, conda を利用されている場合は、それぞれの方法で仮想環境を activate してください。
 
@@ -100,6 +100,8 @@ AWS の設定
 inventory/hive.yml に AWS の環境のパラメータを設定します。
 services.staging.region にリージョンを指定し、services.staging.subnets
 の available_zone にアカウントが利用できる3つの可用性ゾーンを指定してください。
+サンプルでは東京リージョンがせっていされていますが、可用性ゾーンについては、
+4つのうちどの3個が利用できるかがアカウントごとに異なるので、注意してください。
 
 また、以下のコマンドで hive の環境に AWS EC2 API の鍵を設定してください。
 
