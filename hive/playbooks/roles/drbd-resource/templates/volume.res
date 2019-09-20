@@ -7,10 +7,10 @@ resource {{ hive_safe_volume.name }} {
   on {{ host }} {
     address   {{ hostvars[host].hive_private_ip }}:{{ 7788 + hive_safe_volume.drbd.device_id }};
     node-id   {{ (groups['hives'] | intersect(groups[hive_stage]) | length) * hive_safe_volume.drbd.device_id + loop.index0}};
-{% if hive_safe_volume.drbd.diskless is defined and loop.index0 in hive_safe_volume.drbd.diskless %}
-    disk      none;
-{% else %}
+{% if hive_safe_drbd_with_disk %}
     disk      /dev/drbdvg/{{ hive_safe_volume.name }};
+{% else %}
+    disk      none;
 {% endif %}
     device    minor {{ hive_safe_volume.drbd.device_id }};
     meta-disk internal;

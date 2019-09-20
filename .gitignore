@@ -9,7 +9,6 @@ __pycache__
 .hive
 /examples/pdns/gcp_credential.json
 /examples/pdns/inventory/group_vars/all.yml
-/hive/playbooks/initialize-services.yml
 develop-eggs/
 downloads/
 eggs/

@@ -4,8 +4,9 @@ stages:
     provider: vagrant
     separate_repository: False
     cidr: 192.168.0.96/27
-    memory_size: 2048
+    memory_size: 4096
     mirrored_disk_size: 10
+    number_of_hosts: 1
   staging:
     provider: aws
     separate_repository: False

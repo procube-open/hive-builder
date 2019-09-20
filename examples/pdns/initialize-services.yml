@@ -15,6 +15,8 @@
 - name: initialize services
   gather_facts: False
   hosts: first_hive
+  vars_files:
+  - "{{ hive_playbooks_dir }}/group_vars/all.yml"
   vars:
     delimiter: "','"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
@@ -47,7 +49,7 @@
       pdns_port: 61001
       pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
     loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
-  - name: add records for services 80
+  - name: add records for web services
     powerdns_record:
       name: "{{ item + '.' }}"
       zone: "{{ hive_name }}.{{ domain }}"

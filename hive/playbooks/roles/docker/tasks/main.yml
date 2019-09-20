@@ -54,6 +54,10 @@
     mode: 0700
     owner: root
     group: root
+
+# daemon.json includes tls authentication and disable userland proxy to achive perfomance merit
+# see. http://rabexc.org/posts/docker-networking
+# TODO: check /sbin/sysctl net.ipv4.conf.docker0.route_localnet=1 done automatically ?
 - name: setup certificate for remote api
   template:
     src: daemon.json.j2

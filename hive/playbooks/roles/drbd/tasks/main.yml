@@ -34,7 +34,7 @@
     - /dev/xvdb
     - /dev/nvme1n1
 - set_fact:
-    hive_safe_mirrored_device_name: "{{ (hive_safe_device_names.results | selectattr('stat.readable','defined') | map(attribute='item') |list)[0] }}"
+    hive_safe_mirrored_device_name: "{{ hive_safe_device_names.results | selectattr('stat.readable','defined') | map(attribute='item') |first }}"
 
 - name: create partition for drbd resource pool
   parted:

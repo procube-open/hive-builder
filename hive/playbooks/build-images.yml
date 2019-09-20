@@ -3,30 +3,87 @@
   gather_facts: False
   hosts: repository
   vars:
-    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images'] | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images'] }}{% endif %}"
+    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images']  | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images']  | intersect(groups[hive_stage]) | list }}{% endif %}"
     hive_safe_images_dir: "{{ hive_home_dir }}/images"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+    hive_safe_sleep_command: /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
 
   tasks:
-  - name: setup ansible - install ansible
-    pip:
-      name: ansible
-      state: latest
-      virtualenv: "{{ hive_home_dir }}/docker"
-  - name: "setup ansible - create dir"
-    file:
-      path: "{{ hive_safe_images_dir }}/roles"
-      state: directory
-      mode: 0755
   - name: login to private registry
     docker_login:
       registry: "{{ hive_registry }}"
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
-  - include_role:
-      name: build-image
+  - name: create container
+    docker_container:
+      image: "{{ hostvars[hive_safe_image].hive_from }}"
+      name: "build_{{ hive_safe_image }}"
+      hostname: "{{ hive_safe_image }}"
+      env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"
+      env_file: "{%if hostvars[hive_safe_image].hive_proxy_env_block is defined %}/etc/environment{% else %}{{omit}}{% endif %}"
+      privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
+      entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hive_standalone %}{{omit}}{%else%}[]{%endif%}"
+      working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
+      command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
+      user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
+      state: present
+    loop: "{{ hive_safe_images }}"
+    loop_control:
+      loop_var: hive_safe_image
+  - name: start container
+    docker_container:
+      image: "{{ hostvars[hive_safe_image].hive_from }}"
+      name: "build_{{ hive_safe_image }}"
+      hostname: "{{ hive_safe_image }}"
+      env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"
+      env_file: "{%if hostvars[hive_safe_image].hive_proxy_env_block is defined %}/etc/environment{% else %}{{omit}}{% endif %}"
+      privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
+      entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hive_standalone %}{{omit}}{%else%}[]{%endif%}"
+      working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
+      command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
+      user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
+    changed_when: False
     loop: "{{ hive_safe_images }}"
     loop_control:
       loop_var: hive_safe_image
 
+- name: build {{ hive_safe_image }}
+  hosts: images
+  gather_facts: False
+  connection: docker
+  vars:
+    ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker_repository.sock"
+
+  tasks:
+  - name: apply role
+    include_role:
+      name: "{{ hive_safe_role }}"
+    vars:
+      ansible_host: "build_{{ inventory_hostname }}"
+    loop: "{{ hive_roles }}"
+    # assin loop_var to prevent following messages printed when role use loop.
+    # [WARNING]: The loop variable 'item' is already in use. You should set the
+    # `loop_var` value in the `loop_control` option for the task to something else to
+    # avoid variable collisions and unexpected behavior.
+    loop_control:
+      loop_var: hive_safe_role
+
+- name: push container images
+  gather_facts: False
+  hosts: repository
+  vars:
+    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images']  | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images']  | intersect(groups[hive_stage]) | list }}{% endif %}"
+    hive_safe_images_dir: "{{ hive_home_dir }}/images"
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+    hive_safe_image_tag: "{{hive_registry}}/{{ hive_safe_image }}:{{ lookup('pipe', 'date +\"%Y%m%d%H%M%S\"') }}"
+    hive_safe_image_tag_latest: "{{hive_registry}}/{{ hive_safe_image }}:latest"
+
+  tasks:
+  - name: push images
+    include_tasks: push-image.yml
+    loop: "{{ hive_safe_images }}"
+    loop_control:
+      loop_var: hive_safe_image

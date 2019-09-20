@@ -63,7 +63,7 @@
       ssh-keys: "{{ hive_safe_admin }}:{{ lookup('file', hostvars[gcp_host].hive_public_key_path) }}"
     disks: "{{ hive_safe_disks }}"
     network_interfaces:
-    - subnetwork: "{{ (subnets_facts.results | selectattr('name', 'equalto',  hostvars[gcp_host].hive_subnet) | list)[0] }}"
+    - subnetwork: "{{ subnets_facts.results | selectattr('name', 'equalto',  hostvars[gcp_host].hive_subnet) | first }}"
       network_ip: "{{ hostvars[gcp_host].hive_private_ip }}"
       access_configs:
       - name: "ac_gip_{{ hive_safe_name }}"
@@ -74,4 +74,3 @@
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
   register: instance
-- debug: var=instance

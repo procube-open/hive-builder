@@ -139,12 +139,7 @@ start_phase:
   command_line_option_level: phase
   command_line_mutually_exclusive_group: operation
   command_line_option_available:
-  - build-infra
-  - setup-hosts
-  - build-images
-  - deploy-services
-  - initialize-services
-  - publish-serivces
+  - all
 halt:
   description: "stop {subject_name}"
   type: boolean
@@ -250,21 +245,3 @@ aws_secret_access_key:
   description: access secret key for AWS used only when provier is AWS
   name_in_environment: AWS_SECRET_ACCESS_KEY
   persistent_scope: stage
-# phase 固有変数は話を難しくする　→ 変数名に phase名のプリフィックスをつけるとかすれば必要ない
-# inventory_name:
-#   description: "inventory name, {root_path}/{inventory_name} is passed to ansible-playbook "
-#   type: enum
-#   options:
-#     - mother
-#     - infra
-#     - hosts
-#     - images
-#     - services
-#   default:
-#     global: services
-#     build-infra: infra
-#     setup-host: hosts
-#     build-image: images
-# inventory_path:
-#   description: "inventory path"
-#   default: "{root_path}/{inventory_name}"

@@ -11,4 +11,4 @@ hive-builder is a tool for building a site that operates docker containers acros
 - Have Zabbix server in the site and monitor the operation
 - You can define 3 stages of private, staging, production in one inventory and build a site for each stage
 
-For details, see the document (in preparation).
+For details, see [the document](https://hive-builder.readthedocs.io/) (Sorry, there are only Japanese ones now).

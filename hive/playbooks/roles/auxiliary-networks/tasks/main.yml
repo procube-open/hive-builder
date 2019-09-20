@@ -20,11 +20,11 @@
 - debug: var=hive_safe_auxiliary_networks_setup
 - name: create internal network
   command: "nmcli conn add type ethernet ifname eth{{ item.device_index }} con-name {{ item.name }}"
-  when: (hive_safe_auxiliary_networks_setup.results | selectattr('item.name', 'equalto', item.name) | list)[0].rc == 10
+  when: (hive_safe_auxiliary_networks_setup.results | selectattr('item.name', 'equalto', item.name) | first).rc == 10
   notify: require reboot
   with_items: "{{ hive_auxiliary_networks }}"
 - name: assign ip address to internal network
   command: "nmcli conn modify internal_net ipv4.method manual ipv4.addresses {{ item.ip }}/{{ item.cidr_width }}"
-  when: (hive_safe_auxiliary_networks_setup.results | selectattr('item.name', 'equalto', item.name) | list)[0].rc == 10
+  when: (hive_safe_auxiliary_networks_setup.results | selectattr('item.name', 'equalto', item.name) | first).rc == 10
   with_items: "{{ hive_auxiliary_networks }}"
   notify: require reboot

@@ -13,6 +13,29 @@ Windows Subsystem for Linux, Mac OS, Ubuntu, Centos などの環境で以下を�
 - pip が利用できること
 - python 3.6 以上が利用できること
 - git コマンドが利用できること
+- docker コマンドが利用できること
+
+docker コマンドのインストール
+------------------
+docker コマンドのインストールは、OSごとに以下に従ってください。docker のパッケージをインストールしても
+dockerデーモンやコンテナを動作させる必要はないことに注意してください。
+hive-builder は docker コマンドをクライアントとして利用するだけですので、
+dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
+
+インストールの手順は以下のページに従ってください。
+
+Windows Subsystem for Linux, Ubuntu の場合
+  https://docs.docker.com/install/linux/docker-ce/ubuntu/
+
+Centos の場合
+  https://docs.docker.com/install/linux/docker-ce/centos/
+
+Mac OS の場合
+  https://docs.docker.com/docker-for-mac/install/
+  インストール後、一度は docker アプリケーションを起動しないと docker コマンドがインストールされません。
+  デスクトップからdocker アプリケーションを起動して、docker コマンドが使えるようになったことを確認した後、
+  ステータスバーの docker のアイコンをクリックして docker を終了しても構いません。
+  hive-builder は docker コマンドを必要としますが、端末のdocker デーモンにアクセスしません。
 
 インストール方法
 ====================

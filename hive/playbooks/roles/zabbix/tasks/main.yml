@@ -38,7 +38,6 @@
   until: not zabbix_api_result.failed
   retries: 10
   register: zabbix_api_result
-- debug: var=zabbix_api_result
 
 - name: register hive hosts to zabbix
   zabbix_host:
@@ -57,7 +56,6 @@
         ip: "{{ hostvars[item].hive_private_ip }}"
         dns: ""
         port: 10050
-        status: enabled
     state: present
     inventory_mode: manual
   loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"

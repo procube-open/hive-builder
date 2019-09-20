@@ -3,7 +3,7 @@
   gather_facts: False
   hosts: hives
   vars:
-    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images'] }}{% endif %}"
+    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images']  | intersect(groups[hive_stage]) | list }}{% endif %}"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
 
   tasks:
@@ -27,7 +27,7 @@
   hosts: first_hive
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-    hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] }}{% endif %}"
+    hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] | intersect(groups[hive_stage]) | list}}{% endif %}"
 
   tasks:
   - name: deploy service

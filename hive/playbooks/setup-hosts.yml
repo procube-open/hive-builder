@@ -25,6 +25,7 @@
       when: hive_mirrored_disk_size is defined
     - addon
     - docker-client
+    - zabbix-agent
     - reboot
 
 - name: setup repository and zabbix
@@ -46,5 +47,4 @@
 
   roles:
   - swarm
-  - zabbix-agent
   - reboot

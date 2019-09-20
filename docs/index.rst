@@ -17,12 +17,10 @@ hive-builder ドキュメントページへようこそ
   inventory.rst
 
 ..
-
   Indices and tables
   ==================
 
 ..
-
   * :ref:`genindex`
   * :ref:`modindex`
   * :ref:`search`

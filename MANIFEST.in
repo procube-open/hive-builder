@@ -1,3 +1,2 @@
 recursive-include hive *
-exclude hive/playbooks/initialize-services.yml
 recursive-exclude hive __pycache__

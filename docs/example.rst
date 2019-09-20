@@ -101,20 +101,27 @@ inventory/hive.yml に AWS の環境のパラメータを設定します。
 services.staging.region にリージョンを指定し、services.staging.subnets
 の available_zone にアカウントが利用できる3つの可用性ゾーンを指定してください。
 
-
-構築
-=========================
-
-以下のコマンドで構築してください。
+また、以下のコマンドで hive の環境に AWS EC2 API の鍵を設定してください。
 
 ::
 
-  hive initialize-service
+  hive set aws_access_key_id アクセスキーID
+  hive set aws_secret_access_key アクセスキー
 
-ドメインの委譲
+ドメインの委譲設定
 =========================
 この手順は必須ではありません。ドメインを保有していない場合は、この手順をスキップしてください。
 
+build-infra の実行
+-------------------------
+以下のコマンドで build-infra フェーズを実行して、 Elastic IP を割り当ててください。
+
+::
+
+  hive build-infra
+
+DNS レコードの登録
+-------------------------
 親ドメインにNSレコードとAレコードを登録してサブドメインの管理を構築したサーバに委譲してください。
 設定例は以下の通り。
 
@@ -126,19 +133,28 @@ services.staging.region にリージョンを指定し、services.staging.subnet
   s-hive0.pdns.example.com. IN A 10.1.1.4
   s-hive1.pdns.example.com. IN A 10.1.2.4
   s-hive2.pdns.example.com. IN A 10.1.3.4
+
 ここで 10.1.1.4, 10.1.2.4, 10.1.3.4 の部分は EC2 インスタンスに関連付けられたElastic IP で置き換えます。
-Elastic IP は .hive/staging/ssh_config のファイル内の Host ディレクティブの値を見ることで調べることができます。
+Elastic IP は AWSコンソールか .hive/staging/ssh_config のファイル内の Host ディレクティブの値を見ることで調べることができます。
+
+構築
+=========================
+以下のコマンドで構築してください。
+
+::
+
+  hive all
 
 テスト
 =========================
-dig コマンドで以下をテストしてください。
+dig コマンドで以下をテストしてください。10.1.1.4 は s-hive0 の Elastic IPアドレスで置き換えてください。
 
 ::
 
   watch dig @10.1.1.4 pdnsadmin.pdns.example.com
 
 このコマンドで2秒おきに構築した権威DNSサーバにGSLBとして設定されているアドレスが返ります。また、
-http://10.1.1.4 にアクセスすることでDNSの管理画面にアクセスできます。
+http://10.1.1.4(s-hive0の Elastid IPアドレスで置き換えてください) にアクセスすることでDNSの管理画面にアクセスできます。
 この画面にログインする際の ID は administrator でパスワードは .hive/staging/registry_password の値となります。
 
 また、AWS のコンソールから3台のEC2インスタンスが起動していることを確認し、

@@ -51,7 +51,7 @@ if [ $# -ge $OPTIND ]; then
   usage_exit
 fi
 
-export DOCKER_HOST={{ (groups['first_hive'] | intersect(groups[hive_stage]) | list)[0] }}:2376
+export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}:2376
 export DOCKER_TLS=1
 
 {% for hive_safe_target in hive_safe_targets %}
