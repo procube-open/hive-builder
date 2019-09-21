@@ -564,8 +564,16 @@ class execSsh(ansbileCommandBase):
       ssh_host = hosts[len(hosts) - 1]
     elif ssh_host not in hosts:
       raise Error(f'host {ssh_host} is not found in {ssh_config_path}')
-    args = ['/usr/bin/ssh', '-F', ssh_config_path, ssh_host]
-    subprocess.run(args)
+    args = ['/usr/bin/ssh', '-F', ssh_config_path]
+    if context.vars['foward_zabbix']:
+      args += ['-L', f'localhost:{context.vars["foward_zabbix_port"]}:{ssh_host}:10052']
+    args += [ssh_host]
+    try:
+      ssh_proc = subprocess.Popen(args)
+      ssh_proc.wait()
+    except KeyboardInterrupt:
+      ssh_proc.send_signal(signal.SIGTERM)
+      ssh_proc.wait()
 
 
 SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh()]

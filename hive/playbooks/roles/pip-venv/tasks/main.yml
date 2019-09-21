@@ -2,23 +2,23 @@
 - name: install ius and epel yum repo
 #  ius requrire epel-release
   yum: name=https://centos7.iuscommunity.org/ius-release.rpm state=present
+  when: hive_safe_use_ius
 - name: install python package
   yum:
     state: present
     name:
-      - python3{{ hive_safe_python_revision }}u
-      - python3{{ hive_safe_python_revision }}u-libs
-      - python3{{ hive_safe_python_revision }}u-devel
-      - python3{{ hive_safe_python_revision }}u-pip
-      - python3{{ hive_safe_python_revision }}u-setuptools
-      # - python3{{ hive_safe_python_revision }}-virtualenv
+      - python{{ hive_safe_python_revision }}
+      - python{{ hive_safe_python_revision }}-libs
+      - python{{ hive_safe_python_revision }}-devel
+      - python{{ hive_safe_python_revision }}-pip
+      - python{{ hive_safe_python_revision }}-setuptools
       - python-virtualenv
 - name: upgrade pip
   become: False
   pip:
     name: pip
     virtualenv: "{{ hive_home_dir }}/{{ item }}"
-    virtualenv_python: python3.{{ hive_safe_python_revision }}
+    virtualenv_python: "{{ hive_safe_python_command }}"
     state: latest
   args:
     chdir: "{{ hive_home_dir }}"

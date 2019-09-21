@@ -1,6 +1,7 @@
 # hive-builder
 
 hive-builder is a tool for building a site that operates docker containers across multiple servers. By using the cluster function of the docker swarm mode and the disk redundancy function of the drbd9, without using Kubernetes, you can build a site with a simple configuration.
+The hive houses the swarm of microservice and manages them.
 
 - A method of selecting leaders in server elections prevents split brain and does not require centralized control by a controller
 - The cluster function of docker swarm mode ensures high availability

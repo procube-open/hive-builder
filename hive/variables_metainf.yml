@@ -245,3 +245,21 @@ aws_secret_access_key:
   description: access secret key for AWS used only when provier is AWS
   name_in_environment: AWS_SECRET_ACCESS_KEY
   persistent_scope: stage
+foward_zabbix:
+  description: if true, forward zabbix web console to localhost on ssh
+  type: boolean
+  default: False
+  persistent_scope: stage
+  command_line_option: "-z"
+  command_line_option_level: phase
+  command_line_option_available:
+  - ssh
+foward_zabbix_port:
+  description: port number for forwarding zabbix port
+  type: int
+  default: 10052
+  persistent_scope: stage
+  command_line_option: "-Z"
+  command_line_option_level: phase
+  command_line_option_available:
+  - ssh
