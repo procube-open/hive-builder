@@ -177,6 +177,10 @@ class Stage:
     self.provider = self.stage['provider']
     if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack']:
       raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", but specified {self.provider}')
+    if 'disk_size' in self.stage:
+      self.disk_size = self.stage['disk_size']
+    if 'repository_disk_size' in self.stage:
+      self.repository_disk_size = self.stage['repository_disk_size']
     if self.provider == 'vagrant':
       if 'instance_type' in self.stage:
         raise AnsibleParserError('instance_type cannot be specified when provider is vagrant')
@@ -190,10 +194,6 @@ class Stage:
         self.cpus = self.stage['cpus']
       if 'repository_cpus' in self.stage:
         self.repository_cpus = self.stage['repository_cpus']
-      if 'disk_size' in self.stage:
-        self.disk_size = self.stage['disk_size']
-      if 'repository_disk_size' in self.stage:
-        self.repository_disk_size = self.stage['repository_disk_size']
     else:
       if 'memory_size' in self.stage:
         raise AnsibleParserError('memory_size cannot be specified when provider is IaaS')

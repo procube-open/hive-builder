@@ -16,7 +16,7 @@ Windows Subsystem for Linux, Mac OS, Ubuntu, Centos などの環境で以下を�
 - docker コマンドが利用できること
 
 docker コマンドのインストール
-------------------
+------------------------------
 docker コマンドのインストールは、OSごとに以下に従ってください。docker のパッケージをインストールしても
 dockerデーモンやコンテナを動作させる必要はないことに注意してください。
 hive-builder は docker コマンドをクライアントとして利用するだけですので、

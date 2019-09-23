@@ -8,6 +8,7 @@ twine = "*"
 sphinx = "*"
 sphinx-autobuild = "*"
 setuptools-scm = "*"
+sphinxcontrib-blockdiag = "*"
 
 [packages]
 ansible = "*"
