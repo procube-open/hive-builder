@@ -112,7 +112,7 @@ class hiveContext:
 
   def setup(self, subcommand_handlers):
     self.load_variables_metainf()
-    self.parse_args(subcommand_handlers)
+    self.args = self.get_parser(subcommand_handlers).parse_args()
     # raise SystemExit when invalid argument or -h option is specified
     self.reset_logger()
     self.vars = {'root_dir': self.args.root_dir,
@@ -238,7 +238,7 @@ class hiveContext:
       target = mutually_exclusive_group_map[group_name]
     target.add_argument(metainf['command_line_option'], long_option, **kwargs)
 
-  def parse_args(self, subcommand_handlers):
+  def get_parser(self, subcommand_handlers):
     parser = argparse.ArgumentParser(
         description='support tool to build docker site')
     mutually_exclusive_group_map = {}
@@ -250,8 +250,7 @@ class hiveContext:
     subparsers = parser.add_subparsers(title='subcommands')
     for handler in subcommand_handlers:
       handler.setup_parser(subparsers, self.variables_metainf)
-    self.args = parser.parse_args()
-    # raise SystemExit when invalid argument or -h option is specified
+    return parser
 
   def load_command_line_options(self):
     self.vars.update(dict((k, getattr(self.args, k)) for k, v in self.variables_metainf.items()
@@ -577,6 +576,12 @@ class execSsh(ansbileCommandBase):
 
 
 SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh()]
+
+
+def get_parser():
+  context = hiveContext()
+  context.load_variables_metainf()
+  return context.get_parser(SUBCOMMANDS)
 
 
 def main():

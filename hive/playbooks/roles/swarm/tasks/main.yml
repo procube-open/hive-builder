@@ -23,7 +23,7 @@
   when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
 
 - name: get token for manager
-  delegate_to: "{{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}"
+  delegate_to: "{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}"
   # ensure the task is executed even if invoked as ansible-playbook -l xxx where xxx is not first hive
   shell: "docker swarm join-token {{ hive_swarm_mode | default('manager') }} | grep 'docker swarm join'"
   register: hive_safe_swarm_join_token
@@ -36,6 +36,6 @@
   register: hive_safe_join_info
 
 - name: add labels for groups
-  delegate_to: "{{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}"
+  delegate_to: "{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}"
   shell: "docker node update {% for g in group_names %}--label-add {{ g }}=true {% endfor %}{{ inventory_hostname.split('.')[0] }}"
   when: swarm_init is not skipped or hive_safe_join_info is not skipped

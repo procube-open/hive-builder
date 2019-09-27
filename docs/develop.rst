@@ -218,6 +218,18 @@ image 属性にイメージタグの文字列が設定されている場合は�
 
 サービス定義の from 属性、roles 属性の記述方法については :doc:`inventory` を参照してください。
 
+リポジトリの掃除
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+build-images フェーズを実行すると新しいコンテナイメージが登録されますが、
+古いコンテナイメージはリポジトリに残ったままになります。
+ディスク残量が少なくなってきた場合には、  hive ssh コマンドでリポジトリサーバに
+ログインし、以下のコマンドを実行してリポジトリを掃除してください。
+
+::
+
+  docker exec -it registry registry garbage-collect -m /etc/docker/registry/config.yml
+
+
 ボリュームのマウント
 ----------------------
 docker の通常のボリュームに加えて drbd でサーバ間で複製同期するボリュームを利用できます。
@@ -246,6 +258,8 @@ hive_default_network です。
 上のアドレスを解決し、PowerDNS のサーバはデータベースにアクセスできます。
 この仕組みは powerdns サービスと pdnsdb サービスがどのホストで動作しているかと
 関係なく動作します。
+通常は、このデフォルトのネットワークで十分ですので、
+特にインベントリにネットワークを定義する必要はありません。
 
 ネットワークの配備は build-networks フェーズで行われます。以下のコマンドで
 実行できます。
@@ -256,29 +270,142 @@ hive_default_network です。
 
 サービスのデプロイ
 ------------------------------
-docker コンテナにサイト固有のパラメータを渡す場合は、コンテナ起動時に環境変数に
-パラメータを指定して渡すのが一般的です。
+ここでは、 docker swarm サービスをデプロイします。
+デプロイ時ににサイト固有のパラメータを渡すために、起動時にコマンドラインを指定したり、
+環境変数にパラメータを指定したりするのが一般的です。
+また、デプロイしたサービスを外部に対して公開する場合の
+ポート番号を指定する必要があります。
 
-hive ではサービス定義の environment 属性で環境変数の値を指定できます。
+例えば、サンプルの powerdns サービスでは、以下の指定で、サイト固有パラメータ
+を指定しています。
 
-（未執筆）
+::
+
+    environment:
+      MYSQL_PASSWORD: "{{db_password}}"
+      MYSQL_HOST: pdnsdb
+      MYSQL_DNSSEC: "yes"
+      PDNSCONF_DEFAULT_SOA_NAME: "{{ (groups['first_hive'] | intersect(groups[hive_stage]) | first) + '.' + domain }}"
+    command:
+    - "--api=yes"
+    - "--api-key={{db_password}}"
+    - "--webserver=yes"
+    - "--webserver-address=0.0.0.0"
+    - "--webserver-allow-from=0.0.0.0/0"
+    ports:
+    - target_port: 53
+      published_port: 53
+      protocol: tcp
+    - target_port: 8081
+      published_port: 61001
+      protocol: tcp
+    - target_port: 53
+      published_port: 53
+      protocol: udp
+
+環境変数(environments の配下)で DBサーバへの接続パラメータを渡しています。ここでは、DBにアクセスする
+ためのパスワード（MYSQL_PASSWOWRD）は動的に生成したものを ansible のテンプレート機能で展開しています。
+また、コマンド引数(command の配下)でPOWERDNS の API を有効化しています。
+さらに ports でサービスの公開仕様を定義しています。この例では udp/tcp DNSサービスを 53 番ポートで公開し、
+APIサービスのポート 8081 を 61001番ポートで公開しています。
+
+ただし、 hive は 10000 以上の番号は外部に公開しないようになっています。
+IaaS のファイアウォールおよび iptables （未実装）で外部からのアクセスを
+遮断しています。上記であれば、 61001 番ポートで公開されるAPIサービスは
+内部からのみアクセスでき、外部には公開されません。
+
+このようにして、定義されたサービスを以下のコマンドで起動することができます。
+
+::
+
+  hive deploy-services
 
 サイトの初期データのロード
 ------------------------------
 
-（未執筆）
+複数のマイクロサービスが連携して機能を実装する場合、build-images や deploy-services では
+初期データをロードできない場合があります。たとえば、サンプルの powerdns では、
+ゾーンやAレコードをAPIから登録しようとすると、 Power DNS とバックエンドの
+データベースの両方を稼働させる必要があります。
 
-運用保守
-=============================
-（未執筆）
-
-リポジトリの掃除
------------------------------
-build-images フェーズを実行すると新しいコンテナイメージが登録されますが、
-古いコンテナイメージはリポジトリに残ったままになります。
-ディスク残量が少なくなってきた場合には、以下のコマンドをリポジトリサーバで実行して
-リポジトリを掃除してください。
+hive では、 initialize-services フェーズですべてのサービスを稼働させた状態で
+初期データを登録できます。 initialize-services フェーズで初期データを登録するためには、
+プロジェクトのルートディレクトリに initialize-services.yml という名前で
+ansible の playbook を置く必要があります。例えば、サンプルでは Power DNS のモジュールを使って
+初期データを登録しています。この場合の initialize-serivces.yml の内容は以下のとおりです。
 
 ::
 
-  docker exec -it registry_registry_server_1 registry garbage-collect /etc/docker/registry/config.yml -m
+  ---
+  - name: gather global ips
+    gather_facts: False
+    hosts: hives
+
+    tasks:
+    - name: get my public IP
+      ipify_facts:
+      register: hive_safe_ipify_facts
+      when: hive_provider not in ['vagrant']
+    - name: set published IP
+      set_fact:
+        published_ip: "{% if hive_safe_ipify_facts is skipped %}{{ hive_private_ip }}{% else %}{{ hive_safe_ipify_facts.ansible_facts.ipify_public_ip }}{% endif %}"
+
+  - name: initialize services
+    gather_facts: False
+    hosts: first_hive
+    vars_files:
+    - "{{ hive_playbooks_dir }}/group_vars/all.yml"
+    vars:
+      delimiter: "','"
+      ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+    tasks:
+    - name: install requests module
+      pip:
+        name: requests
+    - name: wait for powerdns api available
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 61001
+    - name: add zone
+      powerdns_zone:
+        name: "{{ hive_name }}.{{ domain }}."
+        nameservers: "{{ groups['hives'] | intersect(groups[hive_stage]) | map('regex_replace', '^(.*)$', '\\1.' + domain +'.' ) | list }}"
+        kind: native
+        state: present
+        pdns_host: "{{ inventory_hostname }}"
+        pdns_port: 61001
+        pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+    - name: add records for hives
+      powerdns_record:
+        name: "{{ item + '.' + domain + '.' }}"
+        zone: "{{ hive_name }}.{{ domain }}"
+        type: A
+        content: "{{ hostvars[item].published_ip }}"
+        ttl: 3600
+        pdns_host: "{{ inventory_hostname }}"
+        pdns_port: 61001
+        pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+      loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+    - name: add records for web services
+      powerdns_record:
+        name: "{{ item + '.' }}"
+        zone: "{{ hive_name }}.{{ domain }}"
+        type: LUA
+        content: A "ifportup(80, {'{{ groups['hives'] | intersect(groups[hive_stage]) | map('extract', hostvars, ['published_ip']) | join(delimiter)}}'})"
+        ttl: 20
+        pdns_host: "{{ inventory_hostname }}"
+        pdns_port: 61001
+        pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
+      loop: "{{ groups['services'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_labels') | select('defined') | map(attribute='published_fqdn') | select('defined') | list }}"
+
+この playbook は2つの play を含んでいます。
+最初の play で各コンテナ収容サーバ(グループ名= hives)のグローバルIPを調べて、
+host変数の published_ip に設定しています。
+次の play でゾーンとレコードを登録しています。
+ここで使用している powerdns_zone モジュールと powerdns_record モジュールは ansible の
+オフィシャルモジュールではありません。
+hive ではlibディレクトリの下に置くことでカスタムモジュールを使用できます。
+サンプルでは、 github の https://github.com/Nosmoht/ansible-module-powerdns で公開されているモジュールを
+ダウンロードして、lib の下に配置しています。
+

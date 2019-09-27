@@ -9,6 +9,7 @@ sphinx = "*"
 sphinx-autobuild = "*"
 setuptools-scm = "*"
 sphinxcontrib-blockdiag = "*"
+sphinx-argparse = "*"
 
 [packages]
 ansible = "*"

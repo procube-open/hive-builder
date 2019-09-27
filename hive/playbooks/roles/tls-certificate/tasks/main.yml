@@ -36,12 +36,12 @@
 # - name: get whether cert file already exists or not
 #   stat: path="{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
 #   become: False
-#   delegate_to: "{{ (groups['mother'] | intersect(groups[hive_stage]))[0] }}"
+#   delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
 #   register: cert_stat
 - name: signed certificate
   tags: signed
   become: False
-  delegate_to: "{{ (groups['mother'] | intersect(groups[hive_stage]))[0] }}"
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
   shell: |
     openssl x509 -req -days "{{ hive_safe_tls_valid_in }}" -sha256 -in {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}.csr \
     -CA  {{ hive_safe_ca_dir }}/cacert.pem \

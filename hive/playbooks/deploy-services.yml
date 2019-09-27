@@ -16,7 +16,8 @@
   - name: pull docker images
     docker_image:
       name: "{{ hive_registry }}/{{ item }}:latest"
-      repository: "{{ hive_registry }}"
+      # If you add the repository parameter, this module add an unnecessary tag like hive2.pdns:5000
+      # Do not add repository: "{{ hive_registry }}"
       source: pull
       force_source: True
     loop: "{{ hive_safe_images }}"

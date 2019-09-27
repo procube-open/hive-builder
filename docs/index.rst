@@ -6,8 +6,8 @@ hive-builder ドキュメントページへようこそ
     :caption: Contents:
 
     overview.rst
-    example.rst
     install.rst
+    example.rst
     develop.rst
     command.rst
     inventory.rst

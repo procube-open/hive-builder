@@ -34,7 +34,7 @@ if [ $# -gt 2 ]; then
   error "too many argument."
 fi
 
-export DOCKER_HOST={{ (groups['first_hive'] | intersect(groups[hive_stage]))[0] }}:2376
+export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}:2376
 export DOCKER_TLS=1
 suffix={{ hive_name }}
 

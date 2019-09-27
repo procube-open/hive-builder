@@ -21,5 +21,5 @@ hive_published_ports_tcp: "{{ groups['services'] | map('extract', hostvars, 'hiv
 hive_published_ports_udp: "{{ groups['services'] | map('extract', hostvars, 'hive_ports') | flatten | select('defined') | selectattr('protocol', 'eq', 'udp') | selectattr('published_port', 'defined') | selectattr('published_port', 'lt', 10000) | map(attribute='published_port') | map('string') |  list }}"
 hive_safe_admin: "{{ hive_admin | default(hive_provider_admin_map[hive_provider]) }}"
 hive_home_dir: "/home/{{ hive_safe_admin }}"
-hive_registry_fqdn: "{{ (groups['repository'] | intersect(groups[hive_stage]))[0] }}"
+hive_registry_fqdn: "{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
 hive_safe_sshd_port: "{{ hive_sshd_port | default(22) }}"

@@ -151,7 +151,7 @@ halt:
   - build-infra
   name_in_ansible: hive_halt
 ssh_host:
-  description: "stop {subject_name}"
+  description: "target {subject_name}"
   command_line_option: "-t"
   command_line_option_level: phase
   mutually_exclusive_group: operation

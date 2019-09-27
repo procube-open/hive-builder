@@ -69,7 +69,7 @@ virtualenv, pipenv, conda を利用されている場合は、それぞれの方
 
 hive-builder のインストール
 ===============================
-仮想環境が activate されている状態で以下のコマンドで hive-builder をインストールしてください。
+仮想環境が activate されている状態で以下のコマンドで hive-builder をインストールしてください。詳しくは :doc:`install` を参照してください。
 
 ::
 
