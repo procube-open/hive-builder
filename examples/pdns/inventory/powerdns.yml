@@ -26,7 +26,7 @@ services:
       protocol: udp
   pdnsdb:
     image:
-      from: "mariadb:10.3"
+      from: "mariadb:10.4"
       roles:
       - python-aptk
       - powerdns-initdb

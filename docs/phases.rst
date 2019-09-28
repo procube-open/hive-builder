@@ -14,17 +14,21 @@ build-infra
 build-infraフェーズでは、サーバを配備する基盤のプロバイダをステージオブジェクトの provider 属性に指定することで、様々なプロバイダを利用できます。
 プロバイダとして有効な値は以下のとおりです。
 
-============= ===========================================
+============= ===============================================
 プロバイダID  説明
-============= ===========================================
-vagrant       Vagrant for VirtualBox on local machine
+============= ===============================================
+vagrant       Vagrant for VirtualBox/libvirt on local machine
 aws           Amazon Web Service
 azure         Microsoft Azure（未実装）
 gcp           Gooble Computing Platform
 openstack     Some OpenStack Provider（未実装）
 prepared      sshでアクセス可能なサーバ群（未実装）
-============= ===========================================
+============= ===============================================
 
+vagrant
+^^^^^^^^^^^^^^
+プロバイダIDにvagrant を指定した場合、vagrant のプロバイダは
+libvirt, VirtualBox の順に試して、成功したものを使用します。
 
 setup-hosts
 =========================

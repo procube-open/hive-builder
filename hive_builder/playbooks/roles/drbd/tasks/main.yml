@@ -31,6 +31,7 @@
   loop:
     - "{{ hive_mirrored_device_name | default('/dev/dummy_device_never_exist') }}"
     - /dev/sdb
+    - /dev/vdb
     - /dev/xvdb
     - /dev/nvme1n1
 - set_fact:

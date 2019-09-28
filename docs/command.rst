@@ -5,7 +5,7 @@ hiveコマンドはいくつかのサブコマンドを指定して利用しま�
 以下にその形式とオプションを説明します。
 
 .. argparse::
-   :module: hive.hive
+   :module: hive_builder.hive
    :func: get_parser
    :prog: hive
 

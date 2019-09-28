@@ -22,15 +22,21 @@ dockerデーモンやコンテナを動作させる必要はないことに注�
 hive-builder は docker コマンドをクライアントとして利用するだけですので、
 dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
 
-インストールの手順は以下のページに従ってください。
+
 
 Windows Subsystem for Linux, Ubuntu の場合
+  インストールの手順は以下のページに従ってください。
   https://docs.docker.com/install/linux/docker-ce/ubuntu/
 
 Centos の場合
-  https://docs.docker.com/install/linux/docker-ce/centos/
+  以下のコマンドを root で実行して docker-client をインストールしてください。
+
+::
+
+  yum install -y docker-client
 
 Mac OS の場合
+  インストールの手順は以下のページに従ってください。
   https://docs.docker.com/docker-for-mac/install/
   インストール後、一度は docker アプリケーションを起動しないと docker コマンドがインストールされません。
   デスクトップからdocker アプリケーションを起動して、docker コマンドが使えるようになったことを確認した後、
@@ -44,5 +50,5 @@ pyenv, virtualenv などでpython の仮想環境を作成し、環境を activa
 
 ::
 
-  pip install hive-builder
+  pip install hive_builder
 

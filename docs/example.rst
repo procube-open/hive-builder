@@ -73,7 +73,7 @@ hive-builder のインストール
 
 ::
 
-  pip install hive-builder
+  pip install hive_builder
 
 
 パラメータを設定

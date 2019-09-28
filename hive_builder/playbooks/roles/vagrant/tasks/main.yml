@@ -15,6 +15,18 @@
     box_name: "{{ hive_vagrant_box_name | default('centos/7') }}"
     instances: "{{ groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars) | list}}"
     cmd: "{% if hive_destroy | default(false) %}destroy{% elif hive_halt | default(false) %}halt{% else %}up{% endif %}"
+  # set vagrant server url prevent following error on linux scl vagrant package
+  # $ vagrant box add centos/7
+  # The box 'centos/7' could not be found or
+  # could not be accessed in the remote catalog. If this is a private
+  # box on HashiCorp's Atlas, please verify you're logged in via
+  # `vagrant login`. Also, please double-check the name. The expanded
+  # URL and error message are shown below:
+  #
+  # URL: ["https://atlas.hashicorp.com/centos/7"]
+  # Error: The requested URL returned error: 404 Not Found
+  environment:
+    VAGRANT_SERVER_URL: https://vagrantcloud.com
   register: hive_vagrant_result
 
 - name: generate ssh-config

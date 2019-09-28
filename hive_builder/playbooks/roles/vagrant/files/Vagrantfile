@@ -24,13 +24,28 @@ Vagrant.configure("2") do |config|
       # network
       node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
       node.vm.hostname = "#{_name}"
+      node.vm.provider :libvirt do |v|
+        v.cpu_mode = "host-passthrough"
+        if value.key?("memory_size")
+          v.memory = value['memory_size']
+        end
+        if value.key?("cpus")
+          v.cpus = value['cpus']
+        end
+        if value.key?("mirrored_disk_size")
+          drbdpool_disk = "drbdpool-#{_name}.img"
+          if !File.exist?(drbdpool_disk)
+            v.storage :file, :path => drbdpool_disk, :size => "#{value['mirrored_disk_size']}G"
+          end
+        end
+      end
       node.vm.provider "virtualbox" do |v|
         v.name = "#{_name}"
         if value.key?("memory_size")
-          v.memory = "#{value['memory_size']}"
+          v.memory = value['memory_size']
         end
         if value.key?("cpus")
-          v.cpus = "#{value['cpus']}"
+          v.cpus = value['cpus']
         end
         if value.key?("mirrored_disk_size")
           drbdpool_disk = "#{_dir}/drbdpool#{_name}.vdi"
