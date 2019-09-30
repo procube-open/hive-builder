@@ -176,6 +176,29 @@ aws プロバイダ固有の属性には以下のものがあります。
       - 必須
       - リポジトリサーバのインスタンスタイプ
 
+prepared プロバイダ
+^^^^^^^^^^^^^^^^^^^
+prepared プロバイダは OS がインストール済みのホストが
+事前に用意されている場合に使用します。
+以下に prepared プロバイダの hive 定義の例を示します。
+
+::
+
+  staging:
+    provider: prepared
+    separate_repository: False
+    cidr: 192.168.0.96/27
+    ip_address_list:
+    - 192.168.0.98
+    - 192.168.0.99
+    - 192.168.0.100
+    root_password: mzYY3qjdvBiD
+
+root_password が指定された場合は、build-infra フェーズは
+鍵認証ではなく root ユーザでパスワードでログインして実行されます。
+build-infra フェーズで ssh 鍵を生成し、 hive_admin で指定された
+ユーザを作成して、 authorized_keys を設定します。
+
 .. 台数をへらす方法：リポジトリサーバの分割、1台だけで動作
 
 サービス定義

@@ -40,7 +40,7 @@ DOCUMENTATION = r'''
         provider:
           description: infrastructure provider
           required: true
-          choices: ['vagrant', 'aws', 'azure', 'gcp', 'openstack']
+          choices: ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared']
         separate_repository:
           description: whether repository node is separated from swarm nodes
           type: bool
@@ -175,12 +175,14 @@ class Stage:
     if 'provider' not in self.stage:
       raise AnsibleParserError('provider must be specified')
     self.provider = self.stage['provider']
-    if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack']:
-      raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", but specified {self.provider}')
+    if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared']:
+      raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", but specified {self.provider}')
     if 'disk_size' in self.stage:
       self.disk_size = self.stage['disk_size']
     if 'repository_disk_size' in self.stage:
       self.repository_disk_size = self.stage['repository_disk_size']
+    if 'root_password' in self.stage:
+      self.root_password = self.stage['root_password']
     if self.provider == 'vagrant':
       if 'instance_type' in self.stage:
         raise AnsibleParserError('instance_type cannot be specified when provider is vagrant')
@@ -223,10 +225,13 @@ class Stage:
         net = ipaddress.ip_network(self.stage['cidr'])
       except ValueError as e:
         raise AnsibleParserError(str(e))
-      hosts = net.hosts()
-      # first one is route, so skip it
-      next(hosts)
-      self.subnets.append({'ip_list': map(str, hosts), 'netmask': str(net.netmask)})
+      if 'ip_address_list' in self.stage:
+        self.subnets.append({'ip_list': (y for y in self.stage.get('ip_address_list')), 'netmask': str(net.netmask)})
+      else:
+        hosts = net.hosts()
+        # first one is route, so skip it
+        next(hosts)
+        self.subnets.append({'ip_list': map(str, hosts), 'netmask': str(net.netmask)})
     else:
       var_subnets = []
       for idx, s in enumerate(self.stage['subnets']):
@@ -253,11 +258,15 @@ class Stage:
       self.inventory.set_variable(mother_name, 'hive_subnets', var_subnets)
 
   def add_hives(self):
-    separate_repository = self.stage['separate_repository'] if 'separate_repository' in self.stage else True
+    separate_repository = self.stage.get('separate_repository', True)
     number_of_hosts = self.stage.get('number_of_hosts', 4 if separate_repository else 3)
+    if 'ip_address_list' in self.stage:
+      number_of_hosts = len(self.stage.get('ip_address_list'))
     for idx in range(number_of_hosts):
       host_name = f'{self.stage_prefix}hive{idx}.{self.name}'
       self.inventory.add_host(host_name, group=self.stage_name)
+      if hasattr(self, 'root_password'):
+        self.inventory.set_variable(host_name, 'hive_root_password', self.root_password)
       if idx == number_of_hosts - 1:
         if not separate_repository:
           self.inventory.add_host(host_name, group='hives')
@@ -305,8 +314,3 @@ class Stage:
       self.inventory.set_variable(host_name, 'hive_netmask', subnet['netmask'])
     self.inventory.set_variable('hives', 'hive_swarm_master', f'{self.stage_prefix}hive0.{self.name}')
     self.inventory.add_host(f'{self.stage_prefix}hive0.{self.name}', group='first_hive')
-
-
-class providerBase:
-  def __init__(self, name):
-    self.name = name

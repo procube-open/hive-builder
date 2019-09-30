@@ -55,7 +55,7 @@
         User {{ hive_safe_admin }}
         StrictHostKeyChecking no
         PasswordAuthentication no
-        IdentityFile {{ hive_private_key_path }}
+        IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
         LogLevel FATAL
 

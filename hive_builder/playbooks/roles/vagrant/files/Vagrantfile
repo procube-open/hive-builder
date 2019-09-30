@@ -59,7 +59,6 @@ Vagrant.configure("2") do |config|
         node.disksize.size = "#{value['disk_size']}GB"
       end
       config.vm.synced_folder ".", "/vagrant", disabled: true
-      # node.vm.synced_folder "#{value['hive_root_dir']}", "/vagrant", type: "#{value['vagrant_sync_type']}"
     end
   end
 end

@@ -1,0 +1,22 @@
+---
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ setup_host }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ setup_host }}
+        HostName {{ hostvars[setup_host].hive_private_ip }}
+        UserKnownHostsFile /dev/null
+        User {{ hive_safe_admin }}
+        StrictHostKeyChecking no
+        PasswordAuthentication no
+        IdentityFile {{ hive_safe_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+  loop: "{{ hive_safe_hosts }}"
+  loop_control:
+    loop_var: setup_host
+

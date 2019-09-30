@@ -3,19 +3,53 @@
   hosts: mother
 
   tasks:
+  - name: if ssh keypair is prepared or not
+    stat:
+      path: "{{ hive_safe_private_key_path }}"
+    register: hive_safe_private_key_stat
   - name: generate ssh keypair
     openssh_keypair:
-      path: "{{ hive_private_key_path }}"
-    when: hive_provider not in ['vagrant']
+      path: "{{ hive_safe_private_key_path }}"
+    when: hive_provider not in ['vagrant'] and not hive_safe_private_key_stat.stat.exists
   - include_role:
       name: "{{ hive_provider }}"
   - import_role:
       name: ca
-    when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false))
 
 - name: wait for connectable
   gather_facts: False
   hosts: servers
+  vars:
+    ansible_host: "{%if hive_root_password is defined %}{{ hive_private_ip }}{% else %}{{ omit }}{% endif %}"
+    ansible_user: "{%if hive_root_password is defined %}root{% else %}{{ omit }}{% endif %}"
+    ansible_ssh_pass: "{%if hive_root_password is defined %}{{ hive_root_password }}{% else %}{{ omit }}{% endif %}"
+    ansible_ssh_common_args: "{%if hive_root_password is defined %}-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null{% else %}{{ omit }}{% endif %}"
+
   tasks:
   - wait_for_connection:
-    when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false))
+  - name: add admin group
+    group:
+      name: "{{ hive_admin_group | default(hive_safe_admin) }}"
+      gid: "{{ hive_admin_gid | default(omit) }}"
+      state: present
+    when: hive_root_password is defined
+  - name: Allow  passwordless sudo to admin groups
+    copy:
+      content: "%{{ hive_admin_group | default(hive_safe_admin) }} ALL=(ALL) NOPASSWD: ALL"
+      dest: "/etc/sudoers.d/{{ hive_admin_group | default(hive_safe_admin) }}"
+    when: hive_root_password is defined
+  - name: add admin user
+    user:
+      name: "{{ hive_safe_admin }}"
+      uid: "{{ hive_admin_uid | default(omit) }}"
+      group: "{{ hive_admin_group | default(hive_safe_admin) }}"
+      state: present
+    when: hive_root_password is defined
+  - name: set authorized key for hive_users
+    authorized_key:
+      user: "{{ hive_safe_admin }}"
+      state: present
+      key: "{{ lookup('file', hive_safe_public_key_path) }}"
+    when: hive_root_password is defined

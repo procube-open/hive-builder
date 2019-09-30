@@ -73,7 +73,7 @@
   ec2_key:
     name: "{{ hive_aws_key_name | default('awsroot') }}"
     region: "{{ hive_region }}"
-    key_material: "{{ lookup('file', hive_public_key_path) }}"
+    key_material: "{{ lookup('file', hive_safe_public_key_path) }}"
 
 - name: create instances
   include_tasks: create_instance.yml

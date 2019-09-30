@@ -1,0 +1,12 @@
+---
+- name: "setup for prepared hosts"
+  import_tasks: setup.yml
+  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+- name: "destroy gcp"
+  debug:
+    msg: prepared provider does not support destroy mode
+  when: hive_destroy  | default(false)
+- name: "stop gcp"
+  debug:
+    msg: prepared provider does not support stop mode
+  when: hive_halt  | default(false)
