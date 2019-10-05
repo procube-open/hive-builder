@@ -22,7 +22,11 @@ Vagrant.configure("2") do |config|
     # node list
     config.vm.define "#{_name}" do |node|
       # network
-      node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
+      if value.key?("vagrant_bridge")
+        node.vm.network "public_network", ip: "#{_ip}", bridge: "#{vagrant_bridge}"
+      else
+        node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
+      end
       node.vm.hostname = "#{_name}"
       node.vm.provider :libvirt do |v|
         v.cpu_mode = "host-passthrough"

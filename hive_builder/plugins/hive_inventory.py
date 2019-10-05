@@ -201,6 +201,8 @@ class Stage:
         raise AnsibleParserError('memory_size cannot be specified when provider is IaaS')
       if 'repository_memory_size' in self.stage:
         raise AnsibleParserError('repository_memory_size cannot be specified when provider is IaaS')
+      if 'bridge' in self.stage:
+        raise AnsibleParserError('bridge cannot be specified when provider is IaaS')
       if 'instance_type' in self.stage:
         self.instance_type = self.stage['instance_type']
       if 'repository_instance_type' in self.stage:

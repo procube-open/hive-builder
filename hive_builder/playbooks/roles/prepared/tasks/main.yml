@@ -6,7 +6,7 @@
   debug:
     msg: prepared provider does not support destroy mode
   when: hive_destroy  | default(false)
-- name: "stop gcp"
+- name: "stop prepared"
   debug:
     msg: prepared provider does not support stop mode
   when: hive_halt  | default(false)

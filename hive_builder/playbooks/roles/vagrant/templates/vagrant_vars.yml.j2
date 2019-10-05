@@ -1,6 +1,7 @@
 ---
 vagrant_ssh_insert_key: "{{ hive_vagrant_ssh_insert_key | default(True) }}"
 vagrant_box_name: "{{ hive_vagrant_box_name | default('centos/7') }}"
+vagrant_bridge: "{{ hive_bridge | default(omit) }}"
 hive_root_dir: "{{ hive_root_dir }}"
 hive_context_dir: "{{ hive_context_dir }}"
 vagrant_hosts:
