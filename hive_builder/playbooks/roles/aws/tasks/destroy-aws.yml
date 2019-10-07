@@ -3,6 +3,7 @@
     region: "{{ hive_region }}"
     filters:
       "tag:Name": "{{ item }}"
+      "tag:Project": "{{ hive_name }}"
   loop: "{{hive_safe_hosts }}"
   register: hive_safe_instances
 
@@ -13,6 +14,7 @@
     wait: yes
     filters:
       "tag:Name": "{{ item }}"
+      "tag:Project": "{{ hive_name }}"
   loop: "{{ hive_safe_hosts }}"
   register: hive_safe_delete_instance
 
@@ -30,6 +32,7 @@
   ec2_vpc_net_facts:
     filters:
       "tag:Name": "{{ hive_safe_vpc_name }}"
+      "tag:Project": "{{ hive_name }}"
       cidr: "{{ hive_cidr }}"
     region: "{{ hive_region }}"
   register: hive_safe_aws_vpc_info
@@ -43,6 +46,7 @@
     cidr: "{{ item.cidr }}"
     resource_tags:
       Name: "{{ item.name }}"
+      Project: "{{ hive_name }}"
   loop: "{{ hive_subnets }}"
 
 - name: delete internet gateway for VPC
@@ -52,10 +56,13 @@
     state: absent
     tags:
       Name: "gateway for {{ hive_safe_vpc_name }}"
+      Project: "{{ hive_name }}"
 
 - name: delete VPC
   ec2_vpc_net:
     name: "{{ hive_safe_vpc_name }}"
     cidr_block: "{{ hive_cidr }}"
     region: "{{ hive_region }}"
+    tags:
+      Project: "{{ hive_name }}"
     state: absent

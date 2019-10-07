@@ -5,4 +5,5 @@
     wait: yes
     filters:
       "tag:Name": "{{ item }}"
+      "tag:Project": "{{ hive_name }}"
   loop: "{{ hive_safe_hosts }}"
