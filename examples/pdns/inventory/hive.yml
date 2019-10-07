@@ -1,4 +1,5 @@
 plugin: hive_inventory
+name: pdns
 stages:
   private:
     provider: vagrant
@@ -43,5 +44,3 @@ stages:
     - cidr: 192.168.0.128/26
       name: subnet-c
       available_zone: asia-northeast2-c
-name: pdns
-hoge: xyz
