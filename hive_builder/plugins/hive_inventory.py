@@ -275,7 +275,7 @@ class Stage:
           if hasattr(self, 'memory_size'):
             self.inventory.set_variable(host_name, 'hive_memory_size', self.memory_size)
           if hasattr(self, 'cpus'):
-            self.inventory.set_variable(host_name, 'hive_cpus', self.memory_size)
+            self.inventory.set_variable(host_name, 'hive_cpus', self.cpus)
           if hasattr(self, 'disk_size'):
             self.inventory.set_variable(host_name, 'hive_disk_size', self.disk_size)
           if hasattr(self, 'instance_type'):
@@ -286,7 +286,7 @@ class Stage:
         if hasattr(self, 'repository_memory_size'):
           self.inventory.set_variable(host_name, 'hive_memory_size', self.repository_memory_size)
         if hasattr(self, 'repository_cpus'):
-          self.inventory.set_variable(host_name, 'hive_cpus', self.repository_memory_size)
+          self.inventory.set_variable(host_name, 'hive_cpus', self.repository_cpus)
         if hasattr(self, 'repository_disk_size'):
           self.inventory.set_variable(host_name, 'hive_disk_size', self.repository_disk_size)
         if hasattr(self, 'repository_instance_type'):
@@ -296,7 +296,7 @@ class Stage:
         if hasattr(self, 'memory_size'):
           self.inventory.set_variable(host_name, 'hive_memory_size', self.memory_size)
         if hasattr(self, 'cpus'):
-          self.inventory.set_variable(host_name, 'hive_cpus', self.memory_size)
+          self.inventory.set_variable(host_name, 'hive_cpus', self.cpus)
         if hasattr(self, 'disk_size'):
           self.inventory.set_variable(host_name, 'hive_disk_size', self.disk_size)
         if hasattr(self, 'instance_type'):
