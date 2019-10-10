@@ -85,6 +85,8 @@ DOCUMENTATION = r'''
           description: "number of cpu of hive hosts(only available when provider is 'vagrant')"
           type: int
           default: VirtualBox default
+        root_password:
+          description: "password of root user (only available when provider is 'preapred')"
         instance_type:
           description: "the instance type of hive hosts(availabe when provider is a IaaS)"
         image_name:
@@ -177,36 +179,20 @@ class Stage:
     self.provider = self.stage['provider']
     if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared']:
       raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", but specified {self.provider}')
-    if 'disk_size' in self.stage:
-      self.disk_size = self.stage['disk_size']
-    if 'repository_disk_size' in self.stage:
-      self.repository_disk_size = self.stage['repository_disk_size']
-    if 'root_password' in self.stage:
-      self.root_password = self.stage['root_password']
     if self.provider == 'vagrant':
       if 'instance_type' in self.stage:
         raise AnsibleParserError('instance_type cannot be specified when provider is vagrant')
       if 'region' in self.stage:
         raise AnsibleParserError('region cannot be specified when provider is vagrant')
-      if 'memory_size' in self.stage:
-        self.memory_size = self.stage['memory_size']
-      if 'repository_memory_size' in self.stage:
-        self.repository_memory_size = self.stage['repository_memory_size']
-      if 'cpus' in self.stage:
-        self.cpus = self.stage['cpus']
-      if 'repository_cpus' in self.stage:
-        self.repository_cpus = self.stage['repository_cpus']
     else:
       if 'memory_size' in self.stage:
         raise AnsibleParserError('memory_size cannot be specified when provider is IaaS')
       if 'repository_memory_size' in self.stage:
         raise AnsibleParserError('repository_memory_size cannot be specified when provider is IaaS')
+      if 'dev' in self.stage:
+        raise AnsibleParserError('dev cannot be specified when provider is IaaS')
       if 'bridge' in self.stage:
         raise AnsibleParserError('bridge cannot be specified when provider is IaaS')
-      if 'instance_type' in self.stage:
-        self.instance_type = self.stage['instance_type']
-      if 'repository_instance_type' in self.stage:
-        self.repository_instance_type = self.stage['repository_instance_type']
 
   def add_stage_group(self):
     self.inventory.add_group(self.stage_name)
@@ -222,6 +208,10 @@ class Stage:
     self.inventory.set_variable(mother_name, 'hive_cidr', self.stage['cidr'])
     if 'region' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_region', self.stage['region'])
+    if 'bridge' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_bridge', self.stage['bridge'])
+    if 'dev' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_dev', self.stage['dev'])
     if 'subnets' not in self.stage:
       try:
         net = ipaddress.ip_network(self.stage['cidr'])
@@ -267,40 +257,40 @@ class Stage:
     for idx in range(number_of_hosts):
       host_name = f'{self.stage_prefix}hive{idx}.{self.name}'
       self.inventory.add_host(host_name, group=self.stage_name)
-      if hasattr(self, 'root_password'):
-        self.inventory.set_variable(host_name, 'hive_root_password', self.root_password)
+      if 'root_password' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_root_password', self.stage['root_password'])
       if idx == number_of_hosts - 1:
         if not separate_repository:
           self.inventory.add_host(host_name, group='hives')
-          if hasattr(self, 'memory_size'):
-            self.inventory.set_variable(host_name, 'hive_memory_size', self.memory_size)
-          if hasattr(self, 'cpus'):
-            self.inventory.set_variable(host_name, 'hive_cpus', self.cpus)
-          if hasattr(self, 'disk_size'):
-            self.inventory.set_variable(host_name, 'hive_disk_size', self.disk_size)
-          if hasattr(self, 'instance_type'):
-            self.inventory.set_variable(host_name, 'hive_instance_type', self.instance_type)
+          if 'memory_size' in self.stage:
+            self.inventory.set_variable(host_name, 'hive_memory_size', self.stage['memory_size'])
+          if 'cpus' in self.stage:
+            self.inventory.set_variable(host_name, 'hive_cpus', self.stage['cpus'])
+          if 'disk_size' in self.stage:
+            self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['disk_size'])
+          if 'instance_type' in self.stage:
+            self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['instance_type'])
           if 'mirrored_disk_size' in self.stage:
             self.inventory.set_variable(host_name, 'hive_mirrored_disk_size', self.stage['mirrored_disk_size'])
         self.inventory.add_host(host_name, group='repository')
-        if hasattr(self, 'repository_memory_size'):
-          self.inventory.set_variable(host_name, 'hive_memory_size', self.repository_memory_size)
-        if hasattr(self, 'repository_cpus'):
-          self.inventory.set_variable(host_name, 'hive_cpus', self.repository_cpus)
-        if hasattr(self, 'repository_disk_size'):
-          self.inventory.set_variable(host_name, 'hive_disk_size', self.repository_disk_size)
-        if hasattr(self, 'repository_instance_type'):
-          self.inventory.set_variable(host_name, 'hive_instance_type', self.repository_instance_type)
+        if 'repository_memory_size' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_memory_size', self.stage['repository_memory_size'])
+        if 'repository_cpus' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_cpus', self.stage['repository_cpus'])
+        if 'repository_disk_size' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['repository_disk_size'])
+        if 'repository_instance_type' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['repository_instance_type'])
       else:
         self.inventory.add_host(host_name, group='hives')
-        if hasattr(self, 'memory_size'):
-          self.inventory.set_variable(host_name, 'hive_memory_size', self.memory_size)
-        if hasattr(self, 'cpus'):
-          self.inventory.set_variable(host_name, 'hive_cpus', self.cpus)
-        if hasattr(self, 'disk_size'):
-          self.inventory.set_variable(host_name, 'hive_disk_size', self.disk_size)
-        if hasattr(self, 'instance_type'):
-          self.inventory.set_variable(host_name, 'hive_instance_type', self.instance_type)
+        if 'memory_size' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_memory_size', self.stage['memory_size'])
+        if 'cpus' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_cpus', self.stage['cpus'])
+        if 'disk_size' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['disk_size'])
+        if 'instance_type' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['instance_type'])
         if 'mirrored_disk_size' in self.stage:
           self.inventory.set_variable(host_name, 'hive_mirrored_disk_size', self.stage['mirrored_disk_size'])
 

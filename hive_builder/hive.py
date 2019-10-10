@@ -455,16 +455,20 @@ class setupHosts(phaseBase):
     self.subject_name = 'host'
 
   def get_limit_targets(self, context):
-    target = context.vars["stage"]
     if 'limit_target' in context.vars:
-      target += ',' + context.vars['limit_target']
-    return target
+      return ':'.join(context.vars['limit_target'].split(',')) + ':&' + context.vars["stage"]
+    return context.vars["stage"]
 
 
 class buildImages(phaseBase):
   def __init__(self):
     super().__init__('build-images', 'build container images')
     self.subject_name = 'container'
+
+  def get_limit_targets(self, context):
+    if 'limit_target' in context.vars:
+      return ':'.join(map(lambda x: 'image_' + x, context.vars['limit_target'].split(','))) + ':repository:&' + context.vars["stage"]
+    return context.vars["stage"]
 
   def do_one(self, context):
     socket_path = f'{context.vars["temp_dir"]}/docker_repository.sock'

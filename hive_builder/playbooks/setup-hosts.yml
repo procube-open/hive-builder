@@ -17,7 +17,7 @@
     - role: auxiliary-networks
       when: (hive_config_auxiliary_networks | default(False)) and hive_auxiliary_networks is defined
     - role: users
-      when: users is defined
+      when: hive_users is defined
     - strict-source-ip
     - tls-certificate
     - docker
