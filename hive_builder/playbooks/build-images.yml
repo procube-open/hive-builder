@@ -18,6 +18,7 @@
   - name: create container
     docker_container:
       image: "{{ hostvars[hive_safe_image].hive_from }}"
+      exposed_ports: "{{ hostvars[hive_safe_image].expose | default(omit) }}"
       name: "build_{{ hive_safe_image }}"
       hostname: "{{ hive_safe_image }}"
       env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"
@@ -35,6 +36,7 @@
   - name: start container
     docker_container:
       image: "{{ hostvars[hive_safe_image].hive_from }}"
+      exposed_ports: "{{ hostvars[hive_safe_image].expose | default(omit) }}"
       name: "build_{{ hive_safe_image }}"
       hostname: "{{ hive_safe_image }}"
       env: "{{ hostvars[hive_safe_image].hive_env | default(omit) }}"

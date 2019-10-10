@@ -47,12 +47,16 @@
 - name: set hostname
   hostname:
     name: "{{ inventory_hostname.split('.')[0] }}"
+- name: check /etc/cloud/ directory
+  stat:
+    path: /etc/cloud
+  register: _etc_cloud_
 - name: preserve hostname setting for ec2
   lineinfile:
     line: "preserve_hostname: true"
     path: /etc/cloud/cloud.cfg
     state: present
-  when: "'/etc/cloud' is exists"
+  when: "_etc_cloud_.stat.exists"
 - name: "set timezone"
   timezone:
     name: "{{ hive_timezone }}"
