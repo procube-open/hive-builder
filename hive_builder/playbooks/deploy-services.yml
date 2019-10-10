@@ -35,6 +35,7 @@
     docker_swarm_service:
       name: "{{ item }}"
       hostname: "{{ item }}"
+      restart_config: "{{ hostvars[item].restart_config | default(omit) }}"
       image: "{{ hostvars[item].hive_image | default( hive_registry + '/' + (hostvars[item].hive_image_name | default('')) + ':latest') }}"
       # Docker calls it command, but swarmkit calls it args
       args: "{{ hostvars[item].hive_command | default(omit) }}"
