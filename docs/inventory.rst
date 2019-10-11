@@ -166,6 +166,8 @@ ip_address_listの要素数はサーバの台数と一致しなければなり�
 
 vagrant プロバイダ
 ^^^^^^^^^^^^^^^^^^^
+vagrant プロバイダを利用するには、 Vagrant がインストールされていて、 virtualbox か libvirt の Vagrant プロバイダ
+がセットアップされている必要があります。
 vagrant プロバイダ固有の属性には以下のものがあります。
 
 ..  list-table::
@@ -188,13 +190,19 @@ vagrant プロバイダ固有の属性には以下のものがあります。
       - 2
       - Vagrant のデフォルト
       - サーバに割り当てる仮想CPUの個数
+    * - bridge
+      - brHive
+      - ''
+      - 外部のネットワークへブリッジ経由で接続するための仮想ブリッジをこの名前で生成する
+    * - dev
+      - brHive
+      - ''
+      - この名前の既設の仮想ブリッジに接続する（Vagrantプロバイダが libvirt である場合のみ利用できる）
 
-vagrant プロバイダで disk_size, repository_disk_size を省略した場合、Vagrant のデフォルトのサイズになります。
+- disk_size, repository_disk_size を省略した場合、Vagrant のデフォルトのサイズになります。
+- subnets 属性は指定できません
+- bridge, dev のどちらも指定しない場合、ホストオンリーネットワークに接続されます。
 
-vagrant プロバイダを利用するには、 Vagrant がインストールされていて、 virtualbox か libvirt の Vagrant プロバイダ
-がセットアップされている必要があります。
-
-vagrant プロバイダでは、 subnets 属性は指定できません。
 
 aws プロバイダ
 ^^^^^^^^^^^^^^^^^^^
@@ -216,6 +224,10 @@ aws プロバイダ固有の属性には以下のものがあります。
       - t3.medium
       - 必須
       - リポジトリサーバのインスタンスタイプ
+    * - region
+      - ap-northeast-1
+      - 必須
+      - 構築先のリージョン
 
 prepared プロバイダ
 ^^^^^^^^^^^^^^^^^^^

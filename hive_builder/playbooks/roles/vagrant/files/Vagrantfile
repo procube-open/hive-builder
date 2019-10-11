@@ -22,10 +22,10 @@ Vagrant.configure("2") do |config|
     # node list
     config.vm.define "#{_name}" do |node|
       # network
-      if value.key?("vagrant_dev")
-        node.vm.network "public_network", ip: "#{_ip}", dev: "#{vagrant_dev}", type: "bridge"
-      elsif value.key?("vagrant_bridge")
-        node.vm.network "public_network", ip: "#{_ip}", bridge: "#{vagrant_bridge}"
+      if vars.key?("vagrant_dev")
+        node.vm.network "public_network", ip: "#{_ip}", dev: "#{vars['vagrant_dev']}", type: "bridge"
+      elsif vars.key?("vagrant_bridge")
+        node.vm.network "public_network", ip: "#{_ip}", bridge: "#{vars['vagrant_bridge']}"
       else
         node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
       end
