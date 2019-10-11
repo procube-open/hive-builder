@@ -107,7 +107,7 @@ IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 's
 SERVICE_PARAMS_COPY = ['environment', 'ports', 'command', 'entrypoint', 'labels', 'mode', 'endpoint_mode', 'backup_scripts', 'restart_config']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'available_on']
-VOLUME_PARAMS = ['target', 'type', 'volume', 'source']
+VOLUME_PARAMS = ['target', 'type', 'volume', 'source', 'readonly']
 VOLUME_PARAMS_DEF = ['driver', 'driver_opts', 'drbd']
 
 
