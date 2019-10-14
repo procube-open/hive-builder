@@ -52,6 +52,8 @@
     -CAkey {{ hive_safe_ca_dir }}/cakey.pem -CAserial {{ hive_safe_ca_dir }}/cacert.srl \
     -CAcreateserial -out {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem \
     -extfile {{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}-extfile.cnf
+  args:
+    creates: "{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
   when: csr_fetched.results[0].changed or csr_fetched.results[1].changed or not (hive_safe_tls_hostname_cert_pem.stat.exists)
 - name: install clinet cert files
   tags: signed

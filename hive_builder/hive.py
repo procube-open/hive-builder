@@ -482,7 +482,11 @@ class phaseWithDockerSocket(phaseBase):
     finally:
       for socket_path, ssh_tunnel_proc in ssh_tunnel_procs:
         ssh_tunnel_proc.send_signal(signal.SIGTERM)
-        ssh_tunnel_proc.wait()
+        while ssh_tunnel_proc.poll() is None:
+          try:
+            ssh_tunnel_proc.wait(timeout=1)
+          except subprocess.TimeoutExpired:
+            pass
         os.remove(socket_path)
 
 

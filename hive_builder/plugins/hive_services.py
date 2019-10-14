@@ -102,9 +102,10 @@ class InventoryModule(BaseInventoryPlugin):
 
 
 IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint', 'command', 'privileged', 'expose']
-SERVICE_PARAMS_COPY = ['environment', 'ports', 'command', 'entrypoint', 'labels', 'mode', 'endpoint_mode', 'backup_scripts', 'restart_config', 'user']
+SERVICE_PARAMS_COPY = ['environment', 'command', 'entrypoint', 'labels',
+                       'mode', 'endpoint_mode', 'backup_scripts', 'restart_config', 'user', 'standalone']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
-SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'available_on']
+SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'volume', 'source', 'readonly']
 VOLUME_PARAMS_DEF = ['driver', 'driver_opts', 'drbd']
 
@@ -151,11 +152,17 @@ class Service:
           raise AnsibleParserError(f'"element of "available_on" of service {self.name} must be one of {STAGES}, but {s}')
     for s in self.available_on:
       inventory.add_host(self.name, group=s)
-    if 'volumes' in self.options:
-      volumes_value = self.options['volumes']
+    if 'volumes' in self.options or self.options.get('standalone', False):
+      volumes_value = self.options.get('volumes', AnsibleSequence([]))
       if type(volumes_value) != AnsibleSequence:
         raise AnsibleParserError(f'"volumes" must be list type in service {self.name}, but {type(volumes_value)}')
       volumes = []
+      if self.options.get('standalone', False):
+        volumes = [
+            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup', 'readonly': True},
+            {'source': '', 'target': '/run', 'type': 'tmpfs'},
+            {'source': '', 'target': '/tmp', 'type': 'tmpfs'}
+        ]
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
           volumes.append(volume)
@@ -200,12 +207,34 @@ class Service:
         if 'from' not in image_value:
           raise AnsibleParserError(f'"from" must be specified in "image" at service {self.name}')
         # just copy paste parameter for build image
+        if self.options.get('standalone', False):
+          inventory.set_variable(image_name, f'hive_standalone', True)
+          inventory.set_variable(image_name, f'hive_privileged', True)
         for option_name, option_value in image_value.items():
           if option_name not in IMAGE_PARAMS:
             raise AnsibleParserError(f'unknown parameter {option_name} is specified in "image" at service {self.name}')
           inventory.set_variable(image_name, f'hive_{option_name}', option_value)
       else:
         raise AnsibleParserError(f'"image" must be dict type or str type in service {self.name}, but type is {type(image_value)}')
+    if 'ports' in self.options:
+      ports = []
+      for portdef in self.options['ports']:
+        if type(portdef) == AnsibleMapping:
+          ports.append(portdef)
+        elif type(portdef) == AnsibleUnicode:
+          slash = portdef.split('/')
+          protocol = 'tcp'
+          if len(slash) > 1:
+            protocol = slash[1]
+          colon = slash[0].split(':')
+          target_port = int(colon[0])
+          published_port = int(colon[0])
+          if len(colon) > 1:
+            target_port = int(colon[1])
+          ports.append({'published_port': published_port, 'target_port': target_port, 'protocol': protocol})
+        else:
+          raise AnsibleParserError(f'element of "ports" must be dict type or str type in service {self.name}, but type is {type(portdef)}')
+      inventory.set_variable(self.name, f'hive_ports', ports)
 
   def add_volume(self, inventory, volume, group):
     name = 'volume_' + volume['name']

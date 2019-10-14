@@ -15,15 +15,9 @@ services:
     - "--webserver-address=0.0.0.0"
     - "--webserver-allow-from=0.0.0.0/0"
     ports:
-    - target_port: 53
-      published_port: 53
-      protocol: tcp
-    - target_port: 8081
-      published_port: 61001
-      protocol: tcp
-    - target_port: 53
-      published_port: 53
-      protocol: udp
+    - "53/tcp"
+    - "61001:8081"
+    - "53/udp"
   pdnsdb:
     image:
       from: "mariadb:10.4"

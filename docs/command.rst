@@ -68,3 +68,11 @@ staging ステージのホスト名には s-、 privaite ステージのホス�
 サービス、ボリューム、イメージ、ネットワークなどのリソースはデフォルトですべてのステージで有効です。available_on を指定して、
 有効なステージを指定することができます。
 プロジェクトのロール内でステージ固有の挙動を行う場合は、hive_stage 変数の値で挙動を切り替える必要があります。
+
+エラーの対応
+===================================
+以下にhive コマンドでエラーメッセージが出た場合の対応方法について説明します。
+
+:メッセージ: fail to create socket /var/tmp/hive/docker.sock@サーバ名, another hive process may doing build-image or the file has been left because previus hive process aborted suddenly
+:コマンド: build-images, initialize-services
+:対応方法: 他の hive コマンドが同じマザーマシンで動作している場合はその終了を待ってください。そうでない場合は rm コマンドで /var/tmp/hive/docker.sock@サーバ名を削除してください。
