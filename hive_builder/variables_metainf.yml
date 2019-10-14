@@ -265,3 +265,10 @@ foward_zabbix_port:
   command_line_option_level: phase
   command_line_option_available:
   - ssh
+port_forwarding:
+  description: port forwading on ssh
+  persistent_scope: stage
+  command_line_option: "-L"
+  command_line_option_level: phase
+  command_line_option_available:
+  - ssh

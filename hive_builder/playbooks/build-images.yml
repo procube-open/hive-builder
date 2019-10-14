@@ -57,7 +57,7 @@
   gather_facts: False
   connection: docker
   vars:
-    ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker_repository.sock"
+    ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker.sock@{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
 
   tasks:
   - name: apply role

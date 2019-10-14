@@ -460,7 +460,33 @@ class setupHosts(phaseBase):
     return context.vars["stage"]
 
 
-class buildImages(phaseBase):
+class phaseWithDockerSocket(phaseBase):
+
+  def do_one(self, context):
+    ssh_config_path = context.vars['context_dir'] + '/ssh_config'
+    grep_proc = subprocess.run(['grep', '^Host ', ssh_config_path], stdout=subprocess.PIPE)
+    if grep_proc.returncode == 1:
+      raise Error(f'no Host entry in {ssh_config_path}')
+    if grep_proc.returncode != 0:
+      raise Error(f'fail to read ssh_config {ssh_config_path} error, you may never done build-infra: {grep_proc.stderr}')
+    ssh_tunnel_procs = []
+    for host_name in map(lambda x: x.decode(encoding='utf-8').split(' ')[1], grep_proc.stdout.splitlines()):
+      socket_path = f'{context.vars["temp_dir"]}/docker.sock@{host_name}'
+      if pathlib.Path(socket_path).is_socket():
+        raise Error(f'fail to create socket {socket_path}, another hive process may doing build-image' +
+                    ' or the file has been left because previus hive process aborted suddenly')
+      args = ['ssh', '-N', '-F', ssh_config_path, '-L', socket_path + ':/var/run/docker.sock', host_name]
+      ssh_tunnel_procs.append((socket_path, subprocess.Popen(args)))
+    try:
+      super().do_one(context)
+    finally:
+      for socket_path, ssh_tunnel_proc in ssh_tunnel_procs:
+        ssh_tunnel_proc.send_signal(signal.SIGTERM)
+        ssh_tunnel_proc.wait()
+        os.remove(socket_path)
+
+
+class buildImages(phaseWithDockerSocket):
   def __init__(self):
     super().__init__('build-images', 'build container images')
     self.subject_name = 'container'
@@ -469,27 +495,6 @@ class buildImages(phaseBase):
     if 'limit_target' in context.vars:
       return ':'.join(map(lambda x: 'image_' + x, context.vars['limit_target'].split(','))) + ':repository:&' + context.vars["stage"]
     return context.vars["stage"]
-
-  def do_one(self, context):
-    socket_path = f'{context.vars["temp_dir"]}/docker_repository.sock'
-    if pathlib.Path(socket_path).is_socket():
-      raise Error(f'fail to create socket {socket_path}, another hive process may doing build-image' +
-                  ' or the file has been left because previus hive process aborted suddenly')
-    ssh_config_path = context.vars['context_dir'] + '/ssh_config'
-    grep_proc = subprocess.run(['grep', '^Host ', ssh_config_path], stdout=subprocess.PIPE)
-    if grep_proc.returncode == 1:
-      raise Error(f'no Host entry in {ssh_config_path}')
-    if grep_proc.returncode != 0:
-      raise Error(f'fail to read ssh_config {ssh_config_path} error, you may never done build-infra: {grep_proc.stderr}')
-    *_, last_host = map(lambda x: x.decode(encoding='utf-8').split(' ')[1], grep_proc.stdout.splitlines())
-    args = ['ssh', '-N', '-F', ssh_config_path, '-L', socket_path + ':/var/run/docker.sock', last_host]
-    ssh_tunnel_proc = subprocess.Popen(args)
-    try:
-      super().do_one(context)
-    finally:
-      ssh_tunnel_proc.send_signal(signal.SIGTERM)
-      ssh_tunnel_proc.wait()
-      os.remove(socket_path)
 
 
 class buildVolumes(phaseBase):
@@ -510,7 +515,7 @@ class deployServices(phaseBase):
     self.subject_name = 'service'
 
 
-class initializeServices(phaseBase):
+class initializeServices(phaseWithDockerSocket):
   def __init__(self):
     super().__init__('initialize-services', 'initialize services')
     self.subject_name = 'service'
@@ -570,7 +575,10 @@ class execSsh(ansbileCommandBase):
     args = ['/usr/bin/ssh', '-F', ssh_config_path]
     if context.vars['foward_zabbix']:
       args += ['-L', f'localhost:{context.vars["foward_zabbix_port"]}:{ssh_host}:10052']
+    if context.vars.get('port_forwarding'):
+      args += ['-L', context.vars['port_forwarding']]
     args += [ssh_host]
+    context.logger.debug(f'commnad={args}')
     try:
       ssh_proc = subprocess.Popen(args)
       ssh_proc.wait()

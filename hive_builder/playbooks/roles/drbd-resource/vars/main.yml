@@ -1,0 +1,2 @@
+---
+    hive_safe_volume: "{{ hostvars[hive_safe_volume_host].hive_volume }}"

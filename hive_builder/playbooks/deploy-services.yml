@@ -46,6 +46,7 @@
       mounts: "{{ hostvars[item].hive_volumes | default(omit) }}"
       labels: "{{ hostvars[item].hive_labels | default(omit) }}"
       mode: "{{ hostvars[item].hive_mode | default(omit) }}"
+      user: "{{ hostvars[item].hive_user | default(omit) }}"
       endpoint_mode: "{{ hostvars[item].hive_endpoint_mode | default(omit) }}"
       networks: "{{ groups['networks'] }}"
       force_update: "{{ hostvars[item].hive_image_name is defined and (groups['hives'] | map('extract', hostvars, ['hive_safe_pull_result', 'results']) | select('defined') | flatten | selectattr('item', 'eq', hostvars[item].hive_image_name) | select('changed') | list | length) > 0 }}"

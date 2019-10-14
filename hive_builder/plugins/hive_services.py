@@ -71,6 +71,7 @@ class InventoryModule(BaseInventoryPlugin):
     self.inventory.add_group('services')
     self.inventory.add_group('images')
     self.inventory.add_group('volumes')
+    self.inventory.add_group('drbd_volumes')
     self.inventory.add_group('networks')
     available_on = self.get_option('available_on')
     if available_on is None:
@@ -82,12 +83,9 @@ class InventoryModule(BaseInventoryPlugin):
     services = self.get_option('services')
     if type(services) != AnsibleMapping:
       raise AnsibleParserError(f'"services" must be dict type, but {type(services)}')
-    prepared_volumes = []
     for name, options in services.items():
       service = Service(name, options, available_on)
       service.parse(inventory)
-      prepared_volumes += service.prepared_volumes
-    inventory.set_variable('hives', 'hive_prepared_volumes', prepared_volumes)
     networks = self.get_option('networks')
     no_default = True
     if networks is not None:
@@ -104,7 +102,7 @@ class InventoryModule(BaseInventoryPlugin):
 
 
 IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint', 'command', 'privileged', 'expose']
-SERVICE_PARAMS_COPY = ['environment', 'ports', 'command', 'entrypoint', 'labels', 'mode', 'endpoint_mode', 'backup_scripts', 'restart_config']
+SERVICE_PARAMS_COPY = ['environment', 'ports', 'command', 'entrypoint', 'labels', 'mode', 'endpoint_mode', 'backup_scripts', 'restart_config', 'user']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'volume', 'source', 'readonly']
@@ -136,7 +134,6 @@ class Service:
     self.name = name
     self.options = options
     self.available_on = available_on
-    self.prepared_volumes = []
 
   def parse(self, inventory):
     if type(self.options) != AnsibleMapping:
@@ -168,14 +165,14 @@ class Service:
               raise AnsibleParserError(f'both "source" and "target" must be specified in volume at service {self.name}')
           if 'driver' in volume:
             # we prepare volume at build-volume phase
-            preared_volume = {'name': volume['source'], 'driver': volume['driver'], 'available_on': self.available_on}
+            prepared_volume = {'name': volume['source'], 'driver': volume['driver']}
             if 'driver_opts' in volume:
-              volume['hive_driver_opts'] = volume['driver_opts']
-            self.prepared_volumes.append(preared_volume)
+              prepared_volume['dirver_options'] = volume['driver_opts']
+            self.add_volume(inventory, prepared_volume, 'volumes')
           if 'drbd' in volume:
             if 'driver' in volume:
               raise AnsibleParserError(f'both "driver" and "drbd" can not be specified in volume at service {self.name}')
-            self.prepared_volumes.append({'name': volume['source'], 'drbd': volume['drbd'], 'available_on': self.available_on})
+            self.add_volume(inventory, {'name': volume['source'], 'drbd': volume['drbd']}, 'drbd_volumes')
           volume_value = {}
           for k, v in volume.items():
             if k not in VOLUME_PARAMS + VOLUME_PARAMS_DEF:
@@ -209,3 +206,10 @@ class Service:
           inventory.set_variable(image_name, f'hive_{option_name}', option_value)
       else:
         raise AnsibleParserError(f'"image" must be dict type or str type in service {self.name}, but type is {type(image_value)}')
+
+  def add_volume(self, inventory, volume, group):
+    name = 'volume_' + volume['name']
+    inventory.add_host(name, group=group)
+    for s in self.available_on:
+      inventory.add_host(name, group=s)
+    inventory.set_variable(name, 'hive_volume', volume)

@@ -9,25 +9,22 @@
   tasks:
   - include_role:
       name: drbd-resource
-    loop: "{{ hive_prepared_volumes | selectattr('drbd', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
+    loop: "{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
     loop_control:
-      loop_var: hive_safe_volume
-    when: hive_prepared_volumes is defined
+      loop_var: hive_safe_volume_host
   - name: create drbd volume
     docker_volume:
-      name: "{{ item.name }}"
+      name: "{{ hostvars[item].hive_volume.name }}"
       driver: "local"
       driver_options:
-        type: "{{ item.drbd.fstype }}"
-        device: "/dev/drbd{{ item.drbd.device_id }}"
-    loop: "{{ hive_prepared_volumes | selectattr('drbd', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
-    when: hive_prepared_volumes is defined
+        type: "{{ hostvars[item].hive_volume.drbd.fstype }}"
+        device: "/dev/drbd{{ hostvars[item].hive_volume.drbd.device_id }}"
+    loop: "{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
   - name: create another driver volume
     docker_volume:
-      name: "{{ item.name }}"
-      driver: "{{ item.driver }}"
-      driver_options: "{{ item.dirver_options | default(omit) }}"
-    loop: "{{ hive_prepared_volumes | selectattr('driver', 'defined') | selectattr('available_on', 'contains', hive_stage) | list }}"
-    when: hive_prepared_volumes is defined
+      name: "{{ hostvars[item].hive_volume.name }}"
+      driver: "{{ hostvars[item].hive_volume.driver }}"
+      driver_options: "{{ hostvars[item].hive_volume.dirver_options | default(omit) }}"
+    loop: "{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
   - import_role:
       name: reboot

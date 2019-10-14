@@ -16,7 +16,7 @@
   gather_facts: False
   hosts: first_hive
   vars_files:
-  - "{{ hive_playbooks_dir }}/group_vars/all.yml"
+  - "{{ hive_playbooks_dir }}/group_vars/hosts.yml"
   vars:
     delimiter: "','"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
