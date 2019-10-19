@@ -57,7 +57,6 @@
         dns: ""
         port: 10050
     state: present
-    inventory_mode: manual
   loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
 
 - name: reset ansible_python_interpreter

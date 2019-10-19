@@ -34,13 +34,3 @@ stages:
     region: asia-northeast2
     mirrored_disk_size: 20
     repository_instance_type: n1-standard-2
-    subnets:
-    - cidr: 192.168.0.0/26
-      name: subnet-a
-      available_zone: asia-northeast2-a
-    - cidr: 192.168.0.64/26
-      name: subnet-b
-      available_zone: asia-northeast2-b
-    - cidr: 192.168.0.128/26
-      name: subnet-c
-      available_zone: asia-northeast2-c

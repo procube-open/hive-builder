@@ -48,18 +48,18 @@ DOCUMENTATION = r'''
         cidr:
           description: cidr of vpc
           required: true
-        inbound_rules:
-          description: inbound rules
-          type: list
-          suboptions:
-            port:
-              description: port number
-              required: true
-              type: int
-            src:
-              description: network addresses to ristrict source ip
-              type: list
-              default: ['0.0.0.0/0']
+        # inbound_rules:
+        #   description: inbound rules
+        #   type: list
+        #   suboptions:
+        #     port:
+        #       description: port number
+        #       required: true
+        #       type: int
+        #     src:
+        #       description: network addresses to ristrict source ip
+        #       type: list
+        #       default: ['0.0.0.0/0']
         number_of_hosts:
           description: number of hosts
           default: 4 if separate_repository else 3
@@ -220,13 +220,17 @@ class Stage:
         net = ipaddress.ip_network(self.stage['cidr'])
       except ValueError as e:
         raise AnsibleParserError(str(e))
+      default_subnet = {'cidr': self.stage['cidr'], 'name': self.name + '-default'}
+      self.inventory.set_variable(mother_name, 'hive_subnets', [default_subnet.copy()])
+      default_subnet['netmask'] = str(net.netmask)
       if 'ip_address_list' in self.stage:
-        self.subnets.append({'ip_list': (y for y in self.stage.get('ip_address_list')), 'netmask': str(net.netmask)})
+        default_subnet['ip_list'] = (y for y in self.stage.get('ip_address_list'))
       else:
         hosts = net.hosts()
         # first one is route, so skip it
         next(hosts)
-        self.subnets.append({'ip_list': map(str, hosts), 'netmask': str(net.netmask)})
+        default_subnet['ip_list'] = map(str, hosts)
+      self.subnets.append(default_subnet)
     else:
       var_subnets = []
       for idx, s in enumerate(self.stage['subnets']):
@@ -303,8 +307,10 @@ class Stage:
       subnet = self.subnets[idx % len(self.subnets)]
       if 'name' in subnet:
         self.inventory.set_variable(host_name, 'hive_subnet', subnet['name'])
-      if 'available_zone' in subnet:
-        self.inventory.set_variable(host_name, 'hive_available_zone', subnet['available_zone'])
+      if 'region' in self.stage:
+        az_suffix_list = self.stage.get('az_suffix_list', ['-a', '-b', '-c'])
+        az = self.stage['region'] + az_suffix_list[idx % len(az_suffix_list)]
+        self.inventory.set_variable(host_name, 'hive_available_zone', subnet.get('available_zone', az))
       self.inventory.set_variable(host_name, 'hive_private_ip', next(subnet['ip_list']))
       self.inventory.set_variable(host_name, 'hive_netmask', subnet['netmask'])
     self.inventory.set_variable('hives', 'hive_swarm_master', f'{self.stage_prefix}hive0.{self.name}')

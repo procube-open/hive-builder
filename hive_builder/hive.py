@@ -273,76 +273,10 @@ class hiveContext:
       self.logger.setLevel(DEBUG)
 
 
-def sigchld_handler(sig, frame):
-  raise InterruptedError()
-
-
-def get_popen_lines(proc, master_fd, slave_fd):
-  o = b''
-  while proc.poll() is None:
-    r = []
-    w = []
-    e = []
-    try:
-      signal.signal(signal.SIGCHLD, sigchld_handler)
-      r, w, e = select.select([sys.stdin, master_fd], [], [])
-    except InterruptedError:
-      pass
-    finally:
-      signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-    if sys.stdin in r:
-      d = os.read(sys.stdin.fileno(), 40960)
-      if d.find(b'\x03') >= 0:
-        # ^C is pressed, so send_signal
-        proc.send_signal(signal.SIGINT)
-        raise Error('Keyboard Interrupt')
-      os.write(master_fd, d)
-    elif master_fd in r:
-      o += os.read(master_fd, 40960)
-      while o.find(b'\n') > 0:
-        bline = o[:o.find(b'\n') + 1]
-        o = o[o.find(b'\n') + 1:]
-        os.write(sys.stdout.fileno(), bline)
-        yield bline.decode('utf-8')
-  if len(o) > 0:
-    yield o.decode('utf-8')
-
-
-RECAP_PATTERN = re.compile(
-    r'[^ :]*[ :]*ok=(\d*)\s*changed=(\d*)\s*unreachable=(\d*)\s*failed=(\d*)\s*skipped=(\d*)\s*rescued=(\d*)\s*ignored=(\d*)\s*')
-ANSI_ESCAPE = re.compile(r'\x1b[^m]*m')
-
-
 def run_and_check_ansible_playbook(args):
-  # save original tty setting then set it to raw mode
-  old_tty = termios.tcgetattr(sys.stdin)
-  tty.setraw(sys.stdin.fileno())
-
-  # open pseudo-terminal to interact with subprocess
-  master_fd, slave_fd = pty.openpty()
-  try:
-    proc = subprocess.Popen(args, stdin=slave_fd,
-                            stdout=slave_fd,
-                            stderr=slave_fd,
-                            start_new_session=True,
-                            universal_newlines=True)
-    wait_recap = True
-    error_count = 0
-    for line in get_popen_lines(proc, master_fd, slave_fd):
-      line = ANSI_ESCAPE.sub('', line)
-      if wait_recap:
-        if line.startswith('PLAY RECAP'):
-          wait_recap = False
-      else:
-        m = RECAP_PATTERN.match(line)
-        if m:
-          error_count += int(m.group(3)) + int(m.group(4))
-    if proc.returncode != 0:
-      raise Error(f'ansible-playbook command failed: exit code = {proc.returncode}')
-    if error_count > 0:
-      raise Error(f'{error_count} tasks failed or unreachable')
-  finally:
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+  proc = subprocess.run(args)
+  if proc.returncode != 0:
+    raise Error(f'ansible-playbook command failed: exit code = {proc.returncode}')
 
 
 HOST_DEF_PATTERN = re.compile('^Host *(.*)$')
@@ -426,7 +360,7 @@ class phaseBase(ansbileCommandBase):
     context.logger.info(f'=== PHASE {self.name} START at {time.strftime("%Y-%m-%d %H:%M:%S %z")} ===')
     args = ['ansible-playbook', '--limit', self.get_limit_targets(context)]
     if 'verbose' in context.vars and context.vars['verbose']:
-      args.append('-vvv')
+      args.append('-vvvv')
     if 'check_mode' in context.vars and context.vars['check_mode']:
       args.append('-C')
     args += ['--extra-vars', f'@{self.vars_file_path}']
@@ -605,6 +539,8 @@ def main():
   try:
     context.setup(SUBCOMMANDS)
     context.do_subcommand()
+  except KeyboardInterrupt:
+    context.logger.error('\nABORTED: keyboard interruption')
   except Error as e:
     context.logger.error(f'HIVE ERROR: {str(e)}')
     sys.exit(1)
