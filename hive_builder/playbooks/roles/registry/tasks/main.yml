@@ -5,14 +5,8 @@
     state: directory
     mode: 0755
 
-- name: install httpd-tools package
-  become: True
-  yum:
-    name: httpd-tools
-    state: present
-
 - name: make htpasswd file
-  shell: "htpasswd -cBb {{ hive_home_dir }}/registry/htpasswd '{{ hive_safe_docker_login_user }}' '{{ lookup('password', hive_context_dir + '/registry_password length=15') }}'"
+  shell: "docker run --entrypoint htpasswd registry:2 -nBb  '{{ hive_safe_docker_login_user }}' '{{ lookup('password', hive_context_dir + '/registry_password length=15') }}' > {{ hive_home_dir }}/registry/htpasswd"
   args:
     creates: "{{ hive_home_dir }}/registry/htpasswd"
 
