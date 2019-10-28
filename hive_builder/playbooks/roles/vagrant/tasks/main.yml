@@ -4,6 +4,12 @@
     src: Vagrantfile
     dest: "{{ hive_context_dir }}/Vagrantfile"
   when: not hive_destroy  | default(false) and not hive_halt  | default(false)
+- name: Put growfs script
+  copy:
+    src: growfs.sh
+    dest: "{{ hive_context_dir }}/growfs.sh"
+    mode: 0755
+  when: not hive_destroy  | default(false) and not hive_halt  | default(false)
 - name: Put vagrant parameter file
   template:
     src: vagrant_vars.yml.j2

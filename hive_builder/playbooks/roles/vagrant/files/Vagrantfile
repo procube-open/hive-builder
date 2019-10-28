@@ -6,6 +6,10 @@ Vagrant.configure("2") do |config|
     config.ssh.insert_key = false
   end
   config.vm.box = "#{vars['vagrant_box_name']}"
+  # TODO: support disk_size on virtualbox provider
+  # if vars.key?("disk_size")
+  #   config.disksize.size = "#{vars['disk_size']}GB"
+  # end
   _dir = "#{vars['hive_context_dir']}"
   if Vagrant.has_plugin?("vagrant-proxyconf") and ENV.include?('HTTP_PROXY') and ENV['HTTP_PROXY'].length > 0
     config.proxy.http = ENV['HTTP_PROXY']
@@ -38,6 +42,10 @@ Vagrant.configure("2") do |config|
         if value.key?("cpus")
           v.cpus = value['cpus']
         end
+        if value.key?("disk_size")
+          v.machine_virtual_size = value['disk_size']
+          node.vm.provision "shell", path: "growfs.sh"
+        end
         if value.key?("mirrored_disk_size")
           drbdpool_disk = "drbdpool-#{_name}.img"
           if !File.exist?(drbdpool_disk)
@@ -60,9 +68,6 @@ Vagrant.configure("2") do |config|
           end
           v.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', drbdpool_disk]
         end
-      end
-      if value.key?("disk_size")
-        node.disksize.size = "#{value['disk_size']}GB"
       end
       config.vm.synced_folder ".", "/vagrant", disabled: true
     end

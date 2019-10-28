@@ -15,13 +15,10 @@ from logging import getLogger, StreamHandler, DEBUG, INFO
 import backtrace
 import sys
 import re
-import select
-import termios
-import tty
-import pty
 import signal
 import time
 import pathlib
+import json
 
 
 def get_python_path():
@@ -62,6 +59,10 @@ def bool_cast(s):
   if s.lower() in ["false", "no", "0"]:
     return False
   raise Error(f'boolean value {s} not in ["true", "yes", "1", "false", "no", "0"]')
+
+
+def dict_cast(s):
+  return json.loads(s)
 
 
 class commandHandlerBase:
@@ -112,7 +113,12 @@ class hiveContext:
 
   def setup(self, subcommand_handlers):
     self.load_variables_metainf()
-    self.args = self.get_parser(subcommand_handlers).parse_args()
+    if subcommand_handlers:
+      self.args = self.get_parser(subcommand_handlers).parse_args()
+    else:
+      self.args = argparse.Namespace()
+      self.args.root_dir = os.getcwd()
+      self.args.verbose = False
     # raise SystemExit when invalid argument or -h option is specified
     self.reset_logger()
     self.vars = {'root_dir': self.args.root_dir,
@@ -216,6 +222,8 @@ class hiveContext:
       return int_cast
     if 'type' in metainf and metainf['type'] == 'directory':
       return directory_cast
+    if 'type' in metainf and metainf['type'] == 'dict':
+      return dict_cast
     return str
 
   @staticmethod
@@ -360,7 +368,7 @@ class phaseBase(ansbileCommandBase):
     context.logger.info(f'=== PHASE {self.name} START at {time.strftime("%Y-%m-%d %H:%M:%S %z")} ===')
     args = ['ansible-playbook', '--limit', self.get_limit_targets(context)]
     if 'verbose' in context.vars and context.vars['verbose']:
-      args.append('-vvvv')
+      args.append('-vvv')
     if 'check_mode' in context.vars and context.vars['check_mode']:
       args.append('-C')
     args += ['--extra-vars', f'@{self.vars_file_path}']

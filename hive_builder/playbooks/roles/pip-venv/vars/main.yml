@@ -1,4 +1,3 @@
-hive_safe_venvs: "{{ hive_venvs | default(['docker']) }}"
 # 2019/8/11 the python36 package disappear from Centos 7 epel repository
 # and fail to inestall python34-virtualenv: python-rpm-macros is not found
 # so we use ius repository

@@ -10,8 +10,8 @@
     - role: ntp-client
       when: hive_ntp_servers is defined
     - iptables
-    - role: pip-venv
-      when: hive_safe_venvs is defined
+    - pip-venv
+    - addon
     - role: internal-network
       when: hive_internal_net_if is defined
     - role: auxiliary-networks
@@ -23,7 +23,6 @@
     - docker
     - role: drbd
       when: hive_mirrored_disk_size is defined
-    - addon
     - docker-client
     - zabbix-agent
     - reboot

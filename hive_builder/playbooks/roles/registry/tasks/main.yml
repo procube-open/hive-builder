@@ -19,21 +19,12 @@
     - src: registry.yml.j2
       dest: "{{ hive_home_dir }}/registry/docker-compose.yml"
 
-- name: set ansible_python_interpreter
-  set_fact:
-    # {{ '/var' + builder + '/docker/bin/python' | expanduser }} does not work
+- set_fact:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
 
 - name: compose up registry container
   docker_compose:
     project_src: "{{ hive_home_dir }}/registry"
-
-- name: install python-dxf
-# https://pypi.org/project/python-dxf/
-  pip:
-    name:
-    - python-dxf
-    virtualenv: "{{ hive_home_dir }}/docker"
 
 - name: setup environment variable
   become: False

@@ -272,3 +272,11 @@ port_forwarding:
   command_line_option_level: phase
   command_line_option_available:
   - ssh
+drbd_device_map:
+  description: device id map for drbd
+  persistent_scope: stage
+  type: dict
+published_port_map:
+  description: publishec port map
+  persistent_scope: stage
+  type: dict

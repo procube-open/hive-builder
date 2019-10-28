@@ -26,5 +26,5 @@
       driver: "{{ hostvars[item].hive_volume.driver }}"
       driver_options: "{{ hostvars[item].hive_volume.dirver_options | default(omit) }}"
     loop: "{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
-  - import_role:
-      name: reboot
+  # - import_role:
+      # name: reboot

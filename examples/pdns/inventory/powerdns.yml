@@ -15,9 +15,9 @@ services:
     - "--webserver-address=0.0.0.0"
     - "--webserver-allow-from=0.0.0.0/0"
     ports:
-    - "53/tcp"
-    - "61001:8081"
-    - "53/udp"
+    - "53:53/tcp"
+    - "8081"
+    - "53:53/udp"
   pdnsdb:
     image:
       from: "mariadb:10.4"
@@ -29,8 +29,9 @@ services:
       MYSQL_USER: powerdns
       MYSQL_PASSWORD: "{{db_password}}"
       MYSQL_DATABASE: powerdns
-      # DEBUG: 15
-      # MCAST_IF: eth0
+      # maridb container spend long time to initialize timezone info of the database.
+      # it can be skip by following envinronment variable.
+      # MYSQL_INITDB_SKIP_TZINFO: "yes"
     volumes:
     - source: pdnsdb_data
       target: /var/lib/mysql

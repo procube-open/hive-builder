@@ -256,7 +256,75 @@ build-infra フェーズで ssh 鍵を生成し、 hive_admin で指定された
 
 サービス定義
 ====================
-サービス定義には、サービスをどのように構築するかが書かれます。
+サービス定義には、サービスをどのように構築するかが書かれます。以下の属性を記述できます。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - environment
+      - {"MYSQL_PASSWORD": "{{db_password}}, "MYSQL_HOST": "pdnsdb"}
+      - {}
+      - サービス実行時にプロセスに付与される環境変数
+    * - command
+      - ["--api=yes", "--api-key={{db_password}}"]
+      - イメージの command の値
+      - サービス実行時にentrypoint に与えられる引数（entrypoint が [] の場合、1個めが実行コマンドとなる
+    * - entrypoint
+      - ["/docker-entrypoint.sh"]
+      - イメージの entorypoint の値
+      - サービスの起動時に実行されるコマンド
+    * - labels
+      - {"published_fqdn": "pdnsadmin.pdns.procube-demo.jp"}
+      - {}
+      - サービスに付与されるラベル
+    * - mode
+      - - replicated
+        - global
+      - replicated
+      - サービス・モード
+    * - endpoint_mode
+      - - VIP
+        - DNSRR
+      - VIP
+      - エンドポイント・モード
+    * - backup_scripts
+      - 後述
+      - []
+      - バックアップ、リストア、夜間バッチのスクリプト（詳細後述）
+    * - restart_config
+      - 後述
+      - []
+      - 再起動に関する設定（詳細後述）
+    * - user
+      - admin
+      - イメージの user の値
+      - サービスを実行するプロセスのユーザID
+    * - standalone
+      - - True
+        - False
+      - False
+      - サービスをスタンドアローン型として実行するか否か（詳細後述）
+    * - volumes
+      - 後述
+      - []
+      - サービス実行時にコンテナにマウントするボリューム（詳細後述）
+    * - image
+      - 後述
+      - []
+      - サービスのもととなるコンテナイメージの取得方法（詳細後述）
+    * - ports
+      - "80:8080"
+      - []
+      - サービス実行時に外部に公開するポート（詳細後述）
+    * - available_on
+      - ["production"]
+      - ["production", "staging", "private"]
+      - サービスが有効になるステージ
 
 image属性
 -----------------------------
@@ -347,41 +415,7 @@ python-aptk には以下のようにタスクが定義されており、ubuntu �
       changed_when: False
 
 
-スタンドアローン型とマイクロサービス型
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-docker のコンテナはスタンドアローン型とマイクロサービス型の2種類に分類することができます。
-どちらのイメージをビルドするかによって、ビルド時のコンテナのルートプロセスが
-変わります。
-
-=================== =================================================================================
-型                  説明
-=================== =================================================================================
-スタンドアローン型  - centos:7 などスーパバイザ機能を持った OS のイメージをベースとして構築する
-                    - 実行時には /sbin/init を起動する
-                    - systemd により内部のプロセスが管理される
-マイクロサービス型  - dockerhub のオフィシャルイメージをベースとして構築する
-                    - ベースの OS はUbuntuやalpineなどの軽量 OS を採用する
-                    - 実行時にはサービスを提供するプロセス1個を起動する
-=================== =================================================================================
-
-image属性の standalone 属性に True が指定されると、そのfrom に指定された
-元イメージがスタンドアローン型であるとみなされます。
-build-images フェーズでスタンドアローン型のコンテナをビルドする際は、
-デフォルトのentrypoint, command でコンテナを起動します。
-これにより、 /sbin/init が起動され、
-コンテナに対して ansible を実行してイメージをビルドすることができます。
-
-build-images フェーズでマイクロサービス型のコンテナをビルドする際は、
-ルートプロセスとして、以下のような sleep をし続ける1行のシェルスクリプトが
-起動されます。
-
-::
-
-     /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
-
-このコマンドでルートプロセスが 40分間sleepするため、その間に
-コンテナに対して ansible 実行でき、イメージをビルドすることができます。
 
 プライベートリポジトリ上のタグとイメージの共有
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -401,4 +435,89 @@ build-images でビルドするイメージを複数のサービスで共有す�
 二個目以降のサービスではimage 属性にプライベートリポジトリ上のタグを
 指定してイメージを参照する必要があります。
 
-(サービス定義の他の属性については未執筆)
+standalone属性
+-----------------------------
+docker のコンテナはスタンドアローン型とマイクロサービス型の2種類に分類することができます。
+
+=================== =================================================================================
+型                  説明
+=================== =================================================================================
+スタンドアローン型  - centos:7 などスーパバイザ機能を持った OS のイメージをベースとして構築する
+                    - 実行時には /sbin/init を起動する
+                    - systemd により内部のプロセスが管理される
+マイクロサービス型  - dockerhub のオフィシャルイメージをベースとして構築する
+                    - ベースの OS はUbuntuやalpineなどの軽量 OS を採用する
+                    - 実行時にはサービスを提供するプロセス1個を起動する
+=================== =================================================================================
+
+コンテナがスタンドアローン型である場合、standalone 属性にTrue を指定してください。
+スタンドアローン型かマイクロサービス型かで、イメージのビルド時の entrypoint の値とデフォルトボリュームの値が異なります。
+
+ビルド時の entrypoint の値
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+build-images フェーズでスタンドアローン型のコンテナをビルドする場合（standalone属性が True で image 属性にビルド方法が指定されている場合）は、
+from に指定されたイメージのデフォルトのentrypoint, command でコンテナを起動します。
+これにより、ルートプロセスとして /sbin/init が起動され、ビルドが終了してシャットダウンされるまで仮想マシンとして動作し、
+ansible でコンテナにプロビジョニングすることができます。
+
+build-images フェーズでマイクロサービス型のコンテナをビルドする場合（standalone属性が False で image 属性にビルド方法が指定されている場合）は、
+ルートプロセスとして、以下のような sleep をし続ける1行のシェルスクリプトが起動されます。
+
+::
+
+     /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
+
+このコマンドでルートプロセスが 40分間sleepするため、その間に ansible でコンテナにプロビジョニングできます。
+ビルドが終了すると、ルートプロセスに INT シグナルが送られ、コンテナは停止します。
+
+デフォルトボリュームの値
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+サービスがスタンドアローン型である場合、以下のボリュームが volumes に暗黙的に追加されます。
+
+::
+
+    - source: '/sys/fs/cgroup'
+      target: /sys/fs/cgroup
+      readonly: True
+    - source: ''
+      target: /run
+      type: tmpfs
+    - source: ''
+      target: /tmp
+      type: tmpfs
+
+ports 属性
+-----------------------------
+ports 属性にはポート定義のリストを指定できます。ポート定義の属性は以下のとおりです。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - Option
+      - Short syntax
+      - Long syntax
+      - Description
+    * - published_port and target_port
+      - "8080:80"
+      - {published_port:8080, target_port: 80}
+      - The target port within the container and the port to map it to on the nodes, using the routing mesh (ingress) or host-level networking. More options are available, later in this table. The key-value syntax is preferred, because it is somewhat self-documenting.
+    * - mode
+      - Not possible to set using short syntax.
+      - {published_port:8080, target_port: 80, mode: "host"}
+      - The mode to use for binding the port, either ingress or host. Defaults to ingress to use the routing mesh.
+    * - protocol
+      - "8080:80/tcp"
+      - {published_port: 8080, target_port: 80, protocol: "tcp"}
+      - The protocol to use, tcp , udp, or sctp. Defaults to tcp. To bind a port for both protocols, specify the -p or --publish flag twice.
+
+また、サービス定義では published_port を省略できます。Short Syntax で "80" のように1個のポート番号を記載した場合や、Long Syntax で published_port 属性を
+省略した場合は、hive-builder が自動的に 61001 から順にポート番号を割り当てます。
+これらはサービスのホスト変数で調べることができます。たとえば、外からそのポートに接続するためにポート番号を調べる場合、initialize-services.yml で以下のように参照することができます。
+
+::
+
+    vars:
+      pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
+
+(サービス定義のbackup_scripts, volumes 属性の詳細については未執筆)

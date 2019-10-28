@@ -61,8 +61,16 @@
     fstype: "{{ hive_safe_volume.drbd.fstype }}"
   when: hive_safe_drbd_service_not_exists and hive_safe_first_disk and hive_safe_formatted.rc != 0
 
-- name: enable drbd resource service
+- name: wait sync
+  shell: "drbdadm wait-sync {{ hive_safe_volume.name }}"
+  when: (hive_safe_adjust.stdout_lines | length) > 0
+
+- name: down resource
+  shell: "drbdadm down {{ hive_safe_volume.name }}"
+  when: (hive_safe_adjust.stdout_lines | length) > 0
+
+- name: enable and start drbd resource service
   service:
     name: "drbd-resource@{{ hive_safe_volume.name }}.service"
+    state: started
     enabled: True
-  notify: require reboot

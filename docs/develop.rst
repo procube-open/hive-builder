@@ -293,25 +293,19 @@ hive_default_network です。
     - "--webserver-address=0.0.0.0"
     - "--webserver-allow-from=0.0.0.0/0"
     ports:
-    - target_port: 53
-      published_port: 53
-      protocol: tcp
-    - target_port: 8081
-      published_port: 61001
-      protocol: tcp
-    - target_port: 53
-      published_port: 53
-      protocol: udp
+    - "53:53/tcp"
+    - "8081"
+    - "53:53/udp"
 
 環境変数(environments の配下)で DBサーバへの接続パラメータを渡しています。ここでは、DBにアクセスする
 ためのパスワード（MYSQL_PASSWOWRD）は動的に生成したものを ansible のテンプレート機能で展開しています。
 また、コマンド引数(command の配下)でPOWERDNS の API を有効化しています。
 さらに ports でサービスの公開仕様を定義しています。この例では udp/tcp DNSサービスを 53 番ポートで公開し、
-APIサービスのポート 8081 を 61001番ポートで公開しています。
+APIサービスのポート 8081 を自動的に割当られるポート番号で公開しています。
 
 ただし、 hive は 10000 以上の番号は外部に公開しないようになっています。
 IaaS のファイアウォールおよび iptables （未実装）で外部からのアクセスを
-遮断しています。上記であれば、 61001 番ポートで公開されるAPIサービスは
+遮断しています。上記であれば、APIサービスは
 内部からのみアクセスでき、外部には公開されません。
 
 このようにして、定義されたサービスを以下のコマンドで起動することができます。
@@ -358,6 +352,7 @@ ansible の playbook を置く必要があります。例えば、サンプル�
     vars:
       delimiter: "','"
       ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+      pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
 
     tasks:
     - name: install requests module
@@ -366,7 +361,7 @@ ansible の playbook を置く必要があります。例えば、サンプル�
     - name: wait for powerdns api available
       wait_for:
         host: "{{ inventory_hostname }}"
-        port: 61001
+        port: "{{ pdns_port }}"
     - name: add zone
       powerdns_zone:
         name: "{{ hive_name }}.{{ domain }}."
@@ -374,7 +369,7 @@ ansible の playbook を置く必要があります。例えば、サンプル�
         kind: native
         state: present
         pdns_host: "{{ inventory_hostname }}"
-        pdns_port: 61001
+        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
     - name: add records for hives
       powerdns_record:
@@ -384,7 +379,7 @@ ansible の playbook を置く必要があります。例えば、サンプル�
         content: "{{ hostvars[item].published_ip }}"
         ttl: 3600
         pdns_host: "{{ inventory_hostname }}"
-        pdns_port: 61001
+        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
       loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
     - name: add records for web services
@@ -395,7 +390,7 @@ ansible の playbook を置く必要があります。例えば、サンプル�
         content: A "ifportup(80, {'{{ groups['hives'] | intersect(groups[hive_stage]) | map('extract', hostvars, ['published_ip']) | join(delimiter)}}'})"
         ttl: 20
         pdns_host: "{{ inventory_hostname }}"
-        pdns_port: 61001
+        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
       loop: "{{ groups['services'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_labels') | select('defined') | map(attribute='published_fqdn') | select('defined') | list }}"
 
@@ -408,4 +403,6 @@ host変数の published_ip に設定しています。
 hive ではlibディレクトリの下に置くことでカスタムモジュールを使用できます。
 サンプルでは、 github の https://github.com/Nosmoht/ansible-module-powerdns で公開されているモジュールを
 ダウンロードして、lib の下に配置しています。
-
+また、このモジュールは pdns_port プロパティにAPIのポート番号を指定する必要がありますが、
+サンプルでは、 hive-builder が自動的に割り当てたポート番号を powerdns サービスのホスト変数 hive_ports からポート番号 8081 を公開しているものを検索し、
+公開されるポート番号を取得しています。

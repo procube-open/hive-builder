@@ -1,7 +1,7 @@
 ---
 - name: download drbd rpm files
   unarchive:
-    src: https://github.com/procube-open/drbd9-rpm/releases/download/0.9.18/drbd9-rpm.tar.gz
+    src: https://github.com/procube-open/drbd9-rpm/releases/download/9.0.20/drbd9-rpm.tar.gz
     remote_src: yes
     dest: /root/
 - name: gather rpm file list
@@ -21,7 +21,13 @@
 - name: change usage count setting
   lineinfile:
     regexp: "usage-count .*;"
-    line: "usage-count no;"
+    line: "        usage-count no;"
+    path: /etc/drbd.d/global_common.conf
+    state: present
+- name: change usage count setting
+  lineinfile:
+    insertafter: "# minor-count"
+    line: "        minor-count 128;"
     path: /etc/drbd.d/global_common.conf
     state: present
 - name: check if device exists
@@ -51,7 +57,7 @@
   lvol:
     vg: drbdvg
     thinpool: drbdpool
-    size: "{{ hive_mirrored_disk_size * 1024 - 60 }}m"
+    size: "97%VG"
 - name: "insert allow drbd port rule into iptables (no internal network)"
   blockinfile:
     dest: /etc/sysconfig/iptables

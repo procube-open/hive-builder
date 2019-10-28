@@ -16,16 +16,16 @@
 - name: upgrade pip
   become: False
   pip:
-    name: pip
-    virtualenv: "{{ hive_home_dir }}/{{ item }}"
+    name:
+      - pip
+      - python-dxf
+    virtualenv: "{{ hive_home_dir }}/docker"
     virtualenv_python: "{{ hive_safe_python_command }}"
     state: latest
   args:
     chdir: "{{ hive_home_dir }}"
-  with_items: "{{ hive_safe_venvs }}"
 - name: setup auto enter virtualenv at login
   become: False
   lineinfile:
     path: "{{ hive_home_dir }}/.bashrc"
-    line: ". {{ hive_home_dir }}/{{ hive_safe_venvs[0] }}/bin/activate"
-  when: hive_safe_venvs | length
+    line: ". {{ hive_home_dir }}/docker/bin/activate"

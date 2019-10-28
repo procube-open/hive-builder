@@ -198,7 +198,7 @@ class VagrantWrapper(object):
     for vmn in vm_names:
       if self._get_status(vmn) != 'running':
         if not check_mode:
-          self.vg.up(vmn)
+          self.vg.up(vmn, provision=True)
         changed = True
       statuses[vmn] = self._get_status(vmn)
 

@@ -41,6 +41,9 @@ services:
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
+      # maridb container spend long time to initialize timezone info of the database.
+      # it can be skip by following envinronment variable.
+      # MYSQL_INITDB_SKIP_TZINFO: "yes"
     volumes:
       - data:/var/lib/mysql
       - config:/etc/mysql/

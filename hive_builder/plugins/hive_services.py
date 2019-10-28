@@ -10,6 +10,8 @@ hive inventory: dynamic inventory plugin for hive
 from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.errors import AnsibleParserError
 from ansible.parsing.yaml.objects import AnsibleMapping, AnsibleSequence, AnsibleUnicode
+from ansible.module_utils.six import text_type
+from hive_builder.hive import hiveContext
 
 DOCUMENTATION = r'''
   name: hive_services
@@ -66,7 +68,8 @@ class InventoryModule(BaseInventoryPlugin):
 
   def parse(self, inventory, loader, path, cache=True):
     super(InventoryModule, self).parse(inventory, loader, path, cache)
-
+    self.context = hiveContext()
+    self.context.setup(None)
     self._read_config_data(path)
     self.inventory.add_group('services')
     self.inventory.add_group('images')
@@ -83,9 +86,14 @@ class InventoryModule(BaseInventoryPlugin):
     services = self.get_option('services')
     if type(services) != AnsibleMapping:
       raise AnsibleParserError(f'"services" must be dict type, but {type(services)}')
+    device_id_map = self.context.vars.get('drbd_device_map', {})
+    published_port_map = self.context.vars.get('published_port_map', {})
     for name, options in services.items():
       service = Service(name, options, available_on)
-      service.parse(inventory)
+      service.parse(inventory, device_id_map, published_port_map)
+    self.context.set_persistent('drbd_device_map', device_id_map)
+    self.context.set_persistent('published_port_map', published_port_map)
+    self.context.save_persistent()
     networks = self.get_option('networks')
     no_default = True
     if networks is not None:
@@ -126,7 +134,7 @@ class Network:
       raise AnsibleParserError(f'value must be dict type in network {self.name}')
     for option_name, option_value in self.options.items():
       if option_name not in NETWORK_PARAMS:
-        raise AnsibleParserError(f'unknown parameter {option_name} is specified in service {self.name}')
+        raise AnsibleParserError(f'unknown parameter {option_name} is specified in network in service {self.name}')
       inventory.set_variable(self.name, f'hive_{option_name}', option_value)
 
 
@@ -136,7 +144,7 @@ class Service:
     self.options = options
     self.available_on = available_on
 
-  def parse(self, inventory):
+  def parse(self, inventory, device_id_map, published_port_map):
     if type(self.options) != AnsibleMapping:
       raise AnsibleParserError(f'value must be dict type in service {self.name}')
     inventory.add_host(self.name, group='services')
@@ -165,8 +173,7 @@ class Service:
         ]
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
-          volumes.append(volume)
-          # we do not prepare volume
+          raise AnsibleParserError(f'we do not support short syntax {text_type(volume)} in volume at service {self.name}')
         elif type(volume) == AnsibleMapping:
           if 'source' not in volume or 'target' not in volume:
               raise AnsibleParserError(f'both "source" and "target" must be specified in volume at service {self.name}')
@@ -179,9 +186,27 @@ class Service:
           if 'drbd' in volume:
             if 'driver' in volume:
               raise AnsibleParserError(f'both "driver" and "drbd" can not be specified in volume at service {self.name}')
+            if 'device_id' in volume['drbd']:
+              if volume['drbd']['device_id'] in device_id_map.values() and volume['drbd']['device_id'] != device_id_map.get(volume['source']):
+                raise AnsibleParserError(
+                    f'duplicate deviceid {volume["drbd"]["device_id"]} of volume {volume["source"]} in service {self.name}')
+            else:
+              if volume['source'] in device_id_map:
+                  volume['drbd']['device_id'] = device_id_map[volume['source']]
+              else:
+                # assign new device id
+                for device_id in range(1, 128):
+                  if device_id not in device_id_map.values():
+                    volume['drbd']['device_id'] = device_id
+                    break
+                if 'device_id' not in volume['drbd']:
+                  raise AnsibleParserError(f'too many drbd volumes or garbage device_id are remain in "device_id_map" of persistent hive variable')
+            device_id_map[text_type(volume['source'])] = volume['drbd']['device_id']
             self.add_volume(inventory, {'name': volume['source'], 'drbd': volume['drbd']}, 'drbd_volumes')
           volume_value = {}
           for k, v in volume.items():
+            # TODO: support properties of mounts property of docker_swarm_service module
+            # I do not know what driver_config option means, it does check for volume definition? or it does create volume ondemand?
             if k not in VOLUME_PARAMS + VOLUME_PARAMS_DEF:
               raise AnsibleParserError(f'unknown parameter {k} is specified in volume in service {self.name}')
             if k in VOLUME_PARAMS:
@@ -220,20 +245,39 @@ class Service:
       ports = []
       for portdef in self.options['ports']:
         if type(portdef) == AnsibleMapping:
-          ports.append(portdef)
+          pass
         elif type(portdef) == AnsibleUnicode:
           slash = portdef.split('/')
           protocol = 'tcp'
           if len(slash) > 1:
             protocol = slash[1]
           colon = slash[0].split(':')
-          target_port = int(colon[0])
-          published_port = int(colon[0])
           if len(colon) > 1:
-            target_port = int(colon[1])
-          ports.append({'published_port': published_port, 'target_port': target_port, 'protocol': protocol})
+            portdef = {'published_port': int(colon[0]), 'target_port': int(colon[1]), 'protocol': protocol}
+          else:
+            portdef = {'target_port': int(colon[0]), 'protocol': protocol}
         else:
           raise AnsibleParserError(f'element of "ports" must be dict type or str type in service {self.name}, but type is {type(portdef)}')
+        if portdef['protocol'] not in ['tcp', 'udp', 'sctp']:
+          raise AnsibleParserError(f'unknown protocol {portdef["protocol"]} is specified {self.name}.')
+        published_port_key = self.name + text_type(portdef['target_port'])
+        if 'published_port' in portdef:
+          if portdef['published_port'] in published_port_map.values() and portdef['published_port'] != published_port_map.get(published_port_key):
+            raise AnsibleParserError(
+                f'duplicate port number {portdef["published_port"]} of port {published_port_key}')
+        else:
+          if published_port_key in published_port_map:
+              portdef['published_port'] = published_port_map[published_port_key]
+          else:
+            # assign new port number
+            for port_number in range(61001, 65535):
+              if port_number not in published_port_map.values():
+                portdef['published_port'] = port_number
+                break
+            if 'published_port' not in portdef:
+              raise AnsibleParserError(f'too many published ports or garbage port number are remain in "published_port_map" of persistent hive variable')
+        published_port_map[published_port_key] = portdef['published_port']
+        ports.append(portdef)
       inventory.set_variable(self.name, f'hive_ports', ports)
 
   def add_volume(self, inventory, volume, group):

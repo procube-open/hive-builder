@@ -20,6 +20,7 @@
   vars:
     delimiter: "','"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+    pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
 
   tasks:
   - name: install requests module
@@ -28,7 +29,7 @@
   - name: wait for powerdns api available
     wait_for:
       host: "{{ inventory_hostname }}"
-      port: 61001
+      port: "{{ pdns_port }}"
   - name: add zone
     powerdns_zone:
       name: "{{ hive_name }}.{{ domain }}."
@@ -36,7 +37,7 @@
       kind: native
       state: present
       pdns_host: "{{ inventory_hostname }}"
-      pdns_port: 61001
+      pdns_port: "{{ pdns_port }}"
       pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
   - name: add records for hives
     powerdns_record:
@@ -46,7 +47,7 @@
       content: "{{ hostvars[item].published_ip }}"
       ttl: 3600
       pdns_host: "{{ inventory_hostname }}"
-      pdns_port: 61001
+      pdns_port: "{{ pdns_port }}"
       pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
     loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
   - name: add records for web services
@@ -57,6 +58,6 @@
       content: A "ifportup(80, {'{{ groups['hives'] | intersect(groups[hive_stage]) | map('extract', hostvars, ['published_ip']) | join(delimiter)}}'})"
       ttl: 20
       pdns_host: "{{ inventory_hostname }}"
-      pdns_port: 61001
+      pdns_port: "{{ pdns_port }}"
       pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
     loop: "{{ groups['services'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_labels') | select('defined') | map(attribute='published_fqdn') | select('defined') | list }}"
