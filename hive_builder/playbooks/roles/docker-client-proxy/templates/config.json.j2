@@ -1,0 +1,1 @@
+{{ ((config_contents) if (config_contents|length) > 0 else {}) | combine({"proxies": {"default":{"httpProxy": config_contents_http_proxy,"httpsProxy": config_contents_https_proxy,"noProxy": config_contents_no_proxy}}}) | to_json }}

@@ -1,0 +1,29 @@
+---
+- name: check ~/.docker/config.json
+  stat:
+    path: "{{ hive_home_dir }}/.docker/config.json"
+  register: _home_docker_config_
+- name: set fact for config
+  set_fact: config_contents=""
+- name: load from config
+  shell: "cat {{ hive_home_dir }}/.docker/config.json"
+  register: contents
+  when: "_home_docker_config_.stat.exists"
+- name: overwrite fact from config
+  set_fact: config_contents="{{contents.stdout|from_json}}"
+  when: "_home_docker_config_.stat.exists"
+- name: init http_proxy
+  set_fact: config_contents_http_proxy="{{lookup('env', 'HTTP_PROXY')}}"
+- name: init https_proxy
+  set_fact: config_contents_https_proxy="{{lookup('env', 'HTTPS_PROXY')}}"
+- name: init no_proxy
+  set_fact: config_contents_no_proxy="{{lookup('env', 'NO_PROXY')}}"
+- name: debug
+  debug:
+    msg: "contents is => {{config_contents}}"
+- name: "Update config.json"
+  template:
+    src: config.json.j2
+    dest: "{{ hive_home_dir }}/.docker/config.json"
+    owner: "{{hive_safe_admin}}"
+    group: "{{hive_admin_group | default(hive_safe_admin)}}"

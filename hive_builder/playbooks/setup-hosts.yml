@@ -24,6 +24,8 @@
     - role: drbd
       when: hive_mirrored_disk_size is defined
     - docker-client
+    - role: docker-client-proxy
+      when: "(lookup('env', 'HTTP_PROXY')|length) > 0"
     - zabbix-agent
     - reboot
 
