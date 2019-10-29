@@ -326,7 +326,7 @@ hive では、 initialize-services フェーズですべてのサービスを稼
 初期データを登録できます。 initialize-services フェーズで初期データを登録するためには、
 プロジェクトのルートディレクトリに initialize-services.yml という名前で
 ansible の playbook を置く必要があります。例えば、サンプルでは Power DNS のモジュールを使って
-初期データを登録しています。この場合の initialize-serivces.yml の内容は以下のとおりです。
+初期データを登録しています。この場合の initialize-services.yml の内容は以下のとおりです。
 
 ::
 

@@ -67,8 +67,8 @@ setup-hosts         ホスト              ホストを設定する
 build-images        コンテナイメージ    コンテナイメージをビルドする
 build-networks      内部ネットワーク    内部ネットワークを構築する
 build-volumes       ボリューム          ボリュームを構築する
-deploy-serivces     サービス            サービスを配備する
-initialize-serivces サービス            サービスを初期化する
+deploy-services     サービス            サービスを配備する
+initialize-services サービス            サービスを初期化する
 =================== =================== ==============================
 
 ステージング

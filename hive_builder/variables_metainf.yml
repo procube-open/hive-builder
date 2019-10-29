@@ -182,7 +182,7 @@ check_mode:
   - build-images
   - deploy-services
   - initialize-services
-  - publish-serivces
+  - publish-services
 limit_target:
   name_in_ansible: hive_limit
   description: "limit target"

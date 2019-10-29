@@ -54,13 +54,13 @@ build-volumes
 
 （未執筆）
 
-deploy-serivces
+deploy-services
 =========================
 サービスを配備します。
 
 （未執筆）
 
-initialize-serivces
+initialize-services
 =========================
 サービスを初期化します。
 
