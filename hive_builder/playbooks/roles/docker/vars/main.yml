@@ -1,0 +1,2 @@
+---
+hive_safe_bridge_ip: "{{ hive_bridge_ip | default('172.17.128.1/16')}}"

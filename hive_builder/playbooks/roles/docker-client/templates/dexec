@@ -36,7 +36,10 @@ export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | fir
 export DOCKER_TLS=1
 suffix={{ hive_name }}
 {% raw %}
-num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$1" | cut -f 1 -d /)
+# followin code cause error when name can be matching for multiple serivce
+# (ex. name=dhcp is matching for dhcp and dhcpdb)
+# num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$1" | cut -f 1 -d /)
+num_replicas=$(docker service ls --format '{{.Name}} {{.Replicas}}' | awk '$1 == "'$1'" {cnt = split($2, r, "/");print r[1]}')
 if [ -z $num_replicas ]; then
   error "service $1 is not found."
 fi

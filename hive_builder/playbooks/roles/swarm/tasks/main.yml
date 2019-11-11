@@ -19,7 +19,7 @@
   when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
 
 - name: create ingress subnet
-  shell: "docker network create --driver overlay --ingress --subnet={{ hive_ingress_subnet }} --gateway={{ hive_ingress_subnet_gateway }} apiarist-ingress"
+  shell: "docker network create --driver overlay --ingress --subnet={{ hive_ingress_subnet }} --gateway={{ (hive_ingress_subnet | ipaddr(1)).split('/')[0] }} apiarist-ingress"
   when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
 
 - name: get token for manager

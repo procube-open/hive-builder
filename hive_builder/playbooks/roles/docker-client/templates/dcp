@@ -49,7 +49,10 @@ else
   error "no service prefix."
 fi
 
-num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$service" | cut -f 1 -d /)
+# followin code cause error when name can be matching for multiple serivce
+# (ex. name=dhcp is matching for dhcp and dhcpdb)
+# num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$service" | cut -f 1 -d /)
+num_replicas=$(docker service ls --format '{{.Name}} {{.Replicas}}' | awk '$1 == "'$service'" {cnt = split($2, r, "/");print r[1]}')
 if [ -z $num_replicas ]; then
   error "service $service is not found."
 fi

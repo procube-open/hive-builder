@@ -4,7 +4,7 @@
   register: hive_safe_drbd_service_facts
 - set_fact:
     hive_safe_drbd_service_not_exists: "{{ 'drbd-resource@' + hive_safe_volume.name + '.service' not in hive_safe_drbd_service_facts.ansible_facts.services }}"
-    hive_safe_drbd_with_disk: "{{ hive_safe_volume.drbd.diskless is not defined or inventory_hostname not in hive_safe_volume.drbd.diskless }}"
+    hive_safe_drbd_with_disk: "{{ (hive_safe_volume.drbd.diskless is not defined or inventory_hostname not in hive_safe_volume.drbd.diskless) and not (hive_no_mirroed_device | default(False)) }}"
     hive_safe_first_disk: "{%if hive_safe_volume.drbd.diskless is not defined %}{{ 'first_hive' in group_names }}{%else%}{{ (groups['hives'] | intersect(groups[hive_stage]) | difference(hive_safe_volume.drbd.diskless) | first) == inventory_hostname }}{%endif%}"
 
 - name: put resource definition file

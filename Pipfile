@@ -21,6 +21,7 @@ google-auth = "*"
 backtrace = "*"
 boto = "*"
 boto3 = "*"
+netaddr = "*"
 
 [requires]
 python_version = "3.7"

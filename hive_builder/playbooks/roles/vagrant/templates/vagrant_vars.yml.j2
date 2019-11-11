@@ -23,7 +23,7 @@ vagrant_hosts:
 {%if 'hive_disk_size' in hostvars[target] %}
     disk_size: {{ hostvars[target].hive_disk_size }}
 {%endif%}
-{%if 'hive_mirrored_disk_size' in hostvars[target] %}
+{%if 'hive_mirrored_disk_size' in hostvars[target]  and not (hostvars[target].hive_no_mirroed_device | default(False)) %}
     mirrored_disk_size: "{{ hostvars[target].hive_mirrored_disk_size}}"
 {%endif%}
 {%endfor%}

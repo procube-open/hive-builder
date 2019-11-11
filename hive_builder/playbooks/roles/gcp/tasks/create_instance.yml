@@ -50,7 +50,7 @@
       initialize_params:
         disk_size_gb: "{{ hostvars[gcp_host].hive_mirrored_disk_size }}"
         disk_name: "drbd-{{ hive_safe_name }}"
-  when: hostvars[gcp_host].hive_mirrored_disk_size is defined
+  when: hostvars[gcp_host].hive_mirrored_disk_size is defined and not (hostvars[gcp_host].hive_no_mirroed_device | default(False))
 - name: create instances
   gcp_compute_instance:
     state: present

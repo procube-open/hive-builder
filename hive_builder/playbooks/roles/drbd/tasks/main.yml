@@ -40,8 +40,10 @@
     - /dev/vdb
     - /dev/xvdb
     - /dev/nvme1n1
+  when: not (hive_no_mirroed_device | default(False))
 - set_fact:
     hive_safe_mirrored_device_name: "{{ hive_safe_device_names.results | selectattr('stat.readable','defined') | map(attribute='item') |first }}"
+  when: not (hive_no_mirroed_device | default(False))
 
 - name: create partition for drbd resource pool
   parted:
@@ -49,15 +51,19 @@
     number: "{{ hive_mirrored_disk_device_number | default ('1') }}"
     flags: [ lvm ]
     state: present
+  when: not (hive_no_mirroed_device | default(False))
 - name: create volume group
   lvg:
     vg: drbdvg
     pvs: "{{ hive_safe_mirrored_device_name }}{% if hive_safe_mirrored_device_name is match('/dev/nvme*') %}p{% endif %}{{ hive_mirrored_disk_device_number | default ('1') }}"
+  when: not (hive_no_mirroed_device | default(False))
 - name: create a thin pool
   lvol:
     vg: drbdvg
     thinpool: drbdpool
     size: "97%VG"
+  when: not (hive_no_mirroed_device | default(False))
+
 - name: "insert allow drbd port rule into iptables (no internal network)"
   blockinfile:
     dest: /etc/sysconfig/iptables

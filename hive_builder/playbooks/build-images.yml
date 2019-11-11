@@ -87,11 +87,3 @@
     loop: "{{ hive_safe_images }}"
     loop_control:
       loop_var: hive_safe_image
-  - name: stop container
-    docker_container:
-      name: "build_{{ hive_safe_image }}"
-      state: stopped
-    changed_when: False
-    loop: "{{ hive_safe_images }}"
-    loop_control:
-      loop_var: hive_safe_image

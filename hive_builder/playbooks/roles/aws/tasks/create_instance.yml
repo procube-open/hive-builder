@@ -8,7 +8,7 @@
     hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sda1', 'ebs': {'volume_size': hostvars[aws_host].hive_disk_size | default(omit), 'delete_on_termination': True} }]}}"
 - set_fact:
     hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sdb', 'ebs': {'volume_size': hostvars[aws_host].hive_mirrored_disk_size, 'delete_on_termination': True} }]}}"
-  when: hostvars[aws_host].hive_mirrored_disk_size is defined
+  when: hostvars[aws_host].hive_mirrored_disk_size is defined and not (hostvars[aws_host].hive_no_mirroed_device | default(False))
 
 - name: build ec2 instance
   ec2_instance:
