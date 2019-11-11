@@ -3,10 +3,7 @@
   gather_facts: False
   hosts: repository
   vars:
-    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images']  | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images']  | intersect(groups[hive_stage]) | list }}{% endif %}"
-    hive_safe_images_dir: "{{ hive_home_dir }}/images"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-    hive_safe_sleep_command: /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
 
   tasks:
   - name: login to private registry
@@ -15,49 +12,56 @@
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
-  - name: create container
-    docker_container:
-      image: "{{ hostvars[hive_safe_image].hive_from }}"
-      exposed_ports: "{{ hostvars[hive_safe_image].expose | default(omit) }}"
-      name: "build_{{ hive_safe_image }}"
-      hostname: "{{ hive_safe_image }}"
-      env: "{%if hive_proxy_env_block is defined %}{{(hostvars[hive_safe_image].hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hostvars[hive_safe_image].hive_env | default(omit) }}{% endif %}"
-      privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
-      entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}[]{%endif%}"
-      working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
-      command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
-      stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
-      user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
-      state: present
-    loop: "{{ hive_safe_images }}"
-    loop_control:
-      loop_var: hive_safe_image
-  - name: start container
-    docker_container:
-      image: "{{ hostvars[hive_safe_image].hive_from }}"
-      exposed_ports: "{{ hostvars[hive_safe_image].expose | default(omit) }}"
-      name: "build_{{ hive_safe_image }}"
-      hostname: "{{ hive_safe_image }}"
-      env: "{%if hive_proxy_env_block is defined %}{{(hostvars[hive_safe_image].hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hostvars[hive_safe_image].hive_env | default(omit) }}{% endif %}"
-      privileged: "{{ hostvars[hive_safe_image].hive_privileged | default(omit) }}"
-      entrypoint: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}[]{%endif%}"
-      working_dir: "{{ hostvars[hive_safe_image].hive_working_dir | default(omit) }}"
-      command: "{%if hostvars[hive_safe_image].hive_standalone is defined and hostvars[hive_safe_image].hive_standalone %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
-      stop_signal: "{{ hostvars[hive_safe_image].hive_stop_signal | default(omit) }}"
-      user: "{{ hostvars[hive_safe_image].hive_user | default(omit) }}"
-    changed_when: False
-    loop: "{{ hive_safe_images }}"
-    loop_control:
-      loop_var: hive_safe_image
 
-- name: build {{ hive_safe_image }}
+- name: build images
   hosts: images
   gather_facts: False
+  serial: 3
   connection: docker
   vars:
+    hive_safe_repository_server: "{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
+    hive_safe_images_dir: "{{ hostvars[hive_safe_repository_server].hive_home_dir }}/images"
+    hive_safe_sleep_command: /bin/sh -c 'trap "kill %1" int;sleep 2400 &wait'
     ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker.sock@{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
+    hive_safe_image_tag: "{{hostvars[hive_safe_repository_server].hive_registry}}/{{ inventory_hostname }}:{{ lookup('pipe', 'date +\"%Y%m%d%H%M%S\"') }}"
+    hive_safe_image_tag_latest: "{{hostvars[hive_safe_repository_server].hive_registry}}/{{ inventory_hostname }}:latest"
 
   tasks:
+  - set_fact:
+      ansible_connection: smart
+      ansible_python_interpreter: "{{ hostvars[hive_safe_repository_server].hive_home_dir }}/docker/bin/python"
+    delegate_to: "{{ hive_safe_repository_server }}"
+    delegate_facts: True
+  - name: create container
+    delegate_to: "{{ hive_safe_repository_server }}"
+    docker_container:
+      image: "{{ hive_from }}"
+      exposed_ports: "{{ hive_expose | default(omit) }}"
+      name: "build_{{ inventory_hostname }}"
+      hostname: "{{ inventory_hostname }}"
+      env: "{%if hive_proxy_env_block is defined %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      privileged: "{{ hive_privileged | default(omit) }}"
+      entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
+      working_dir: "{{ hive_working_dir | default(omit) }}"
+      command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      stop_signal: "{{ hive_stop_signal | default(omit) }}"
+      user: "{{ hive_user | default(omit) }}"
+      state: present
+  - name: start container
+    delegate_to: "{{ hive_safe_repository_server }}"
+    docker_container:
+      image: "{{ hive_from }}"
+      exposed_ports: "{{ hive_expose | default(omit) }}"
+      name: "build_{{ inventory_hostname }}"
+      hostname: "{{ inventory_hostname }}"
+      env: "{%if hive_proxy_env_block is defined %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      privileged: "{{ hive_privileged | default(omit) }}"
+      entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
+      working_dir: "{{ hive_working_dir | default(omit) }}"
+      command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      stop_signal: "{{ hive_stop_signal | default(omit) }}"
+      user: "{{ hive_user | default(omit) }}"
+    changed_when: False
   - name: apply role
     include_role:
       name: "{{ hive_safe_role }}"
@@ -71,19 +75,5 @@
     loop_control:
       loop_var: hive_safe_role
 
-- name: push container images
-  gather_facts: False
-  hosts: repository
-  vars:
-    hive_safe_images: "{%if hive_limit is defined %}{{ groups['images']  | intersect(groups[hive_stage]) | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'image_\\1') | list) | list}}{% else %}{{ groups['images']  | intersect(groups[hive_stage]) | list }}{% endif %}"
-    hive_safe_images_dir: "{{ hive_home_dir }}/images"
-    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-    hive_safe_image_tag: "{{hive_registry}}/{{ hive_safe_image }}:{{ lookup('pipe', 'date +\"%Y%m%d%H%M%S\"') }}"
-    hive_safe_image_tag_latest: "{{hive_registry}}/{{ hive_safe_image }}:latest"
-
-  tasks:
   - name: push images
     include_tasks: push-image.yml
-    loop: "{{ hive_safe_images }}"
-    loop_control:
-      loop_var: hive_safe_image

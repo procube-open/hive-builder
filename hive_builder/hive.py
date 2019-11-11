@@ -415,7 +415,7 @@ class phaseWithDockerSocket(phaseBase):
     for host_name in map(lambda x: x.decode(encoding='utf-8').split(' ')[1], grep_proc.stdout.splitlines()):
       socket_path = f'{context.vars["temp_dir"]}/docker.sock@{host_name}'
       if pathlib.Path(socket_path).is_socket():
-        raise Error(f'fail to create socket {socket_path}, another hive process may doing build-image' +
+        raise Error(f'fail to create socket {socket_path}, another hive process may doing build-images/deploy-services' +
                     ' or the file has been left because previus hive process aborted suddenly')
       args = ['ssh', '-N', '-F', ssh_config_path, '-L', socket_path + ':/var/run/docker.sock', host_name]
       ssh_tunnel_procs.append((socket_path, subprocess.Popen(args)))

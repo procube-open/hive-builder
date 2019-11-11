@@ -1,6 +1,7 @@
 - name: inspect from image
   docker_image_info:
-    name: "{{ hostvars[hive_safe_image].hive_from }}"
+    name: "{{ hive_from }}"
+  delegate_to: "{{ hive_safe_repository_server }}"
   register: from_image_info
   # prepare short cut variable
 - set_fact:
@@ -12,25 +13,27 @@
     reset_build_overrides: ""
 - set_fact:
     # --change 'ENTRYPOINT []' does not set null, so set ["/bin/sh"]
-    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hostvars[hive_safe_image].hive_entrypoint is defined %}{{ hostvars[hive_safe_image].hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
-  when: hostvars[hive_safe_image].hive_standalone is not defined or not hostvars[hive_safe_image].hive_standalone
+    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hive_entrypoint is defined %}{{ hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
+  when: not (hive_standalone | default(False))
 - set_fact:
     # --change CMD cannot set null, so set []
-    reset_build_overrides: "{{reset_build_overrides}} --change 'CMD {% if hostvars[hive_safe_image].hive_command is defined %}{{ hostvars[hive_safe_image].hive_command | to_json }}{% elif orig_config.Cmd == none %}[]{% else %}{{ orig_config.Cmd | to_json }}{% endif %}'"
-  when: hostvars[hive_safe_image].hive_standalone is not defined or not hostvars[hive_safe_image].hive_standalone
+    reset_build_overrides: "{{reset_build_overrides}} --change 'CMD {% if hive_command is defined %}{{ hive_command | to_json }}{% elif orig_config.Cmd == none %}[]{% else %}{{ orig_config.Cmd | to_json }}{% endif %}'"
+  when: not (hive_standalone | default(False))
 - set_fact:
     # --change WORKDIR cannot set "", so set /
-    reset_build_overrides: "{{reset_build_overrides}} --change 'WORKDIR {% if hostvars[hive_safe_image].hive_working_dir is defined %}{{ hostvars[hive_safe_image].hive_working_dir | to_json }}{% elif orig_config.WorkingDir == '' %}/{% else %}{{ orig_config.WorkingDir | to_json }}{% endif %}'"
-  when: hostvars[hive_safe_image].hive_working_dir is defined
+    reset_build_overrides: "{{reset_build_overrides}} --change 'WORKDIR {% if hive_working_dir is defined %}{{ hive_working_dir | to_json }}{% elif orig_config.WorkingDir == '' %}/{% else %}{{ orig_config.WorkingDir | to_json }}{% endif %}'"
+  when: hive_working_dir is defined
 - debug: var=reset_build_overrides
 - name: commit image
   shell: |
-    docker stop "build_{{ hive_safe_image }}"
-    docker commit {{ reset_build_overrides }} "build_{{ hive_safe_image }}"  "{{ hive_safe_image_tag_latest }}"
+    docker stop "build_{{ inventory_hostname }}"
+    docker commit {{ reset_build_overrides }} "build_{{ inventory_hostname }}"  "{{ hive_safe_image_tag_latest }}"
+  delegate_to: "{{ hive_safe_repository_server }}"
   register: commit_result
 
 - name: push image
   shell: |
     docker push "{{ hive_safe_image_tag_latest }}"
   when: commit_result is defined and commit_result.rc == 0
+  delegate_to: "{{ hive_safe_repository_server }}"
   register: push

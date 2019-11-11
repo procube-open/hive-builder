@@ -9,18 +9,19 @@
         {{ hostvars[item].hive_ipam.config }}
       {%- elif hostvars[item].hive_default_network_subnet is defined -%}
         {{ [{'subnet': hive_default_network_subnet }] }}
-      {% else %}
+      {%- else -%}
         {{ omit }}
-      {% endif %}
+      {%- endif -%}
 
   tasks:
+  - debug: var=hive_safe_ipam_config
   - name: create network
     docker_network:
       name: "{{ item }}"
       driver: "overlay"
       dirver_options: "{{ hostvars[item].hive_driver_opts | default(omit) }}"
       ipam_driver: "{{ hostvars[item].hive_ipam.driver | default(omit) }}"
-      ipam_config: "{{ hive_safe_ipam_config | default(omit) }}"
+      ipam_config: "{{ hive_safe_ipam_config }}"
       ipam_driver_options: "{{ hostvars[item].hive_ipam.options | default(omit) }}"
     loop: "{{ groups['networks'] }}"
     register: create_network_result
