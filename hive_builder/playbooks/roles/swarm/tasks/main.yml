@@ -31,7 +31,7 @@
   when: "'first_hive' not in group_names and hive_docker_info.stdout == 'inactive'"
 
 - name: join as manager nodes
-  shell: "{{ hive_safe_swarm_join_token.stdout }}"
+  shell: "{{ hive_safe_swarm_join_token.stdout }} --advertise-addr {{ hive_private_ip }}"
   when: "'first_hive' not in group_names and hive_docker_info.stdout == 'inactive'"
   register: hive_safe_join_info
 
