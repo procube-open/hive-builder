@@ -30,6 +30,12 @@
     line: "        minor-count 128;"
     path: /etc/drbd.d/global_common.conf
     state: present
+
+- name: check volume group exists
+  command: vgdisplay drbdvg
+  failed_when: False
+  register: vgdisplay_result
+
 - name: check devices
   parted:
     device: "{{ item }}"
@@ -41,11 +47,11 @@
     - /dev/xvdb
     - /dev/nvme1n1
     - /dev/sda
-  when: not (hive_no_mirroed_device | default(False))
+  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
   failed_when: False
 - set_fact:
     hive_safe_mirrored_device: "{{ hive_safe_devices.results | selectattr('partitions','defined') |first }}"
-  when: not (hive_no_mirroed_device | default(False))
+  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
 
 - name: create partition for drbd resource pool
   parted:
@@ -55,12 +61,12 @@
     part_start: "{{ '1s' if (hive_safe_mirrored_device.partitions | length) == 0 else ((((hive_safe_mirrored_device.partitions | last).end | int) + 1) | string) + 's' }}"
     flags: [ lvm ]
     state: present
-  when: not (hive_no_mirroed_device | default(False))
+  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
 - name: create volume group
   lvg:
     vg: drbdvg
     pvs: "{{ hive_safe_mirrored_device.disk.dev }}{% if hive_safe_mirrored_device.disk.dev is match('/dev/nvme*') %}p{% endif %}{{ hive_safe_mirrored_device.partitions | length + 1 }}"
-  when: not (hive_no_mirroed_device | default(False))
+  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
 - name: create a thin pool
   lvol:
     vg: drbdvg
