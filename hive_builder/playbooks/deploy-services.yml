@@ -44,7 +44,19 @@
       env: "{{ hostvars[item].hive_environment | default(omit) }}"
       publish: "{{ hostvars[item].hive_ports | default(omit) }}"
       mounts: "{{ hostvars[item].hive_volumes | default(omit) }}"
-      labels: "{{ hostvars[item].hive_labels | default(omit) }}"
+      labels: >-
+        {%- if hostvars[item].hive_labels is defined -%}
+          {%- set outputs = {} -%}
+          {%- for key, value in hostvars[item].hive_labels.items() -%}
+            {%- set _ = outputs.update({key: value if value is string else (value | to_json)}) -%}
+          {%- endfor -%}
+          {{ outputs }}
+        {%- else -%}
+          {{ omit }}
+        {%- endif -%}
+      placement: "{{ hostvars[item].hive_placement | default(omit) }}"
+      hosts: "{{ hostvars[item].hive_hosts | default(omit) }}"
+      dns: "{{ hostvars[item].hive_dns | default(omit) }}"
       mode: "{{ hostvars[item].hive_mode | default(omit) }}"
       user: "{{ hostvars[item].hive_user | default(omit) }}"
       endpoint_mode: "{{ hostvars[item].hive_endpoint_mode | default(omit) }}"

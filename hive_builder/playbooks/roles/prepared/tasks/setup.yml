@@ -10,7 +10,7 @@
       Host {{ setup_host }}
         HostName {{ hostvars[setup_host].hive_private_ip }}
         UserKnownHostsFile /dev/null
-        User {{ hive_safe_admin }}
+        User {{ hostvars[setup_host].hive_safe_admin }}
         StrictHostKeyChecking no
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}

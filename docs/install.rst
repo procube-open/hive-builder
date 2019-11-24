@@ -21,7 +21,8 @@ docker コマンドのインストールは、OSごとに以下に従ってく�
 dockerデーモンやコンテナを動作させる必要はないことに注意してください。
 hive-builder は docker コマンドをクライアントとして利用するだけですので、
 dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
-
+また、prepared プロバイダを使用し、その対象サーバ内に mother 環境を作成する場合は、 docker コマンドをインストールする必要はありません。
+逆に CentOS 標準の docker-client パッケージがインストールされていると、 hive-builder がインストールする docker-ce と競合して構築に失敗しますので、注意してください。
 
 
 Windows Subsystem for Linux, Ubuntu の場合

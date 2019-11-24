@@ -53,7 +53,7 @@ svn コマンドを使用しない場合は、 hive-builder のソースコー�
 
 ::
 
-  git clone htpps://github.com/procube-open/hive-builder
+  git clone https://github.com/procube-open/hive-builder
   cd hive-builder/examples/pdns
 
 仮想環境の activate

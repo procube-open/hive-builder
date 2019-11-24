@@ -28,7 +28,7 @@
 
   tasks:
   - wait_for_connection:
-    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false))
+    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false)) and (hive_provider != 'kickstart')
   - name: add admin group
     group:
       name: "{{ hive_admin_group | default(hive_safe_admin) }}"

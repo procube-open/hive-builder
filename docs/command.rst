@@ -76,3 +76,34 @@ staging ステージのホスト名には s-、 privaite ステージのホス�
 :メッセージ: fail to create socket /var/tmp/hive/docker.sock@サーバ名, another hive process may doing build-image or the file has been left because previus hive process aborted suddenly
 :コマンド: build-images, initialize-services
 :対応方法: 他の hive コマンドが同じマザーマシンで動作している場合はその終了を待ってください。そうでない場合は rm コマンドで /var/tmp/hive/docker.sock@サーバ名を削除してください。
+
+hive コマンドを使わずに playbook を実行
+=========================================
+hive コマンドを使わずに playbook を実行する場合は、ANSIBLE_CONFIG環境変数に/var/tmp/hive/ansible.cfgを
+指定し、ansibleの変数を/var/tmp/hive/vars.ymlから読み込んでください。また、 -l オプションにステージ名を
+指定し対象を絞り込んでください。
+例えば、private ステージで test.yml を実行する場合は、
+以下のように指定してください。
+
+::
+
+  ANSIBLE_CONFIG=/var/tmp/hive/ansible.cfg ansible-playbook -e @/var/tmp/hive/vars.yml -l private test.yml
+
+ただし、この場合、hiveの組み込み変数のいくつかが使えません。hive の組み込み変数を
+参照したい場合は、playbook で以下のように変数の定義を読み込んでください。
+
+::
+
+  vars_files:
+  - "{{ hive_playbooks_dir }}/group_vars/hosts.yml"
+
+hive コマンドを使わずに ssh/scp を実行
+=========================================
+hive コマンドを使わずに ssh/scp を実行する場合は、コンテキストディレクトリの ssh_config ファイルを
+使用してください。例えば、hive0.pdns の /etc/hosts ファイルをカレントディレクトリにコピーする場合は、
+以下のコマンドを実行してください。
+
+::
+
+  scp -F .hive/production/ssh_config hive0.pdns:/etc/hosts .
+

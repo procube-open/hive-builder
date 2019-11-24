@@ -30,32 +30,36 @@
     line: "        minor-count 128;"
     path: /etc/drbd.d/global_common.conf
     state: present
-- name: check if device exists
-  stat:
-    path: "{{ item }}"
-  register: hive_safe_device_names
+- name: check devices
+  parted:
+    device: "{{ item }}"
+    unit: s
+  register: hive_safe_devices
   loop:
-    - "{{ hive_mirrored_device_name | default('/dev/dummy_device_never_exist') }}"
     - /dev/sdb
     - /dev/vdb
     - /dev/xvdb
     - /dev/nvme1n1
+    - /dev/sda
   when: not (hive_no_mirroed_device | default(False))
+  failed_when: False
 - set_fact:
-    hive_safe_mirrored_device_name: "{{ hive_safe_device_names.results | selectattr('stat.readable','defined') | map(attribute='item') |first }}"
+    hive_safe_mirrored_device: "{{ hive_safe_devices.results | selectattr('partitions','defined') |first }}"
   when: not (hive_no_mirroed_device | default(False))
 
 - name: create partition for drbd resource pool
   parted:
-    device: "{{ hive_safe_mirrored_device_name }}"
-    number: "{{ hive_mirrored_disk_device_number | default ('1') }}"
+    device: "{{ hive_safe_mirrored_device.disk.dev }}"
+    number: "{{ hive_safe_mirrored_device.partitions | length + 1 }}"
+    part_end: "{{ (((hive_safe_mirrored_device.disk.size | int) - 1) | string) + 's' }}"
+    part_start: "{{ '1s' if (hive_safe_mirrored_device.partitions | length) == 0 else ((((hive_safe_mirrored_device.partitions | last).end | int) + 1) | string) + 's' }}"
     flags: [ lvm ]
     state: present
   when: not (hive_no_mirroed_device | default(False))
 - name: create volume group
   lvg:
     vg: drbdvg
-    pvs: "{{ hive_safe_mirrored_device_name }}{% if hive_safe_mirrored_device_name is match('/dev/nvme*') %}p{% endif %}{{ hive_mirrored_disk_device_number | default ('1') }}"
+    pvs: "{{ hive_safe_mirrored_device.disk.dev }}{% if hive_safe_mirrored_device.disk.dev is match('/dev/nvme*') %}p{% endif %}{{ hive_safe_mirrored_device.partitions | length + 1 }}"
   when: not (hive_no_mirroed_device | default(False))
 - name: create a thin pool
   lvol:

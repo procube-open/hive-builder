@@ -40,7 +40,7 @@ DOCUMENTATION = r'''
         provider:
           description: infrastructure provider
           required: true
-          choices: ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared']
+          choices: ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared', 'kickstart']
         separate_repository:
           description: whether repository node is separated from swarm nodes
           type: bool
@@ -180,8 +180,8 @@ class Stage:
     if 'provider' not in self.stage:
       raise AnsibleParserError('provider must be specified')
     self.provider = self.stage['provider']
-    if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared']:
-      raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", but specified {self.provider}')
+    if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared', 'kickstart']:
+      raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", "kickstart", but specified {self.provider}')
     if self.provider == 'vagrant':
       if 'instance_type' in self.stage:
         raise AnsibleParserError('instance_type cannot be specified when provider is vagrant')
@@ -215,6 +215,8 @@ class Stage:
       self.inventory.set_variable(mother_name, 'hive_bridge', self.stage['bridge'])
     if 'dev' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_dev', self.stage['dev'])
+    if 'nameservers' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_nameservers', self.stage['nameservers'])
     if 'subnets' not in self.stage:
       try:
         net = ipaddress.ip_network(self.stage['cidr'])

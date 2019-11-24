@@ -38,7 +38,7 @@
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
     state: absent
 - name: "get network facts"
-  gcp_compute_network_facts:
+  gcp_compute_network_info:
     filters:
     - name = {{ hive_safe_vpc_name }}
     project: "{{hive_safe_gcp_project }}"

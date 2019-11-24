@@ -11,7 +11,7 @@
 - name: CA CSR
   shell: |
     openssl req -batch -new -newkey rsa:4096 -nodes -sha256 \
-      -subj '{{ hive_safe_sub_prefix }}/CN=ca.hive.procube-demo.jp' \
+      -subj '{{ hive_safe_sub_prefix }}/CN=ca.{{ hive_name }}' \
       -keyout {{ hive_safe_ca_dir }}/cakey.pem \
       -out {{ hive_safe_ca_dir }}/ca-ca.csr
   args:

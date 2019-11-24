@@ -23,6 +23,7 @@ azure         Microsoft Azure（未実装）
 gcp           Gooble Computing Platform
 openstack     Some OpenStack Provider（未実装）
 prepared      sshでアクセス可能なサーバ群
+kickstart     OSが未インストールの物理サーバ
 ============= ===============================================
 
 vagrant
