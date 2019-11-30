@@ -647,11 +647,11 @@ ports 属性にはポート定義のリストを指定できます。ポート�
 
 また、サービス定義では published_port を省略できます。Short Syntax で "80" のように1個のポート番号を記載した場合や、Long Syntax で published_port 属性を
 省略した場合は、hive-builder が自動的に 61001 から順にポート番号を割り当てます。
-これらはサービスのホスト変数で調べることができます。たとえば、外からそのポートに接続するためにポート番号を調べる場合、initialize-services.yml で以下のように参照することができます。
+これらはサービスのホスト変数で調べることができます。たとえば、外からそのポートに接続するためにポート番号を調べる場合、initialize-services から起動される
+role で以下のように参照することができます。
 
 ::
 
-    vars:
-      pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
+    pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
 
 (サービス定義のbackup_scripts, volumes 属性の詳細については未執筆)

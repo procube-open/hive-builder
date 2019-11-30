@@ -1,0 +1,29 @@
+---
+- name: initialize services
+  hosts: services
+  gather_facts: False
+  serial: 3
+
+  tasks:
+  - name: get server
+    delegate_to: "{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}"
+    shell: docker service ps --format "{% raw %}{{.Name}}.{{.ID}}@{{.Node}}{% endraw %}.{{ hive_name }}" --filter desired-state=running --no-trunc {{ inventory_hostname }} | head -1
+    changed_when: False
+    check_mode: False
+    register: hive_safe_ps
+    when: hive_initialize_roles is defined
+
+  - name: setup docker socket
+    set_fact:
+      ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker.sock@{{ hive_safe_ps.stdout.split('@') | last }}"
+      ansible_connection: docker
+      ansible_host: "{{ hive_safe_ps.stdout.split('@') | first }}"
+    when: hive_initialize_roles is defined
+
+  - name: apply role
+    include_role:
+      name: "{{ hive_safe_role }}"
+    loop: "{{ hive_initialize_roles }}"
+    loop_control:
+      loop_var: hive_safe_role
+    when: hive_initialize_roles is defined

@@ -291,8 +291,8 @@ HOST_DEF_PATTERN = re.compile('^Host *(.*)$')
 
 
 class ansbileCommandBase(commandHandlerBase):
-  def get_playbook_path(self, vars):
-    return f'{vars["playbooks_dir"]}/{self.name}.yml'
+  def get_playbook_path(self, context):
+    return f'{context.vars["playbooks_dir"]}/{self.name}.yml'
 
   def collect_ansible_vars(self, vars, variables_metainf):
     # override when phase sapecific ansible variale
@@ -372,7 +372,7 @@ class phaseBase(ansbileCommandBase):
     if 'check_mode' in context.vars and context.vars['check_mode']:
       args.append('-C')
     args += ['--extra-vars', f'@{self.vars_file_path}']
-    args.append(self.get_playbook_path(context.vars))
+    args.append(self.get_playbook_path(context))
     context.logger.debug(f'commnad={args}')
     run_and_check_ansible_playbook(args)
     context.set_persistent('start_phase', self.name)
@@ -466,8 +466,18 @@ class initializeServices(phaseWithDockerSocket):
     super().__init__('initialize-services', 'initialize services')
     self.subject_name = 'service'
 
-  def get_playbook_path(self, vars):
-    return f'{vars["root_dir"]}/{self.name}.yml'
+  def get_playbook_path(self, context):
+    root_dir_path = f'{context.vars["root_dir"]}/{self.name}.yml'
+    if os.path.exists(root_dir_path):
+      context.logger.warning(
+          f'HIVE WARINIG: {self.name}.yml at root directory({context.vars["root_dir"]}) is deprecated. Use initialize_roles property of service definition')
+      return root_dir_path
+    return super().get_playbook_path(context)
+
+  def get_limit_targets(self, context):
+    if 'limit_target' in context.vars:
+      return ':'.join(context.vars['limit_target'].split(',')) + ':&' + context.vars["stage"]
+    return context.vars["stage"]
 
 
 PHASE_LIST = [buildInfra(), setupHosts(), buildImages(),

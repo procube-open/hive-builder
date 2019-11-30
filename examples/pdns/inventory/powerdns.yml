@@ -18,6 +18,9 @@ services:
     - "53:53/tcp"
     - "8081"
     - "53:53/udp"
+    initialize_roles:
+    - python-aptk
+    - powerdns-init
   pdnsdb:
     image:
       from: "mariadb:10.4"

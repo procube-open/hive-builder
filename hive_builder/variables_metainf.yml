@@ -194,6 +194,7 @@ limit_target:
   - build-images
   - setup-hosts
   - deploy-services
+  - initialize-services
 vagrant_box_name:
   description: "box name for vagrant"
   persitent_scope: stage

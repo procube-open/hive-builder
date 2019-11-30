@@ -21,7 +21,6 @@ Windows 10 であれば、Windows Subsystem for Linux を利用していただ�
 .. blockdiag::
 
     blockdiag {
-      pdns -> initialize-services.yml
       pdns -> inventory -> group_vars -> all.yml
               group_vars -> servers.yml
               group_vars -> services.yml
@@ -46,9 +45,6 @@ Windows 10 であれば、Windows Subsystem for Linux を利用していただ�
     * - pdns
       - 必須
       - プロジェクトのルートディレクトリ
-    * - initialize-services.yml
-      - 任意
-      - サービスを初期化する playbook
     * - inventory
       - 必須
       - インベントリを保持するディレクトリ
@@ -324,52 +320,42 @@ IaaS のファイアウォールおよび iptables （未実装）で外部か�
 
 hive では、 initialize-services フェーズですべてのサービスを稼働させた状態で
 初期データを登録できます。 initialize-services フェーズで初期データを登録するためには、
-プロジェクトのルートディレクトリに initialize-services.yml という名前で
-ansible の playbook を置く必要があります。例えば、サンプルでは Power DNS のモジュールを使って
-初期データを登録しています。この場合の initialize-services.yml の内容は以下のとおりです。
+サービス定義の initialize_roles プロパティにデータを初期化するためのrole を指定し、
+その role を定義する必要があります。例えば、サンプルでは Power DNS のモジュールを使って
+初期データを登録しています。サービス定義で initialize_roles にpowerdns-init を
+指定しており、 roles/powerdns-init/tasks/main.yml の内容は以下のとおりです。
 
 ::
 
-  ---
-  - name: gather global ips
-    gather_facts: False
-    hosts: hives
-
-    tasks:
+    ---
     - name: get my public IP
       ipify_facts:
-      register: hive_safe_ipify_facts
+      delegate_to: "{{item}}"
+      delegate_facts: True
       when: hive_provider not in ['vagrant']
-    - name: set published IP
+      loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+    - name: set published
       set_fact:
-        published_ip: "{% if hive_safe_ipify_facts is skipped %}{{ hive_private_ip }}{% else %}{{ hive_safe_ipify_facts.ansible_facts.ipify_public_ip }}{% endif %}"
-
-  - name: initialize services
-    gather_facts: False
-    hosts: first_hive
-    vars_files:
-    - "{{ hive_playbooks_dir }}/group_vars/all.yml"
-    vars:
-      delimiter: "','"
-      ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-      pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
-
-    tasks:
+        published_ip: "{% if hive_provider not in ['vagrant'] %}{{ hostvars['p-hive0.pdns'].hive_private_ip }}{% else %}{{ hostvars['p-hive0.pdns'].ansible_facts.ipify_public_ip }}{% endif %}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+    - name: install pip
+      apk:
+        name: py-pip
     - name: install requests module
       pip:
         name: requests
     - name: wait for powerdns api available
       wait_for:
-        host: "{{ inventory_hostname }}"
-        port: "{{ pdns_port }}"
+        host: localhost
+        port: 8081
     - name: add zone
       powerdns_zone:
         name: "{{ hive_name }}.{{ domain }}."
         nameservers: "{{ groups['hives'] | intersect(groups[hive_stage]) | map('regex_replace', '^(.*)$', '\\1.' + domain +'.' ) | list }}"
         kind: native
         state: present
-        pdns_host: "{{ inventory_hostname }}"
-        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
     - name: add records for hives
       powerdns_record:
@@ -378,8 +364,6 @@ ansible の playbook を置く必要があります。例えば、サンプル�
         type: A
         content: "{{ hostvars[item].published_ip }}"
         ttl: 3600
-        pdns_host: "{{ inventory_hostname }}"
-        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
       loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
     - name: add records for web services
@@ -389,15 +373,17 @@ ansible の playbook を置く必要があります。例えば、サンプル�
         type: LUA
         content: A "ifportup(80, {'{{ groups['hives'] | intersect(groups[hive_stage]) | map('extract', hostvars, ['published_ip']) | join(delimiter)}}'})"
         ttl: 20
-        pdns_host: "{{ inventory_hostname }}"
-        pdns_port: "{{ pdns_port }}"
         pdns_api_key: "{{ hostvars['powerdns'].db_password }}"
       loop: "{{ groups['services'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_labels') | select('defined') | map(attribute='published_fqdn') | select('defined') | list }}"
 
-この playbook は2つの play を含んでいます。
-最初の play で各コンテナ収容サーバ(グループ名= hives)のグローバルIPを調べて、
-host変数の published_ip に設定しています。
-次の play でゾーンとレコードを登録しています。
+
+最初の2つのタスクで各コンテナ収容サーバ(グループ名= hives)のグローバルIPを調べて、
+host変数の published_ip に設定しています。この role は powerdns サービスの
+initialize_roles を定義されているので、対象が powerdns サービスのコンテナとなることに
+注意してください。最初の2つのタスクではコンテナ収容サーバに対象を切り替えるために
+delegate_to, delegate_facts を使用しています。
+
+続くタスクでゾーンとレコードを登録しています。
 ここで使用している powerdns_zone モジュールと powerdns_record モジュールは ansible の
 オフィシャルモジュールではありません。
 hive ではlibディレクトリの下に置くことでカスタムモジュールを使用できます。
