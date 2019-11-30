@@ -20,4 +20,10 @@ services:
 
 volumes:
   regdata:
-
+{% if hive_internal_cidr is defined %}
+networks:
+  default:
+    ipam:
+      config:
+      - subnet: "{{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 6) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }}"
+{% endif %}

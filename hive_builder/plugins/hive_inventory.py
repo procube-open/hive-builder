@@ -268,6 +268,8 @@ class Stage:
       self.inventory.add_host(host_name, group=self.stage_name)
       if 'root_password' in self.stage:
         self.inventory.set_variable(host_name, 'hive_root_password', self.stage['root_password'])
+      if 'internal_cidr' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_internal_cidr', self.stage['internal_cidr'])
       if idx == number_of_hosts - 1:
         if not separate_repository:
           self.inventory.add_host(host_name, group='hives')

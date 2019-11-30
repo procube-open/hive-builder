@@ -13,6 +13,9 @@ services:
     ports:
       - "10051:10051"
     restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}"
   zabbix-web:
     image: zabbix/zabbix-web-nginx-mysql:ubuntu-trunk
     container_name: zabbix-web
@@ -26,12 +29,9 @@ services:
     ports:
       - "10052:80"
     restart: unless-stopped
-  # zabbix-agent:
-  #   image: zabbix/zabbix-agent:ubuntu-trunk
-  #   container_name: zabbix-agent
-  #   environment:
-  #     TZ: "Asia/Tokyo"
-  #   restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(3) | ipaddr('address') }}"
   mariadb:
     image: mariadb:10.4
     container_name: mariadb
@@ -48,13 +48,24 @@ services:
       - data:/var/lib/mysql
       - config:/etc/mysql/
     hostname: mariadb
+    ##  Don't use charset utf8mb4, it cause folloing error for varchar(1024) key field in items table
+    ## ** Creating 'zabbix' schema in MySQL
+    ## ERROR 1071 (42000) at line 356: Specified key was too long; max key length is 3072 bytes
     command:
-    - "--character-set-server=utf8mb4"
-    - "--collation-server=utf8mb4_unicode_ci"
+    - "--character-set-server=utf8mb3"
+    - "--collation-server=utf8mb3_unicode_ci"
     expose:
       - "3306"
     restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(4) | ipaddr('address') }}"
 
 volumes:
   data:
   config:
+networks:
+  default:
+    ipam:
+      config:
+      - subnet: "{{ hive_safe_zabbix_subnet }}"

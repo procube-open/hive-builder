@@ -1,0 +1,2 @@
+---
+hive_safe_zabbix_subnet: "{% if hive_internal_cidr is defined %}{{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 7) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }}{% else %}172.19.0.0/16{% endif %}"

@@ -9,7 +9,7 @@
     block: |
       -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 10050 -j ACCEPT
     marker: "# {mark} ANSIBLE MANAGED BLOCK for zabbix agent {{ item }}"
-  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
+  with_items: "{{ (ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
   when: hive_internal_net_addr is not defined
   notify: require reboot
 - name: insert allow zabbix agent port rule into iptables for internal network

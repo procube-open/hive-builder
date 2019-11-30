@@ -6,8 +6,8 @@
   check_mode: False
 
 - name: set docker_gwbridge subnet
-  shell: "docker network create --subnet {{ hive_docker_gwbridge_subnet }} --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge"
-  when: hive_docker_gwbridge_subnet is defined and hive_docker_info.stdout == "inactive"
+  shell: "docker network create --subnet {{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }} --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge"
+  when: hive_internal_cidr is defined and hive_docker_info.stdout == "inactive"
 
 - name: initialize master node
   shell: "docker swarm init --advertise-addr {{ hive_private_ip }}"
@@ -16,11 +16,11 @@
 
 - name: remove ingress subnet
   shell: "yes | docker network rm ingress"
-  when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
+  when: hive_internal_cidr is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
 
 - name: create ingress subnet
-  shell: "docker network create --driver overlay --ingress --subnet={{ hive_ingress_subnet }} --gateway={{ (hive_ingress_subnet | ipaddr(1)).split('/')[0] }} apiarist-ingress"
-  when: hive_ingress_subnet is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
+  shell: "docker network create --driver overlay --ingress --subnet={{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 2) | string) }} --gateway={{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 4 + 1) | ipaddr('address') }} apiarist-ingress"
+  when: hive_internal_cidr is defined and 'first_hive' in group_names and hive_docker_info.stdout == "inactive"
 
 - name: get token for manager
   delegate_to: "{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}"
