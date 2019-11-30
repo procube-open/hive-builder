@@ -52,7 +52,7 @@ echo start release $VERSION
 set -ex
 if [ "$RELEASE_BRANCE" == "master" ]; then
   git checkout master
-  git merge "$LASTTAG"
+  git merge "$VERSION"
 fi
 pipenv run clean
 pipenv run build
