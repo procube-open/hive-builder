@@ -7,7 +7,7 @@
   loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
 - name: set published
   set_fact:
-    published_ip: "{% if hive_provider not in ['vagrant'] %}{{ hostvars['p-hive0.pdns'].hive_private_ip }}{% else %}{{ hostvars['p-hive0.pdns'].ansible_facts.ipify_public_ip }}{% endif %}"
+    published_ip: "{% if hive_provider in ['vagrant'] %}{{ hostvars[item].hive_private_ip }}{% else %}{{ hostvars[item].ansible_facts.ipify_public_ip }}{% endif %}"
   delegate_to: "{{item}}"
   delegate_facts: True
   loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"

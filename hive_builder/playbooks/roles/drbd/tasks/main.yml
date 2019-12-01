@@ -35,6 +35,8 @@
   command: vgdisplay drbdvg
   failed_when: False
   register: vgdisplay_result
+  check_mode: False
+  changed_when: False
 
 - name: check devices
   parted:

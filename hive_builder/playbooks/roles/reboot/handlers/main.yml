@@ -7,6 +7,7 @@
   changed_when: false
   listen: require reboot
   register: reboot
+  when: not ansible_check_mode
 - name: wait for connectable
   wait_for_connection:
     delay: 30
