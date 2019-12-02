@@ -1,12 +1,13 @@
 [Unit]
 Description=DRBD resource : %I
 After=network-online.target
+Before=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/sbin/drbdadm adjust %I
+ExecStart=/bin/waitdevice %I
 ExecStop=/sbin/drbdadm down %I
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+RequiredBy=docker.service

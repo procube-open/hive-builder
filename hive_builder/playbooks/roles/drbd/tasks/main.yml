@@ -99,3 +99,8 @@
   copy:
     src: drbd-resource@.service
     dest: /usr/lib/systemd/system/
+- name: "install waiting drbd device tool"
+  copy:
+    src: waitdevice
+    dest: /usr/bin/
+    mode: 0755
