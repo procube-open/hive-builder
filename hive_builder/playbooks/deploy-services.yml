@@ -13,6 +13,7 @@
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
+    when: not (hive_destroy  | default(false))
   - name: pull docker images
     docker_image:
       name: "{{ hive_registry }}/{{ item }}:latest"
@@ -22,6 +23,7 @@
       force_source: True
     loop: "{{ hive_safe_images }}"
     register: hive_safe_pull_result
+    when: not (hive_destroy  | default(false))
 
 - name: deploy services
   gather_facts: False

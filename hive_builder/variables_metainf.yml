@@ -168,6 +168,8 @@ destroy:
   mutually_exclusive_group: operation
   command_line_option_available:
   - build-infra
+  - deploy-services
+  - build-volumes
   name_in_ansible: hive_destroy
 check_mode:
   description: "check mode of ansible"
@@ -191,8 +193,9 @@ limit_target:
   command_line_option_level: phase
   command_line_option_available:
   - build-infra
-  - build-images
   - setup-hosts
+  - build-images
+  - build-volumes
   - deploy-services
   - initialize-services
 vagrant_box_name:

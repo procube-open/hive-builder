@@ -114,7 +114,7 @@ SERVICE_PARAMS_COPY = ['environment', 'command', 'entrypoint', 'labels', 'placem
                        'mode', 'endpoint_mode', 'backup_scripts', 'restart_config', 'user', 'standalone']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
-VOLUME_PARAMS = ['target', 'type', 'volume', 'source', 'readonly']
+VOLUME_PARAMS = ['target', 'type', 'source', 'readonly']
 VOLUME_PARAMS_DEF = ['driver', 'driver_opts', 'drbd']
 
 

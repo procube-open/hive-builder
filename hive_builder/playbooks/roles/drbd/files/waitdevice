@@ -1,11 +1,10 @@
 #!/bin/bash
 
-RETRY_COUNT=5
+RETRY_COUNT=50
 SLEEP=0.2
 
 while [ $RETRY_COUNT -gt 0 ]; do
   if /sbin/drbdadm adjust $1; then
-    /sbin/drbdadm wait-connect $1
     exit $?;
   fi
   let RETRY_COUNT--

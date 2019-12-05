@@ -4,12 +4,14 @@
   hosts: hives
   become: True
   vars:
+    hive_safe_drbd_volumes: "{%if hive_limit is defined %}{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['drbd_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
+    hive_safe_volumes: "{%if hive_limit is defined %}{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
 
   tasks:
   - include_role:
       name: drbd-resource
-    loop: "{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
+    loop: "{{ hive_safe_drbd_volumes }}"
     loop_control:
       loop_var: hive_safe_volume_host
   - name: create drbd volume
@@ -19,12 +21,14 @@
       driver_options:
         type: "{{ hostvars[item].hive_volume.drbd.fstype }}"
         device: "/dev/drbd{{ hostvars[item].hive_volume.drbd.device_id }}"
-    loop: "{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
+      state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
+    loop: "{{ hive_safe_drbd_volumes　}}"
   - name: create another driver volume
     docker_volume:
       name: "{{ hostvars[item].hive_volume.name }}"
       driver: "{{ hostvars[item].hive_volume.driver }}"
       driver_options: "{{ hostvars[item].hive_volume.dirver_options | default(omit) }}"
-    loop: "{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | list}}"
+      state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
+    loop: "{{ hive_safe_volumes }}"
   # - import_role:
       # name: reboot

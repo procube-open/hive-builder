@@ -18,8 +18,8 @@ lang ja_JP.UTF-8
 # CAUTION: All static networking configuration information must be specified on one line; you cannot wrap lines using a backslash, for example.
 {%- if hostvars[ks_host].hive_bond | default(False) -%}
 {%- set target = "bond0" -%}
-{%- set bond_slave0 = (hostvars[ks_host].hive_bond.if0 | default(hostvars[ks_host].hive_ks_interfaces[0])) -%}
-{%- set bond_slave1 = (hostvars[ks_host].hive_bond.if0 | default(hostvars[ks_host].hive_ks_interfaces[1])) -%}
+{%- set bond_slave0 = hostvars[ks_host].hive_ks_interfaces[0] -%}
+{%- set bond_slave1 = hostvars[ks_host].hive_ks_interfaces[1] -%}
 {%- set bond_options = '--bondslaves=' + bond_slave0 + ',' + bond_slave1 + ' --bondopts=miimon=100,mode=802.3ad,updelay=600' -%}
 {%- else -%}
 {%- set target = hostvars[ks_host].hive_ks_interfaces[0] -%}
