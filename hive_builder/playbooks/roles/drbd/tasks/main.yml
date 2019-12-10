@@ -57,9 +57,10 @@
 
 - name: create partition for drbd resource pool
   parted:
+    label: "{{ hive_partition_label | default(omit)}}"
     device: "{{ hive_safe_mirrored_device.disk.dev }}"
     number: "{{ hive_safe_mirrored_device.partitions | length + 1 }}"
-    part_end: "{{ (((hive_safe_mirrored_device.disk.size | int) - 1) | string) + 's' }}"
+    part_end: "{{ (((hive_safe_mirrored_device.disk.size | int) - 34) | string) + 's' }}"
     part_start: "{{ '1s' if (hive_safe_mirrored_device.partitions | length) == 0 else ((((hive_safe_mirrored_device.partitions | last).end | int) + 1) | string) + 's' }}"
     flags: [ lvm ]
     state: present
