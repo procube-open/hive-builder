@@ -287,6 +287,105 @@ aws プロバイダ固有の属性には以下のものがあります。
       - 必須
       - 構築先のリージョン
 
+aws プロバイダを使用する場合は、以下のコマンドで hive の環境に AWS EC2 API の鍵を設定する必要があります。
+
+::
+
+  hive set aws_access_key_id アクセスキーID
+  hive set aws_secret_access_key アクセスキー
+
+gcp プロバイダ
+^^^^^^^^^^^^^^^^^^^^^
+gcp プロバイダ固有の属性には以下のものがあります。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - instance_type
+      - n1-standard-2
+      - 必須
+      - コンテナ収容サーバのインスタンスタイプ
+    * - repository_instance_type
+      - n1-standard-2
+      - 必須
+      - リポジトリサーバのインスタンスタイプ
+    * - region
+      - asia-northeast2
+      - 必須
+      - 構築先のリージョン
+
+gcp プロバイダを使用する場合は、プロジェクトのルートディレクトリに gcp_credential.json という
+名前でサービスアカウントキーを保持するファイルを置く必要があります。
+サービスアカウントキーについては、
+https://cloud.google.com/iam/docs/creating-managing-service-account-keys?hl=ja
+を参照してください。
+
+azure プロバイダ
+^^^^^^^^^^^^^^^^^^^^^
+azure プロバイダ固有の属性には以下のものがあります。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - instance_type
+      - n1-standard-2
+      - 必須
+      - コンテナ収容サーバのインスタンスタイプ
+    * - repository_instance_type
+      - n1-standard-2
+      - 必須
+      - リポジトリサーバのインスタンスタイプ
+    * - region
+      - asia-northeast2
+      - 必須
+      - リソースグループのロケーション
+
+azure プロバイダを使用する場合は、 Azure AD アプリケーションを作成し、
+仮想マシーンやネットワークの課金先のサブスクリプションに
+サービスプリンシパルとしてアプリケーションを設定（ロールを割り当てる）していただく必要があります。
+Azure ポータルで作成する場合は、Azure のオフィシャルサイト
+'方法:リソースにアクセスできる Azure AD アプリケーションとサービスプリンシパルをポータルで作成する
+<https://docs.microsoft.com/ja-jp/azure/active-directory/develop/howto-create-service-principal-portal>'
+を参照してください。
+
+作成後、以下のコマンドで、そのクレデンシャルを認証情報として hive 変数に設定してください。
+
+::
+
+    hive set azure_client_id ...
+    hive set azure_secret ...
+    hive set azure_subscription_id ...
+    hive set azure_tenant ...
+
+azure_subscription_id にはポータルの「サブスクリプション」サービスで、表示されるサブスクリプションIDを設定してください。
+azure_client_id には、ポータルの「Azure Active Directory」サービスの「アプリの登録」からアプリケーションを選択したときに表示される「アプリケーション（クライアントID）」の値を設定してください。
+azure_tenant には、ポータルの「Azure Active Directory」サービスの「アプリの登録」からアプリケーションを選択したときに表示される「ディレクトリ（テナント）」の値を設定してください。
+azure_secret には、アプリケーション上に作成したシークレットの値を設定してください。シークレットの値は作成時にしか表示されないため、値が不明の場合はシークレットを作り直してください。
+
+region 属性にはAzure Location をコードで指定してください。
+有効な値のリストは 'Azure Cloud Shell<https://shell.azure.com/>' 上で以下のコマンドを実行して取得することができます。
+
+::
+
+    Get-AzureRmLocation |Format-Table
+
+instance_type 属性、repository_instance_type には VM のサイズをコードで指定してください。
+有効な値のリストは 'Azure Cloud Shell<https://shell.azure.com/>' 上で以下のコマンドを実行して取得することができます。
+
+::
+
+    Get-AzureRmVMSize -Location region属性の値
+
 kickstart プロバイダ
 ^^^^^^^^^^^^^^^^^^^^^
 kickstart プロバイダは OS を CD-ROM からインストールする際の
@@ -361,12 +460,12 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
 - /dev/nvme1n1
 - /dev/sda
 
-また、場合によって、複製同期用デバイスを持たないホストを作成したい場合もあります。その場合、ホストの hive_no_mirroed_device 変数に True を設定することで、当該ホストの複製同期用デバイスが無いものとして扱われます。
+また、場合によって、複製同期用デバイスを持たないホストを作成したい場合もあります。その場合、ホストの hive_no_mirrored_device 変数に True を設定することで、当該ホストの複製同期用デバイスが無いものとして扱われます。
 たとえば、inventory/host_vars/hive2.pdns.yml に以下のように指定すると hive2.pdns には複製同期用のデバイスは無いものとして扱われます。
 
 ::
 
-    hive_no_mirroed_device: True
+    hive_no_mirrored_device: True
 
 この変数に True を指定した場合、以下の仕様となります。
 
@@ -503,15 +602,45 @@ volume 属性には、そのサービスが利用するボリュームの内容�
 
 drbd 属性、driver属性のいずれかを指定すると対応するボリュームが build-volume フェーズで
 作成されます。
+
+drbd属性
+^^^^^^^^^
 hive環境ではdocker swarm の機能により、コンテナがサーバ間を移動するため、
 ボリュームは原則として drbd によりすべてのコンテナ収容サーバ間で複製同期
 しておく必要があります。このためには、volume 属性に drbd 属性を指定してください。
-drbd 属性では、 fstype属性と size属性が指定できます。size属性でボリュームのサイズを
-指定します。サイズは 100M, 20G などのように単位を付与した文字列で指定します。
-fstype には xfs, ext4 などのファイルシステムのタイプを指定します。
-小さいボリュームに xfs を指定すると、領域のムダが大きく、また、フォーマットで
+drbd 属性はオブジェクトであり、以下の属性を指定できます。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - fstype
+      - - xfs
+        - ext4
+      - 必須
+      - ファイルシステムのタイプを指定
+    * - size
+      - 100M
+      - 必須
+      - ボリュームのサイズを100M, 20G などのように単位を付与した文字列で指定
+    * - diskless
+      - ['s-hive1.pdns', 'hive1.pdns']
+      - []
+      - このボリュームを diskless  とするサーバのリスト
+
+fstype について、小さいボリュームに xfs を指定すると、領域のムダが大きく、また、フォーマットで
 エラーになる場合があります。100M 以下のボリュームについては ext4 が推奨されます。
 大きいボリュームでは xfs が推奨されます。
+xfs でフォーマットすると、ボリュームの初期データは docker のコンテナに
+マウントする際にディレクトリが空っぽであることを契機としてマウント前の
+データがコピーされます。ext4 でフォーマットすると lost+found ディレクトリが
+存在するため、空っぽであると認識されずこの機能は動作しませんので、注意が必要です。
+
+
 
 image属性
 -----------------------------

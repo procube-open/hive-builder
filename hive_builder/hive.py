@@ -12,7 +12,7 @@ import subprocess
 import os
 import yaml
 from logging import getLogger, StreamHandler, DEBUG, INFO
-import backtrace
+import traceback
 import sys
 import re
 import signal
@@ -560,11 +560,13 @@ def main():
   except KeyboardInterrupt:
     context.logger.error('\nABORTED: keyboard interruption')
   except Error as e:
-    context.logger.error(f'HIVE ERROR: {str(e)}')
+    context.logger.error(f'HIVE ERROR at {time.strftime("%Y-%m-%d %H:%M:%S %z")}: {str(e)}')
     sys.exit(1)
   except Exception:
-    tpe, v, tb = sys.exc_info()
-    backtrace.hook(reverse=True, strip_path=True, tb=tb, tpe=tpe, value=v)
+    print("Exception in hive command:")
+    print("-" * 40)
+    traceback.print_exc(file=sys.stdout)
+    print("-" * 40)
     sys.exit(1)
 
 

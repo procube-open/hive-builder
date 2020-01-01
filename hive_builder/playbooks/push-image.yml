@@ -23,6 +23,17 @@
     # --change WORKDIR cannot set "", so set /
     reset_build_overrides: "{{reset_build_overrides}} --change 'WORKDIR {% if hive_working_dir is defined %}{{ hive_working_dir | to_json }}{% elif orig_config.WorkingDir == '' %}/{% else %}{{ orig_config.WorkingDir | to_json }}{% endif %}'"
   when: hive_working_dir is defined
+- set_fact:
+    reset_build_overrides: >-
+      {{ reset_build_overrides }}
+      {%- if hive_expose is string -%}
+         {{ ' --change' }} 'EXPOSE {{ hive_expose }}'
+      {%- else -%}
+        {%- for value in hive_expose -%}
+          {{ ' --change' }} 'EXPOSE {{ value }}'
+        {%- endfor -%}
+      {%- endif -%}
+  when: hive_expose is defined
 - debug: var=reset_build_overrides
 - name: commit image
   shell: |

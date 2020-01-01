@@ -41,7 +41,6 @@ services:
       type: volume
       drbd:
         fstype: xfs
-        device_id: 1
         size: 500M
         diskless: ['s-hive0.pdns']
     backup_scripts:
@@ -54,30 +53,25 @@ services:
       cleanup_days_before: 10
   pdnsadmin:
     image:
-      from: python:3-alpine
+      from: ngoduykhanh/powerdns-admin:latest
       roles:
-        - powerdns-admin
-      working_dir: /powerdns-admin
-      entrypoint: ['/docker-entrypoint.sh']
-    command: ['/usr/bin/supervisord', '-c', 'supervisord.conf']
+      - powerdns-admin
+    ports:
+      - "80"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=sqlite:////app/data/padmin.sqlite
+      - GUINCORN_TIMEOUT=60
+      - GUNICORN_WORKERS=2
+      - GUNICORN_LOGLEVEL=DEBUG
     volumes:
     - source: pdnsadmin_data
-      target: /powerdns-admin/data
+      target: /app/data
       type: volume
       drbd:
         fstype: xfs
-        device_id: 2
         size: 500M
-        diskless: ['s-hive1.pdns']
-    environment:
-      PDA_PORT: "80"
-      PDA_BIND_ADDRESS: 0.0.0.0
-      # DEBUG: 15
-      PDNS_HOST: powerdns
-      PDNS_API_KEY: "{{db_password}}"
     labels:
       published_fqdn: pdnsadmin.pdns.procube-demo.jp
-      port: "9191"
   proxy:
     image: "procube/nginx:latest"
     ports:

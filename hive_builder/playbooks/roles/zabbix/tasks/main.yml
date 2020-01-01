@@ -37,6 +37,7 @@
     state: absent
   until: not zabbix_api_result.failed
   retries: 20
+  delay: 10
   register: zabbix_api_result
 
 - name: register hive hosts to zabbix

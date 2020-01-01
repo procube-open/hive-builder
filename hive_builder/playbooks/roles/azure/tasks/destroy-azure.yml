@@ -1,0 +1,45 @@
+- name: Delete VM
+  azure_rm_virtualmachine:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ item.split('.')[0] }}"
+    state: absent
+  loop: "{{ hive_safe_hosts }}"
+
+- name: delete global ip
+  azure_rm_publicipaddress:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "gip-{{ item.split('.')[0] }}"
+    allocation_method: static
+    state: absent
+  loop: "{{ hive_safe_hosts }}"
+  register: hive_safe_gip
+
+- name: Delete Network Security Group for site specific inbound rules from internet
+  azure_rm_securitygroup:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "sg_{{ hive_name }}"
+    state: absent
+
+- name: Delete subnet for VPC
+  azure_rm_subnet:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ item.name }}"
+    address_prefix: "{{ item.cidr }}"
+    virtual_network: "{{ hive_safe_vpc_name }}"
+    state: absent
+  loop: "{{ hive_subnets }}"
+  register: subnets_facts
+
+- name: construct VPC
+  azure_rm_virtualnetwork:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ hive_safe_vpc_name }}"
+    address_prefixes: "{{ hive_cidr }}"
+    state: absent
+  register: vpc_info
+
+- name: Delete a resource group
+  azure_rm_resourcegroup:
+    name: "{{ hive_safe_azure_resourcegroup }}"
+    location: "{{ hive_region }}"
+    state: absent

@@ -38,6 +38,7 @@ server {
 {% endif %}
   location / {
     proxy_pass http://{{ upstream }}:{{ port }};
+    proxy_set_header Host $host;
     root   /usr/share/nginx/html;
     index  index.html index.htm;
   }

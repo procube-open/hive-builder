@@ -1,0 +1,72 @@
+---
+- name: Create a resource group
+  azure_rm_resourcegroup:
+    name: "{{ hive_safe_azure_resourcegroup }}"
+    location: "{{ hive_region }}"
+
+# Unmanaged disk needs a storage account, but Unmanaged disk does not support Availability zones
+# - name: Create a strorage account
+#   azure_rm_storageaccount:
+#     resource_group: "{{ hive_safe_azure_resourcegroup }}"
+#     name: "sa{{ hive_safe_azure_resourcegroup }}"
+#     type: Standard_RAGRS
+
+- name: construct VPC
+  azure_rm_virtualnetwork:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ hive_safe_vpc_name }}"
+    address_prefixes: "{{ hive_cidr }}"
+  register: vpc_info
+
+- name: Setup subnet for VPC
+  azure_rm_subnet:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ item.name }}"
+    address_prefix: "{{ item.cidr }}"
+    virtual_network: "{{ hive_safe_vpc_name }}"
+  loop: "{{ hive_subnets }}"
+  register: subnets_facts
+
+- name: Create Network Security Group for site specific inbound rules from internet
+  azure_rm_securitygroup:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "sg_{{ hive_name }}"
+    rules:
+    - name: internal
+      priority: 100
+      source_address_prefix: VirtualNetwork
+      access: Allow
+      direction: Inbound
+    - name: published_ports_tcp
+      protocol: Tcp
+      destination_port_range: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
+      priority: 200
+      access: Allow
+      direction: Inbound
+    - name: published_ports_udp
+      protocol: Udp
+      destination_port_range: "{{ hive_published_ports_udp }}"
+      priority: 201
+      access: Allow
+      direction: Inbound
+    - name: deny_tcp
+      protocol: Tcp
+      priority: 400
+      access: Deny
+      direction: Inbound
+    - name: deny_udp
+      protocol: Udp
+      priority: 401
+      access: Deny
+      direction: Inbound
+    - name: allow_icmp
+      protocol: '*'
+      priority: 402
+      access: Allow
+      direction: Inbound
+
+- name: create instances
+  include_tasks: create_instance.yml
+  loop: "{{ hive_safe_hosts }}"
+  loop_control:
+    loop_var: azure_host

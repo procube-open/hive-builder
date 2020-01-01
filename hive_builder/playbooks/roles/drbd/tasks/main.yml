@@ -44,16 +44,17 @@
     unit: s
   register: hive_safe_devices
   loop:
+    - /dev/sdc
     - /dev/sdb
     - /dev/vdb
     - /dev/xvdb
     - /dev/nvme1n1
     - /dev/sda
-  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
   failed_when: False
 - set_fact:
     hive_safe_mirrored_device: "{{ hive_safe_devices.results | selectattr('partitions','defined') |first }}"
-  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 
 - name: create partition for drbd resource pool
   parted:
@@ -64,18 +65,18 @@
     part_start: "{{ '1s' if (hive_safe_mirrored_device.partitions | length) == 0 else ((((hive_safe_mirrored_device.partitions | last).end | int) + 1) | string) + 's' }}"
     flags: [ lvm ]
     state: present
-  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 - name: create volume group
   lvg:
     vg: drbdvg
     pvs: "{{ hive_safe_mirrored_device.disk.dev }}{% if hive_safe_mirrored_device.disk.dev is match('/dev/nvme*') %}p{% endif %}{{ hive_safe_mirrored_device.partitions | length + 1 }}"
-  when: not (hive_no_mirroed_device | default(False)) and vgdisplay_result.rc != 0
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 - name: create a thin pool
   lvol:
     vg: drbdvg
     thinpool: drbdpool
     size: "97%VG"
-  when: not (hive_no_mirroed_device | default(False))
+  when: not (hive_no_mirrored_device | default(False))
 
 - name: "insert allow drbd port rule into iptables (no internal network)"
   blockinfile:

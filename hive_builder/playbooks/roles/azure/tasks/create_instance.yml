@@ -1,0 +1,82 @@
+---
+- set_fact:
+    hive_safe_name: "{{ azure_host.split('.')[0] }}"
+
+- name: create global ip
+  azure_rm_publicipaddress:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "gip-{{ hive_safe_name }}"
+    allocation_method: static
+    # https://docs.microsoft.com/ja-jp/azure/virtual-network/virtual-network-ip-addresses-overview-arm
+    # basic sku does not support Availability Zone scenarios.
+    sku: standard
+  register: hive_safe_gip
+
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ azure_host }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ azure_host }}
+        HostName {{ hive_safe_gip.state.ip_address }}
+        UserKnownHostsFile /dev/null
+        User {{ hive_safe_admin }}
+        StrictHostKeyChecking no
+        PasswordAuthentication no
+        IdentityFile {{ hive_safe_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+
+- name: Create default network inteface card
+  azure_rm_networkinterface:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{hive_safe_name}}-primary"
+    virtual_network: "{{ hive_safe_vpc_name }}"
+    subnet: "{{ hostvars[azure_host].hive_subnet }}"
+    security_group: "sg_{{ hive_name }}"
+    ip_configurations:
+    - name: eth0
+      private_ip_address: "{{ hostvars[azure_host].hive_private_ip }}"
+      private_ip_allocation_method: Static
+      public_ip_address_name: "gip-{{ hive_safe_name }}"
+      primary: True
+  register: primary_nic
+- debug:
+    var: primary_nic
+
+- name: Create VM
+  azure_rm_virtualmachine:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ hive_safe_name }}"
+    vm_size: "{{ hostvars[azure_host].hive_instance_type }}"
+    # storage_account_name: "sa{{ hive_safe_azure_resourcegroup }}"
+    admin_username: "{{ hive_safe_admin }}"
+    ssh_password_enabled: false
+    ssh_public_keys:
+      - path: "/home/{{ hive_safe_admin }}/.ssh/authorized_keys"
+        key_data: "{{ lookup('file', hostvars[azure_host].hive_safe_public_key_path) }}"
+    network_interfaces:
+    - "{{ primary_nic.state.name }}"
+    # managed_disk_type must be specified unless os disk cause error 2020/1/1
+    #     Error creating or updating virtual machine hive0 - Azure Error: BadRequest
+    #     Message: Virtual Machines deployed to an Availability Zone must use managed disks.
+    managed_disk_type: "{{ hive_safe_managed_disk_type }}"
+    image: "{{ hive_safe_image }}"
+    zones:
+    - "{{ hostvars[azure_host].hive_available_zone }}"
+  register: vm
+- debug:
+    var: vm
+
+- name: attach mirrored disk
+  azure_rm_manageddisk:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "mirrored_{{ hive_safe_name }}"
+    disk_size_gb: "{{ hostvars[azure_host].hive_mirrored_disk_size }}"
+    storage_account_type: "{{ hive_safe_managed_disk_type }}"
+    managed_by: "{{ hive_safe_name }}"
+    zone: "{{ hostvars[azure_host].hive_available_zone }}"
+  when: hostvars[azure_host].hive_mirrored_disk_size is defined and not (hostvars[azure_host].hive_no_mirrored_device | default(False))

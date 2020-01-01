@@ -247,7 +247,7 @@ aws_access_key_id:
   description: access key for AWS used only when provier is AWS
   name_in_environment: AWS_ACCESS_KEY_ID
   persistent_scope: stage
-aws_secret_access_key:
+  aws_secret_access_key:
   description: access secret key for AWS used only when provier is AWS
   name_in_environment: AWS_SECRET_ACCESS_KEY
   persistent_scope: stage
@@ -284,3 +284,19 @@ published_port_map:
   description: publishec port map
   persistent_scope: stage
   type: dict
+azure_client_id:
+  description: client id of azure application
+  name_in_environment: AZURE_CLIENT_ID
+  persistent_scope: stage
+azure_secret:
+  description: secret of azure application
+  name_in_environment: AZURE_SECRET
+  persistent_scope: stage
+azure_subscription_id:
+  description: subscription id for billing
+  name_in_environment: AZURE_SUBSCRIPTION_ID
+  persistent_scope: stage
+azure_tenant:
+  description: tenant id of azure application
+  name_in_environment: AZURE_TENANT
+  persistent_scope: stage

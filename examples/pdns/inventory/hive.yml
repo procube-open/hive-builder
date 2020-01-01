@@ -27,10 +27,18 @@ stages:
       name: subnet-c
       available_zone: ap-northeast-1c
   production:
-    provider: gcp
+    provider: azure
     separate_repository: True
     cidr: 192.168.0.0/24
-    instance_type: n1-standard-2
-    region: asia-northeast2
+    instance_type: Standard_D2s_v3
+    region: japaneast
     mirrored_disk_size: 20
-    repository_instance_type: n1-standard-2
+    repository_instance_type: Standard_D2s_v3
+  # production:
+  #   provider: gcp
+  #   separate_repository: True
+  #   cidr: 192.168.0.0/24
+  #   instance_type: n1-standard-2
+  #   region: asia-northeast2
+  #   mirrored_disk_size: 20
+  #   repository_instance_type: n1-standard-2

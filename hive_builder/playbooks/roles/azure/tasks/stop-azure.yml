@@ -1,0 +1,6 @@
+- name: Stop VM
+  azure_rm_virtualmachine:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ item.split('.')[0] }}"
+    started: False
+  loop: "{{ hive_safe_hosts }}"

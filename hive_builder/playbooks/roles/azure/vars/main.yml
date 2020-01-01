@@ -1,0 +1,12 @@
+---
+# Service Acccount Email only works with Machine Account-based authentication
+hive_safe_azure_resourcegroup: "{{ hive_name }}"
+hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
+hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+hive_safe_image:
+  offer: CentOS
+  publisher: OpenLogic
+  sku: '7.7'
+  version: latest
+# available disk type is Standard_LRS, StandardSSD_LRS, Premium_LRS
+hive_safe_managed_disk_type: Premium_LRS

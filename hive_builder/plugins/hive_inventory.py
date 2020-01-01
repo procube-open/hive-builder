@@ -231,6 +231,9 @@ class Stage:
         hosts = net.hosts()
         # first one is route, so skip it
         next(hosts)
+        # azure use 2 more address https://docs.microsoft.com/en-us/azure/virtual-network/virtual-networks-faq
+        next(hosts)
+        next(hosts)
         default_subnet['ip_list'] = map(str, hosts)
       self.subnets.append(default_subnet)
     else:
@@ -313,8 +316,10 @@ class Stage:
         self.inventory.set_variable(host_name, 'hive_subnet', subnet['name'])
       if 'region' in self.stage:
         az_suffix_list = self.stage.get('az_suffix_list', ['-a', '-b', '-c'])
-        az = self.stage['region'] + az_suffix_list[idx % len(az_suffix_list)]
-        self.inventory.set_variable(host_name, 'hive_available_zone', subnet.get('available_zone', az))
+        az_default = self.stage['region'] + az_suffix_list[idx % len(az_suffix_list)]
+        if self.provider == 'azure':
+          az_default = (idx % 3) + 1
+        self.inventory.set_variable(host_name, 'hive_available_zone', subnet.get('available_zone', az_default))
       self.inventory.set_variable(host_name, 'hive_private_ip', next(subnet['ip_list']))
       self.inventory.set_variable(host_name, 'hive_netmask', subnet['netmask'])
     self.inventory.set_variable('hives', 'hive_swarm_master', f'{self.stage_prefix}hive0.{self.name}')

@@ -1,0 +1,10 @@
+---
+- name: "build azure"
+  import_tasks: build-azure.yml
+  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+- name: "destroy azure"
+  import_tasks: destroy-azure.yml
+  when: hive_destroy  | default(false)
+- name: "stop azure"
+  import_tasks: stop-azure.yml
+  when: hive_halt  | default(false)
