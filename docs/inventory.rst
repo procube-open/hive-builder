@@ -354,8 +354,8 @@ azure プロバイダを使用する場合は、 Azure AD アプリケーショ�
 仮想マシーンやネットワークの課金先のサブスクリプションに
 サービスプリンシパルとしてアプリケーションを設定（ロールを割り当てる）していただく必要があります。
 Azure ポータルで作成する場合は、Azure のオフィシャルサイト
-'方法:リソースにアクセスできる Azure AD アプリケーションとサービスプリンシパルをポータルで作成する
-<https://docs.microsoft.com/ja-jp/azure/active-directory/develop/howto-create-service-principal-portal>'
+`方法:リソースにアクセスできる Azure AD アプリケーションとサービスプリンシパルをポータルで作成する
+<https://docs.microsoft.com/ja-jp/azure/active-directory/develop/howto-create-service-principal-portal>`_
 を参照してください。
 
 作成後、以下のコマンドで、そのクレデンシャルを認証情報として hive 変数に設定してください。
@@ -373,14 +373,14 @@ azure_tenant には、ポータルの「Azure Active Directory」サービスの
 azure_secret には、アプリケーション上に作成したシークレットの値を設定してください。シークレットの値は作成時にしか表示されないため、値が不明の場合はシークレットを作り直してください。
 
 region 属性にはAzure Location をコードで指定してください。
-有効な値のリストは 'Azure Cloud Shell<https://shell.azure.com/>' 上で以下のコマンドを実行して取得することができます。
+有効な値のリストは `Azure Cloud Shell <https://shell.azure.com/>`_ 上で以下のコマンドを実行して取得することができます。
 
 ::
 
     Get-AzureRmLocation |Format-Table
 
 instance_type 属性、repository_instance_type には VM のサイズをコードで指定してください。
-有効な値のリストは 'Azure Cloud Shell<https://shell.azure.com/>' 上で以下のコマンドを実行して取得することができます。
+有効な値のリストは `Azure Cloud Shell <https://shell.azure.com/>`_ 上で以下のコマンドを実行して取得することができます。
 
 ::
 
