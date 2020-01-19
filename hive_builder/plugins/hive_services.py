@@ -105,7 +105,7 @@ class InventoryModule(BaseInventoryPlugin):
         network = Network(name, options, available_on)
         network.parse(inventory)
     if no_default:
-      network = Network('hive_default_network', AnsibleMapping(), STAGES)
+      network = Network('hive_default_network', AnsibleMapping(), available_on)
       network.parse(inventory)
 
 

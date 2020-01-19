@@ -247,7 +247,7 @@ aws_access_key_id:
   description: access key for AWS used only when provier is AWS
   name_in_environment: AWS_ACCESS_KEY_ID
   persistent_scope: stage
-  aws_secret_access_key:
+aws_secret_access_key:
   description: access secret key for AWS used only when provier is AWS
   name_in_environment: AWS_SECRET_ACCESS_KEY
   persistent_scope: stage

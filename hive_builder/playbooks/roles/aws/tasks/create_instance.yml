@@ -12,6 +12,7 @@
 
 - name: build ec2 instance
   ec2_instance:
+    name: "{{ aws_host }}"
     region: "{{ hive_region }}"
     vpc_subnet_id: "{{ ( hive_safe_subnets_info.results | selectattr('item.name', 'equalto', hostvars[aws_host].hive_subnet) | first).subnet.id }}"
     image_id: "{{ hive_safe_image_id }}"
@@ -25,7 +26,6 @@
     security_group: default
     termination_protection: no
     tags:
-      Name: "{{ aws_host }}"
       Project: "{{ hive_name }}"
     state: running
   register: hive_safe_ec2
@@ -40,7 +40,8 @@
     region: "{{ hive_region }}"
     public_ip: "{{ hostvars[aws_host].hive_published_ip | default(omit) }}"
   register: hive_safe_eip
-- debug: var=hive_safe_eip
+- debug:
+    msg: "build {{ aws_host }}: EIP={{ hive_safe_eip.public_ip }}, instance_type={{ hostvars[aws_host].hive_instance_type }}"
 
 - name: put ssh_config
   blockinfile:

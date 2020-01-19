@@ -55,7 +55,7 @@
   register: hive_safe_subnets_info
 
 - name: gather default route table facts
-  ec2_vpc_route_table_facts:
+  ec2_vpc_route_table_info:
     region: "{{ hive_region }}"
     filters:
       vpc-id: "{{ hive_safe_aws_vpc.vpc.id }}"

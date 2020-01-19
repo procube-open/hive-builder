@@ -1,5 +1,5 @@
 - name: gather ec2 instance facts
-  ec2_instance_facts:
+  ec2_instance_info:
     region: "{{ hive_region }}"
     filters:
       "tag:Name": "{{ item }}"
@@ -29,7 +29,7 @@
   loop: "{{ hive_safe_instances.results | map(attribute='instances') | flatten | selectattr('public_ip_address', 'defined') | map(attribute='public_ip_address') | difference(hive_safe_hosts | map('extract', hostvars) | selectattr('hive_published_ip', 'defined') | map(attribute='hive_published_ip') | list) | list }}"
 
 - name: get vpc info
-  ec2_vpc_net_facts:
+  ec2_vpc_net_info:
     filters:
       "tag:Name": "{{ hive_safe_vpc_name }}"
       "tag:Project": "{{ hive_name }}"
