@@ -7,7 +7,7 @@ services:
       MYSQL_PASSWORD: "{{db_password}}"
       MYSQL_HOST: pdnsdb
       MYSQL_DNSSEC: "yes"
-      PDNSCONF_DEFAULT_SOA_NAME: "{{ (groups['first_hive'] | intersect(groups[hive_stage]) | first) + '.' + domain }}"
+      PDNSCONF_DEFAULT_SOA_NAME: "{{ (groups['first_hive'] | intersect(groups[hive_stage]) | first).split('.')[0] + '.' + domain }}"
     command:
     - "--api=yes"
     - "--api-key={{db_password}}"

@@ -104,7 +104,7 @@ enable_plugins:
   name_in_ansible_cfg: enable_plugins
 unparsed_is_failed:
   description: |
-    If ‘true’ it is a fatal error if every single potential inventory source fails to parse,
+    If 'true' it is a fatal error if every single potential inventory source fails to parse,
     otherwise this situation will only attract a warning.
   type: boolean
   default: True
