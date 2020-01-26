@@ -1,0 +1,16 @@
+---
+- name: install follow swarm service script
+  copy:
+    src: follow-swarm-service.py
+    dest: /usr/lib/
+    mode: 0644
+- name: setup follow swarm service service
+  template:
+    src: follow-swarm-service.service
+    dest: /usr/lib/systemd/system/
+    mode: 0644
+- name: enable and start follow swarm service service
+  service:
+    name: follow-swarm-service.service
+    state: started
+    enabled: True

@@ -1,0 +1,13 @@
+[Unit]
+Description=Follow docker swarm service to support set Virtual IP and set label to node
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+ExecStart={{ hive_home_dir }}/docker/bin/python /usr/lib/follow-swarm-service.py
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
