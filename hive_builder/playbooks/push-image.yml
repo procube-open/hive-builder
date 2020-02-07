@@ -12,8 +12,8 @@
   set_fact:
     reset_build_overrides: ""
 - set_fact:
-    # --change 'ENTRYPOINT []' does not set null, so set ["/bin/sh"]
-    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hive_entrypoint is defined %}{{ hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
+    # --change 'ENTRYPOINT []' does not set null, so set ["/bin/sh","-c","exec \"$@\"","--"]
+    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hive_entrypoint is defined %}{{ hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\",\"-c\",\"exec \\\"$@\\\"\",\"--\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
   when: not (hive_standalone | default(False))
 - set_fact:
     # --change CMD cannot set null, so set []

@@ -135,7 +135,7 @@ class hiveContext:
     variables_metainf_path = os.path.dirname(
         __file__) + '/variables_metainf.yml'
     if os.path.exists(variables_metainf_path):
-      with open(variables_metainf_path, 'r+') as envf:
+      with open(variables_metainf_path, 'r') as envf:
         self.variables_metainf = yaml.load(envf, Loader=yaml.SafeLoader)
       self.logger.debug('variables meta information {0} is loaded from {1}'.format(
           self.variables_metainf, variables_metainf_path))
