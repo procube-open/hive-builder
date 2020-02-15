@@ -14,7 +14,6 @@
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
     when: not (hive_destroy  | default(false))
-  - debug: var=hive_safe_services
   - name: pull docker images
     docker_image:
       name: "{%if hostvars[item].hive_image_name is defined %}{{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest{% else %}{{hostvars[item].hive_image}}{% endif %}"
@@ -66,7 +65,7 @@
       replicas: "{{ hostvars[item].hive_replicas | default(omit) }}"
       working_dir: "{{ hostvars[item].hive_working_dir | default(omit) }}"
       networks: "{{ groups['networks'] }}"
-      force_update: "{{ hostvars[item].hive_image_name is defined and (groups['hives'] | map('extract', hostvars, ['hive_safe_pull_result', 'results']) | select('defined') | flatten | selectattr('item', 'eq', hostvars[item].hive_image_name) | select('changed') | list | length) > 0 }}"
+      force_update: "{{ hostvars[item].hive_image_name is defined and (groups['hives'] | map('extract', hostvars, ['hive_safe_pull_result', 'results']) | select('defined') | flatten | selectattr('item', 'eq', item) | select('changed') | list | length) > 0 }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_services }}"
     register: swarm_service
