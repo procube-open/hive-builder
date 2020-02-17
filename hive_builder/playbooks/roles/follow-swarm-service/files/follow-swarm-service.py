@@ -139,7 +139,7 @@ class SetVIP(HookBase):
 #     inet6 fe80::42:fff:fe41:6f78/64 scope link
 #        valid_lft forever preferred_lft forever
 
-  reg_start_if = re.compile(r'^ *(\d+): *(\w+): .*$')
+  reg_start_if = re.compile(r'^ *(\d+): *([\w@]+): .*$')
   reg_link = re.compile(r'^ +link/.*$')
   reg_inet = re.compile(r'^ +inet (\d+\.\d+\.\d+\.\d+/\d+) .*$')
 
