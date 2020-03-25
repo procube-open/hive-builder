@@ -22,7 +22,7 @@
         type: "{{ hostvars[item].hive_volume.drbd.fstype }}"
         device: "/dev/drbd{{ hostvars[item].hive_volume.drbd.device_id }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
-    loop: "{{ hive_safe_drbd_volumes　}}"
+    loop: "{{ hive_safe_drbd_volumes }}"
   - name: create another driver volume
     docker_volume:
       name: "{{ hostvars[item].hive_volume.name }}"

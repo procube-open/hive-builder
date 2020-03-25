@@ -95,7 +95,7 @@
     regexp: "^UseDNS"
     insertafter: "^#UseDNS"
     line: "UseDNS no"
-- name: "patch NetworkManager-wait-online.service to waiting for network　connectivity specifically"
+- name: "patch NetworkManager-wait-online.service to waiting for network connectivity specifically"
   # Avoid Error on network.service:
   # Bringing up interface eth0:  Error: Connection activation failed: No suitable device found for this connection.
   copy:

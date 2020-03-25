@@ -12,6 +12,9 @@ from ansible.errors import AnsibleParserError
 from ansible.parsing.yaml.objects import AnsibleMapping, AnsibleSequence, AnsibleUnicode
 from ansible.module_utils.six import text_type
 from hive_builder.hive import hiveContext
+from ansible.utils.display import Display
+
+display = Display()
 
 DOCUMENTATION = r'''
   name: hive_services
@@ -263,7 +266,7 @@ class Service:
         published_port_key = self.name + text_type(portdef['target_port'])
         if 'published_port' in portdef:
           if portdef['published_port'] in published_port_map.values() and portdef['published_port'] != published_port_map.get(published_port_key):
-            raise AnsibleParserError(
+            display.warning(
                 f'duplicate port number {portdef["published_port"]} of port {published_port_key}')
         else:
           if published_port_key in published_port_map:
