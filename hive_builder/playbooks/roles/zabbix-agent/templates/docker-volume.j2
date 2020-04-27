@@ -1,0 +1,2 @@
+UserParameter=user.discovery.docker-volume,sudo -u vagrant sh -c "export DOCKER_HOST={{ groups['hives'] | intersect(groups[hive_stage]) | first }}:2376;export DOCKER_TLS_VERIFY=1;/home/vagrant/docker/bin/python /home/vagrant/docker-volume-discover.py"
+UserParameter=docker-volume[*],sudo -u vagrant sh -c "dexec $1 df $2 | awk 'NR==2{ sub(/.$/,\"\",\$5);print \$5;}'"
