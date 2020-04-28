@@ -26,6 +26,22 @@
     state: present
     virtualenv: "{{ hive_home_dir }}/docker"
 
+- name: Configure macros on the Template OS Linux by Zabbix agent
+  zabbix_template:
+    server_url: http://{{ inventory_hostname }}:10052
+    login_user: admin
+    login_password: zabbix
+    template_name: Template OS Linux by Zabbix agent
+    macros:
+      - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
+        value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
+    state: present
+- name: upload hive repository server template
+  zabbix_template:
+    server_url: http://{{ inventory_hostname }}:10052
+    login_user: admin
+    login_password: zabbix
+    template_xml: "{{ lookup('file', hive-repository-server.xml) }}"
 - name: remove default Zabbix Server
   zabbix_host:
     server_url: http://{{ inventory_hostname }}:10052

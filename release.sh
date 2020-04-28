@@ -13,7 +13,7 @@ RELEASE_BRANCE=develop
 GIT_PUSH=true
 DEPLOY_SCRIPT=test-deploy
 
-while getopts ahmn OPT
+while getopts fhmn OPT
 do
   case $OPT in
     f)  NO_FORCE=false

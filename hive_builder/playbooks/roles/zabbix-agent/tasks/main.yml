@@ -42,7 +42,7 @@
 - name: put script to discover docker volumes
   copy:
     src: docker-volume-discover.py
-    dest: {{ hive_home_dir }}/docker-volume-discover.py
+    dest: "{{ hive_home_dir }}/docker-volume-discover.py"
     owner: "{{hive_safe_admin}}"
     group: "{{hive_admin_group | default(hive_safe_admin)}}"
 - name: put sudoers file for zabbix agent

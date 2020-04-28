@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.0</version>
+    <date>2020-04-28T22:07:03Z</date>
+    <groups>
+        <group>
+            <name>Docker</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>Hive Repository Server</template>
+            <name>Hive Repository Server</name>
+            <description>Check docker volume usage</description>
+            <groups>
+                <group>
+                    <name>Docker</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>Docker</name>
+                </application>
+            </applications>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>Volume usage discoverry</name>
+                    <key>user.discovery.docker-volume</key>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Docker volume {#NAME} in {#SERVICE_NAME}</name>
+                            <key>docker-volume[{#SERVICE_NAME},{#PATH}]</key>
+                            <delay>10m</delay>
+                            <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>Docker</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last(#3)}&gt;90</expression>
+                                    <name>Exceed 90% Docker volume {#NAME} in {#SERVICE_NAME} usage</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+        </template>
+    </templates>
+</zabbix_export>
