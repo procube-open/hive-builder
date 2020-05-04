@@ -3,9 +3,13 @@
     hive_safe_name: "{{ aws_host.split('.')[0] }}"
 - set_fact:
     hive_safe_disks: []
-  # the root default volume is used when volumes does not include /dev/sda
 - set_fact:
-    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sda1', 'ebs': {'volume_size': hostvars[aws_host].hive_disk_size | default(omit), 'delete_on_termination': True} }]}}"
+    # the device name must match for default device name avoid error:
+    # botocore.exceptions.ClientError: An error occurred (MissingParameter)
+    # when calling the RunInstances operation: The request must contain the parameter size or snapshotId
+    # AWS Linux: /dev/xvda
+    # Centos: /dev/sda1
+    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/xvda', 'ebs': {'volume_size': hostvars[aws_host].hive_disk_size | default(omit), 'delete_on_termination': True} }]}}"
 - set_fact:
     hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sdb', 'ebs': {'volume_size': hostvars[aws_host].hive_mirrored_disk_size, 'delete_on_termination': True} }]}}"
   when: hostvars[aws_host].hive_mirrored_disk_size is defined and not (hostvars[aws_host].hive_no_mirrored_device | default(False))

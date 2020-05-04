@@ -6,10 +6,13 @@
     owner: root
     group: root
     mode: 0644
+  when: hive_provider != 'aws'
+  # AWS linux provides docker ce in amazon extra repos
 - name: install docker package
   yum:
-    name: docker-ce
+    name: "{{'docker' if hive_provider == 'aws' else 'docker-ce'}}"
     state: present
+    enablerepo: "{{'amzn2extra-docker' if hive_provider == 'aws' else omit }}"
 - name: add docker group
   group:
     name: docker

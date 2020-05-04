@@ -1,11 +1,11 @@
 ---
 - name: download drbd rpm files
   unarchive:
-    src: https://github.com/procube-open/drbd9-rpm/releases/download/9.0.20/drbd9-rpm.tar.gz
+    src: https://github.com/procube-open/drbd9-rpm/releases/download/9.0.22/drbd9-rpm{{ '-amzn2' if hive_provider == 'aws' else '' }}.tar.gz
     remote_src: yes
     dest: /root/
 - name: gather rpm file list
-  shell: ls -1 /root/RPMS/*/*.rpm
+  shell: ls -1 /root/RPMS{{ '.amzn2' if hive_provider == 'aws' else '' }}/*/*.rpm
   check_mode: False
   changed_when: False
   register: hive_safe_rpms

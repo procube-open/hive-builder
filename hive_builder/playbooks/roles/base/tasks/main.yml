@@ -9,19 +9,19 @@
     insertafter=EOF
     create=yes
     owner=root group=root mode=0644
-  when: hive_yum_url is defined
+  when: hive_yum_url is defined and hive_yum_url != omit
 - name: fix yum download site - remove mirror list
   replace:
     path: /etc/yum.repos.d/CentOS-Base.repo
     regexp: "^#?mirrorlist=(.*)$"
     replace: "#mirrorlist=\\1"
-  when: hive_yum_url is defined
+  when: hive_yum_url is defined and hive_yum_url != omit
 - name: fix yum download site - set baseurl
   replace:
     path: /etc/yum.repos.d/CentOS-Base.repo
     regexp: "^#?baseurl=.*/centos/(.*)$"
     replace: "baseurl={{ hive_yum_url }}/\\1"
-  when: hive_yum_url is defined
+  when: hive_yum_url is defined and hive_yum_url != omit
 - name: install packages
   yum:
     state: present
@@ -35,6 +35,7 @@
       - strace
       - tcpdump
       - lsof
+      - libselinux-python
 - name: disable selinux
   selinux: >
     state=disabled
