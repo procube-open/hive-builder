@@ -37,7 +37,8 @@
     docker_swarm_service:
       name: "{{ item }}"
       hostname: "{{ item }}"
-      restart_config: "{{ hostvars[item].restart_config | default(omit) }}"
+      restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
+      logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':514', 'syslog-facility': 'local0', 'tag': item} }) }}"
       image: "{{ hostvars[item].hive_image | default( hive_registry + '/' + (hostvars[item].hive_image_name | default('')) + ':latest') }}"
       # Docker calls it command, but swarmkit calls it args
       args: "{{ hostvars[item].hive_command | default(omit) }}"

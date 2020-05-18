@@ -1,0 +1,29 @@
+---
+- name: "setup rsyslogd - create dir"
+  become: True
+  file:
+    path: "/var/log/services"
+    state: directory
+    mode: 0755
+
+- name: "install rsyslog config file"
+  become: True
+  copy:
+    src: services.conf
+    dest: /etc/rsyslog.d/
+    mode: 0755
+  notify: update rsyslog config
+
+- name: "set logrotate for services log files"
+  become: True
+  lineinfile:
+    dest: /etc/logrotate.d/syslog
+    insertbefore: BOF
+    line: "/var/log/services/*"
+
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: syslog
+    hive_safe_iptables_dports:
+      - 514
+    hive_safe_iptables_protocol: udp

@@ -82,9 +82,20 @@
   shell: "drbdadm wait-sync {{ hive_safe_volume.name }}"
   when: (not hive_safe_destroy) and (hive_safe_adjust.stdout_lines | length) > 0
 
+# Error occur at 2020-05-18 on Amazon Linux2 on s-hive0
+#   stderr: |-
+#     pdnsdb_data: State change failed: (-10) State change was refused by peer node
+#     additional info from kernel:
+#     Declined by peer s-hive1.pdns (id: 1), see the kernel log there
+#     Command 'drbdsetup down pdnsdb_data' terminated with exit code 11
+# so use 'retries'
 - name: down resource
   shell: "drbdadm down {{ hive_safe_volume.name }}"
   when: (not hive_safe_destroy) and (hive_safe_adjust.stdout_lines | length) > 0
+  until: not down_drbd_resource.failed
+  retries: 10
+  delay: 5
+  register: down_drbd_resource
 
 - name: enable and start drbd resource service
   service:

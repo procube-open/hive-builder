@@ -487,67 +487,87 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
       - 選択肢/例
       - デフォルト
       - 意味
-    * - environment
-      - {"MYSQL_PASSWORD": "{{db_password}}, "MYSQL_HOST": "pdnsdb"}
-      - {}
-      - サービス実行時にプロセスに付与される環境変数
-    * - command
-      - ["--api=yes", "--api-key={{db_password}}"]
-      - イメージの command の値
-      - サービス実行時にentrypoint に与えられる引数（entrypoint が [] の場合、1個めが実行コマンドとなる
-    * - entrypoint
-      - ["/docker-entrypoint.sh"]
-      - イメージの entorypoint の値
-      - サービスの起動時に実行されるコマンド
-    * - labels
-      - {"published_fqdn": "pdnsadmin.pdns.procube-demo.jp"}
-      - {}
-      - サービスに付与されるラベル（ラベル名と値の dict を指定する。値に文字列以外のものを指定すると JSON 文字列化されるが、 constraint などで使用する場合には文字列としてしか参照できないので注意を要する）
-    * - placement
-      - {"constraints": "node.hostname!=hive2"}
-      - {}
-      - サービスの配置に関するルールを constraints 属性、preferences属性で指定する。
-    * - hosts
-      - {"test.example.com": "192.168.1.2"}
-      - {}
-      - サービス内の /etc/hosts ファイルに追加するホスト名をキーとしたIPアドレスの辞書
-    * - dns
-      - "192.168.1.2"
-      - ""
-      - サービス内で使用するDNSサーバのアドレス
-    * - mode
-      - - replicated
-        - global
-      - replicated
-      - サービス・モード
-    * - endpoint_mode
-      - - VIP
-        - DNSRR
-      - VIP
-      - エンドポイント・モード
+    * - available_on
+      - ["production"]
+      - ["production", "staging", "private"]
+      - サービスが有効になるステージ
     * - backup_scripts
       - 後述
       - []
       - バックアップ、リストア、夜間バッチのスクリプト（詳細後述）
-    * - restart_config
+    * - command
+      - ["--api=yes", "--api-key={{db_password}}"]
+      - イメージの command の値
+      - サービス実行時にentrypoint に与えられる引数（entrypoint が [] の場合、1個めが実行コマンドとなる）
+    * - dns
+      - "192.168.1.2"
+      - ""
+      - サービス内で使用するDNSサーバのアドレス（docker service create の --dns オプションと等価）
+    * - endpoint_mode
+      - - VIP
+        - DNSRR
+      - VIP
+      - エンドポイント・モード（docker service create の --endpoint-mode オプションと等価）
+    * - entrypoint
+      - ["/docker-entrypoint.sh"]
+      - イメージの entorypoint の値
+      - サービスの起動時に実行されるコマンド
+    * - environment
+      - {"MYSQL_PASSWORD": "{{db_password}}, "MYSQL_HOST": "pdnsdb"}
+      - {}
+      - サービス実行時にプロセスに付与される環境変数（docker service create の --env オプションと等価）
+    * - hosts
+      - {"test.example.com": "192.168.1.2"}
+      - {}
+      - サービス内の /etc/hosts ファイルに追加するホスト名をキーとしたIPアドレスの辞書（docker service create の --hosts オプションと等価）
+    * - image
       - 後述
       - []
-      - 再起動に関する設定（詳細後述）
+      - サービスのもととなるコンテナイメージの取得方法（詳細後述）
+    * - initialize_roles
+      - ["python-aptk", "powerdns"]
+      - []
+      - サービスのイメージのビルド時に適用される role 名のリスト
+    * - labels
+      - {"published_fqdn": "pdnsadmin.pdns.procube-demo.jp"}
+      - {}
+      - サービスに付与されるラベル（ラベル名と値の dict を指定する。値に文字列以外のものを指定すると JSON 文字列化されるが、 constraint などで使用する場合には文字列としてしか参照できないので注意を要する）
+    * - logging
+      - {"driver": "journald", "options": {"tag": "powerdns"}}
+      - {"driver": "fluentd", "options": {"fluentd-address": リポジトリサーバ:24224}}
+      - サービスのログ出力方法（docker service create の --log-driver("driver"に指定), --log-opt（"options"に指定） オプションと等価）
+    * - mode
+      - - replicated
+        - global
+      - replicated
+      - サービス・モード（docker service create の --mode オプションと等価）
+    * - placement
+      - {"constraints": "node.hostname!=hive2"}
+      - {}
+      - サービスの配置に関するルールを constraints 属性、 preferences 属性で指定する（docker service create の --constraint （"constraints"に指定）, placement-pref（"preferences"に指定） オプションと等価）
+    * - ports
+      - "80:8080"
+      - []
+      - サービス実行時に外部に公開するポート（詳細後述）
     * - replicas
       - 3
       - -1
-      - サービスでインスタンス化されたコンテナの複製数。mode 属性が replicated である場合にのみ有効です。
-        -1に設定され、サービスが存在しない場合、複製数は1に設定されます。
-        -1に設定され、サービスが存在する場合、複製数は変更されません。
-    * - user
-      - admin
-      - イメージの user の値
-      - サービスを実行するプロセスのユーザID
+      - | サービスでインスタンス化されたコンテナの複製数。mode 属性が replicated である場合にのみ有効です。（docker service create の --replicas オプションと等価）
+        | ・1に設定され、サービスが存在しない場合、複製数は1に設定されます。
+        | ・1に設定され、サービスが存在する場合、複製数は変更されません。
+    * - restart_config
+      - {"restart_config": {"condition": "on-failure", "delay": "5s", "max_attempts": 3, "window": "120s"}}
+      - []
+      - 再起動に関する設定（docker service create の --restart-condition("condition", "max_attempts"に指定) --restart-window("window"に指定) --restart-delay（"delay"に指定）オプションと等価）
     * - standalone
       - - True
         - False
       - False
       - サービスをスタンドアローン型として実行するか否か（詳細後述）
+    * - user
+      - admin
+      - イメージの user の値
+      - サービスを実行するプロセスのユーザID（docker service create の --user オプションと等価）
     * - volumes
       - 後述
       - []
@@ -555,24 +575,12 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
     * - working_dir
       - /opt/wildfly
       - 省略
-      - コンテナのプロセスの working diretory
-    * - image
-      - 後述
-      - []
-      - サービスのもととなるコンテナイメージの取得方法（詳細後述）
-    * - ports
-      - "80:8080"
-      - []
-      - サービス実行時に外部に公開するポート（詳細後述）
-    * - available_on
-      - ["production"]
-      - ["production", "staging", "private"]
-      - サービスが有効になるステージ
+      - コンテナのプロセスの working diretory（docker service create の --workdir オプションと等価）
 
-volume属性
+volumes 属性
 -----------------------------
 
-volume 属性には、そのサービスが利用するボリュームの内容を記述できます。
+volumes 属性には、そのサービスが利用するボリュームの内容を記述できます。
 また、 必要に応じて build-volumes フェーズでボリュームを作成することができます。
 以下の属性を持つボリュームオブジェクトのリストを指定してください。
 

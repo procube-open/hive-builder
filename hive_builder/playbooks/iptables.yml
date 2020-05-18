@@ -1,0 +1,48 @@
+- name: insert allow port rule into iptables config file (no internal network)
+  become: True
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      {%- for spec in hive_safe_iptables_sources | default(groups['hives'] | intersect(groups[hive_stage])) | map('extract', hostvars, 'hive_private_ip') | product(hive_safe_iptables_dports) | list -%}
+      -A INPUT -p {{ hive_safe_iptables_protocol }} -s {{ spec[0] }} -m state --state NEW -m {{ hive_safe_iptables_protocol }} --dport {{ spec[1] }} -j ACCEPT
+      {% endfor %}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for {{ hive_safe_iptables_name }}"
+  when: hive_internal_net_addr is not defined
+- name: insert allow port rule into iptables (no internal network)
+  become: True
+  iptables:
+    chain: INPUT
+    protocol: "{{ hive_safe_iptables_protocol }}"
+    source: "{{ item[0] }}"
+    destination_port:  "{{ item[1] }}"
+    ctstate: NEW
+    jump: ACCEPT
+    action: insert
+    rule_num: "2"
+  loop: "{{  hive_safe_iptables_sources | default(groups['hives'] | intersect(groups[hive_stage])) | map('extract', hostvars, 'hive_private_ip') | product(hive_safe_iptables_dports) | list }}"
+  when: hive_internal_net_addr is not defined
+- name: insert allow port rule into iptables config file with internal network address
+  become: True
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      {%- for port in hive_safe_iptables_dports -%}
+      -A INPUT -p {{ hive_safe_iptables_protocol }} -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m {{ hive_safe_iptables_protocol }} --dport {{ port }} -j ACCEPT
+      {% endfor %}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK for {{ hive_safe_iptables_name }}"
+  when: hive_internal_net_addr is defined
+- name: insert allow port rule into iptables with internal network address
+  become: True
+  iptables:
+    chain: INPUT
+    protocol: "{{ hive_safe_iptables_protocol }}"
+    source: "{{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }}"
+    destination_port: "{{ item }}"
+    ctstate: NEW
+    jump: ACCEPT
+    action: insert
+    rule_num: "2"
+  loop: "{{ hive_safe_iptables_dports }}"
+  when: hive_internal_net_addr is defined

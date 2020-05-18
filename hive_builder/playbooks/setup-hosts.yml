@@ -37,9 +37,10 @@
 
   roles:
     - docker-compose
-    - registry
     - zabbix
+    - registry
     - backup-tools
+    - rsyslogd
 
 - name: build cluster
   hosts: hives

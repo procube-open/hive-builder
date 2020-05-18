@@ -89,24 +89,6 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK for swarm"
   when: hive_internal_net_addr is defined
   notify: require reboot
-- name: insert allow published tcp port rule into iptables for global
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -m state --state NEW -m multiport --dport {{ hive_published_ports_tcp | join(',') }} -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for published tcp port"
-  when: hive_published_ports_tcp | length > 0
-  notify: require reboot
-- name: insert allow published udp port rule into iptables for global
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p udp -m state --state NEW -m multiport --dport {{ hive_published_ports_udp | join(',') }} -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for published udp port"
-  when: hive_published_ports_udp | length > 0
-  notify: require reboot
 - name: check file 11-gce-network-security.conf
   stat:
     path: /etc/sysctl.d/11-gce-network-security.conf

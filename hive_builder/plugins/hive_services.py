@@ -112,9 +112,11 @@ class InventoryModule(BaseInventoryPlugin):
       network.parse(inventory)
 
 
-IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint', 'command', 'privileged', 'expose']
-SERVICE_PARAMS_COPY = ['environment', 'command', 'entrypoint', 'labels', 'placement', 'hosts', 'dns', 'initialize_roles',
-                       'mode', 'endpoint_mode', 'backup_scripts', 'restart_config', 'user', 'standalone', 'replicas', 'working_dir']
+IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint',
+                'command', 'privileged', 'expose']
+SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'entrypoint', 'environment',
+                       'hosts', 'initialize_roles', 'labels', 'logging', 'mode', 'placement', 'replicas',
+                       'restart_config', 'standalone', 'user', 'working_dir']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'source', 'readonly']
