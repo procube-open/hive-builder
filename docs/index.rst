@@ -13,6 +13,7 @@ hive-builder ドキュメントページへようこそ
     inventory.rst
     phases.rst
     swarmextender.rst
+    migration.rst
 
 ..
   Indices and tables
