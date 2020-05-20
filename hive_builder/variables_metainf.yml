@@ -159,6 +159,13 @@ ssh_host:
   mutually_exclusive_group: operation
   command_line_option_available:
   - ssh
+tags:
+  description: "select task"
+  command_line_option: "-T"
+  command_line_option_level: phase
+  mutually_exclusive_group: operation
+  command_line_option_available:
+  - setup-hosts
 destroy:
   description: "destroy {subject_name}"
   type: boolean

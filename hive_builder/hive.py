@@ -371,6 +371,9 @@ class phaseBase(ansbileCommandBase):
       args.append('-vvv')
     if 'check_mode' in context.vars and context.vars['check_mode']:
       args.append('-C')
+    tags = context.vars.get('tags')
+    if tags is not None:
+      args += ['--tags', tags]
     args += ['--extra-vars', f'@{self.vars_file_path}']
     args.append(self.get_playbook_path(context))
     context.logger.debug(f'commnad={args}')

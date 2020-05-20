@@ -8,7 +8,7 @@ repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
 cdrom
 # Run the Setup Agent on first boot
 firstboot --enable
-ignoredisk --only-use=sda
+ignoredisk --only-use={{ hive_ks_target }}
 # Keyboard layouts
 keyboard --vckeymap=jp --xlayouts='jp'
 # System language
@@ -16,32 +16,24 @@ lang ja_JP.UTF-8
 
 # Network information
 # CAUTION: All static networking configuration information must be specified on one line; you cannot wrap lines using a backslash, for example.
-{%- if hostvars[ks_host].hive_bond | default(False) -%}
-{%- set target = "bond0" -%}
-{%- set bond_slave0 = hostvars[ks_host].hive_ks_interfaces[0] -%}
-{%- set bond_slave1 = hostvars[ks_host].hive_ks_interfaces[1] -%}
-{%- set bond_options = '--bondslaves=' + bond_slave0 + ',' + bond_slave1 + ' --bondopts=miimon=100,mode=802.3ad,updelay=600' -%}
-{%- else -%}
-{%- set target = hostvars[ks_host].hive_ks_interfaces[0] -%}
-{%- set bond_options = '' -%}
-{%- endif -%}
 # add a device
-network --bootproto=static --device="{{ target }}" --gateway={{ hive_cidr | ipaddr(1) | ipaddr('address') }} --ip={{ hostvars[ks_host].hive_private_ip }} --netmask={{ hostvars[ks_host].hive_netmask }} --noipv6 {{ bond_options }} --nameserver {{ hive_nameservers | join(',')}}
+{% for network in hive_kickstart_config.networks %}
+network --bootproto=static --device={{ network.interface }}{% if network.gateway is defined %} --gateway={{ network.gateway }}{% endif %}{%if network.netmask is defined %} --ip={{ network.ips[ks_idx] }} --netmask={{ network.netmask }}{% endif %} --noipv6{% if network.nameservers is defined %} --nameserver {{ network.nameservers | join(',')}}{% endif %}{% if network.vlanid is defined %} --vlanid {{ network.vlanid }}{% endif %}
 
+{% endfor %}
 # Root password
 rootpw "{{ lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits') }}"
 user --name={{ hive_safe_admin }} --password="{{ lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits') }}"
 # System timezone
-timezone Asia/Tokyo --isUtc
-
+timezone {{ hive_ks_timezone }} --isUtc
 # System bootloader configuration
-bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=sda
+bootloader --append=" crashkernel=auto" --location=mbr --boot-drive={{ hive_ks_target }}
 # Partition clearing information
-clearpart --all --initlabel --drives=sda
+clearpart --all --initlabel --drives={{ hive_ks_target }}
 # Disk partitioning information
-{% for part in hostvars[ks_host].hive_ks_partitions %}
-part {{part.path}} --fstype="{{part.fstype}}" --ondisk=sda --size={{part.size}}
-{% endfor -%}
+part /boot/efi --fstype=efi --ondisk={{ hive_ks_target }} --size=200
+part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_memory_size | default('1024') }}
+part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_disk_size * 1024 | default('10240') }}
 
 %packages
 @core

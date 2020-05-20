@@ -110,6 +110,39 @@ DOCUMENTATION = r'''
           description: disk size of hosts
           type: int with unit(G,M,K)
           default: 40G
+        kickstart_config:
+          description: configuration for kickstart file, availble on kickstart provider
+          type: dict
+          suboptions:
+            iso_src:
+              description: iso image source file or device, availble on kickstart provider
+            iso_dest:
+              description: iso image destination file or device, availble on kickstart provider
+            media_usb:
+              description: device is a usb rather than cd-rom
+              default: False
+            networks:
+              description: interace definition for tagged vlans, availble on kickstart provider
+              type: list
+              suboptions:
+                interface:
+                  description: interface name
+                  required: true
+                vlanid:
+                  description: vlan id 1-4095
+                  type: int
+                ips:
+                  description: ip address list
+                  type: list
+                  required: true
+                netmask:
+                  description: netmask
+                  required: true
+                gateway:
+                  description: ip adderss of gateway
+                nameservers:
+                  description: name servers
+                  type: list
 '''
 
 EXAMPLES = r'''
@@ -182,6 +215,8 @@ class Stage:
     self.provider = self.stage['provider']
     if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared', 'kickstart']:
       raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", "kickstart", but specified {self.provider}')
+    if self.provider != 'kickstart' and 'kickstart_config' in self.stage:
+      raise AnsibleParserError('kickstart_config cannot be specified when provider is not kickstart')
     if self.provider == 'vagrant':
       if 'instance_type' in self.stage:
         raise AnsibleParserError('instance_type cannot be specified when provider is vagrant')
@@ -215,8 +250,8 @@ class Stage:
       self.inventory.set_variable(mother_name, 'hive_bridge', self.stage['bridge'])
     if 'dev' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_dev', self.stage['dev'])
-    if 'nameservers' in self.stage:
-      self.inventory.set_variable(mother_name, 'hive_nameservers', self.stage['nameservers'])
+    if 'kickstart_config' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_kickstart_config', self.stage['kickstart_config'])
     if 'subnets' not in self.stage:
       try:
         net = ipaddress.ip_network(self.stage['cidr'])

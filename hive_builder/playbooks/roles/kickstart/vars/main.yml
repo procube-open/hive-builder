@@ -1,0 +1,3 @@
+hive_ks_target: "{{ 'sdb' if (hive_kickstart_config.media_usb | default(False)) else 'sda'}}"
+hive_ks_media: "{{ 'hd:LABEL=CentOS\\x207\\x20x86_64' if (hive_kickstart_config.media_usb | default(False)) else 'cdrom'}}"
+hive_ks_timezone: "{{ hive_timezone | default('Etc/GMT') }}"

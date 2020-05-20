@@ -5,30 +5,48 @@
   tags: setup-hosts
 
   roles:
-    - base
-    - hostsfile
+    - role: base
+      tags: ["base"]
+    - role: hostsfile
+      tags: ["hostsfile"]
     - role: ntp-client
+      tags: ["ntp-client"]
       when: hive_ntp_servers is defined and hive_ntp_servers != omit
-    - iptables
-    - pip-venv
-    - addon
+    - role: iptables
+      tags: ["iptables"]
+    - role: pip-venv
+      tags: ["pip-venv"]
+    - role: addon
+      tags: ["addon"]
     - role: internal-network
+      tags: ["internal-network"]
       when: hive_internal_net_if is defined
     - role: auxiliary-networks
+      tags: ["auxiliary-networks"]
       when: (hive_config_auxiliary_networks | default(False)) and hive_auxiliary_networks is defined
     - role: users
+      tags: ["users"]
       when: hive_users is defined
-    - strict-source-ip
-    - tls-certificate
-    - docker
+    - role: strict-source-ip
+      tags: ["strict-source-ip"]
+    - role: tls-certificate
+      tags: ["tls-certificate"]
+    - role: docker
+      tags: ["docker"]
     - role: drbd
+      tags: ["drbd"]
       when: hive_mirrored_disk_size is defined
-    - docker-client
-    - follow-swarm-service
+    - role: docker-client
+      tags: ["docker-client"]
+    - role: follow-swarm-service
+      tags: ["follow-swarm-service"]
     - role: docker-client-proxy
+      tags: ["docker-client-proxy"]
       when: "(lookup('env', 'HTTP_PROXY')|length) > 0"
-    - zabbix-agent
-    - reboot
+    - role: zabbix-agent
+      tags: ["zabbix-agent"]
+    - role: reboot
+      tags: ["reboot"]
 
 - name: setup repository and zabbix
   hosts: repository
@@ -36,11 +54,16 @@
   tags: registry
 
   roles:
-    - docker-compose
-    - zabbix
-    - registry
-    - backup-tools
-    - rsyslogd
+    - role: docker-compose
+      tags: ["docker-compose"]
+    - role: zabbix
+      tags: ["zabbix"]
+    - role: registry
+      tags: ["registry"]
+    - role: backup-tools
+      tags: ["backup-tools"]
+    - role: rsyslogd
+      tags: ["rsyslogd"]
 
 - name: build cluster
   hosts: hives
@@ -49,5 +72,7 @@
   tags: build-cluster
 
   roles:
-  - swarm
-  - reboot
+    - role: swarm
+      tags: ["swarm"]
+    - role: reboot
+      tags: ["reboot"]
