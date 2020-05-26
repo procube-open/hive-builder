@@ -12,7 +12,6 @@
     fstype: iso9660
     opts: ro,noauto,loop
     state: mounted
-  changed_when: False
   when: hive_kickstart_config.iso_src is defined and ansible_distribution != 'MacOSX'
 - name: copy all contents of iso file system
   synchronize:
@@ -27,7 +26,6 @@
     fstype: iso9660
     opts: ro,noauto,loop
     state: unmounted
-  changed_when: False
   when: hive_kickstart_config.iso_src is defined and ansible_distribution != 'MacOSX'
 - name: put kickstart files
   template:

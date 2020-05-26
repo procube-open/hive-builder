@@ -115,7 +115,7 @@ class InventoryModule(BaseInventoryPlugin):
 IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint',
                 'command', 'privileged', 'expose']
 SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'entrypoint', 'environment',
-                       'hosts', 'initialize_roles', 'labels', 'logging', 'mode', 'placement', 'replicas',
+                       'hosts', 'initialize_roles', 'labels', 'logging', 'mode', 'networks', 'placement', 'replicas',
                        'restart_config', 'standalone', 'user', 'working_dir']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']

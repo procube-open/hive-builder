@@ -16,10 +16,27 @@ lang ja_JP.UTF-8
 
 # Network information
 # CAUTION: All static networking configuration information must be specified on one line; you cannot wrap lines using a backslash, for example.
-# add a device
+# add networks
 {% for network in hive_kickstart_config.networks %}
-network --bootproto=static --device={{ network.interface }}{% if network.gateway is defined %} --gateway={{ network.gateway }}{% endif %}{%if network.netmask is defined %} --ip={{ network.ips[ks_idx] }} --netmask={{ network.netmask }}{% endif %} --noipv6{% if network.nameservers is defined %} --nameserver {{ network.nameservers | join(',')}}{% endif %}{% if network.vlanid is defined %} --vlanid {{ network.vlanid }}{% endif %}
-
+  {%- set options = '' -%}
+  {% if network.gateway is defined %}
+    {%- set options = options + ' --gateway=' + network.gateway -%}
+  {%- endif -%}
+  {% if network.nameservers is defined %}
+    {%- set options = options + ' --nameserver=' + network.nameservers | join(',') -%}
+  {%- endif -%}
+  {% if network.ips is defined %}
+    {%- set options = options + ' --ip=' + network.ips[ks_idx] + ' --netmask=' + network.netmask -%}
+  {% else %}
+    {%- set options = options + ' --noipv4' -%}
+  {%- endif -%}
+  {% if network.vlanid is defined %}
+    {%- set options = options + ' --vlanid ' + (network.vlanid | string)-%}
+  {%- endif -%}
+  {%- if network.bonding_interfaces is defined -%}
+    {%- set options = options + ' --bondslaves=' + (network.bonding_interfaces | join(',')) + ' --bondopts=miimon=100,mode=802.3ad,updelay=600' -%}
+  {%- endif -%}
+network --bootproto=static --device={{ network.interface }} --noipv6{{ options }}
 {% endfor %}
 # Root password
 rootpw "{{ lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits') }}"

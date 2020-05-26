@@ -65,7 +65,7 @@
       endpoint_mode: "{{ hostvars[item].hive_endpoint_mode | default(omit) }}"
       replicas: "{{ hostvars[item].hive_replicas | default(omit) }}"
       working_dir: "{{ hostvars[item].hive_working_dir | default(omit) }}"
-      networks: "{{ groups['networks'] }}"
+      networks: "{{ hostvars[item].hive_networks | default(groups['networks']) }}"
       force_update: "{{ hostvars[item].hive_image_name is defined and (groups['hives'] | map('extract', hostvars, ['hive_safe_pull_result', 'results']) | select('defined') | flatten | selectattr('item', 'eq', item) | select('changed') | list | length) > 0 }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_services }}"

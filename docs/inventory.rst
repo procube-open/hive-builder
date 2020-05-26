@@ -745,7 +745,7 @@ python-aptk には以下のようにタスクが定義されており、ubuntu �
 ::
 
     - name: install python
-      raw: if [ -x /usr/bin/apt-get ]; then (apt-get update && apt-get -y install python); else (apk update && apk add python); fi
+      raw: if [ -x /usr/bin/apt-get ]; then (apt-get update && apt-get -y install python3); else (apk update && apk add python3); fi
       changed_when: False
 
 

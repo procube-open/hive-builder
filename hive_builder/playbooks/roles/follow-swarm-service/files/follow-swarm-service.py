@@ -98,6 +98,7 @@ class MarkNode(HookBase):
 
 class SetVIP(HookBase):
   label_name = 'HIVE_VIP'
+  router_label_name = 'HIVE_ROUTER'
 
   @classmethod
   def check_service(cls, service):
@@ -107,7 +108,7 @@ class SetVIP(HookBase):
     me = cls.get_hook(label_value, service.id, service.name)
     if me is None:
       return None
-    me.router = service.attrs.get('Spec', {}).get('Labels', {}).get('HIVE_ROUTER')
+    me.router = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.router_label_name)
     DAEMON.logger.debug(f'label "HIVE_ROUTER" value is {me.router}')
     return me
 
@@ -139,7 +140,7 @@ class SetVIP(HookBase):
 #     inet6 fe80::42:fff:fe41:6f78/64 scope link
 #        valid_lft forever preferred_lft forever
 
-  reg_start_if = re.compile(r'^ *(\d+): *([\w@]+): .*$')
+  reg_start_if = re.compile(r'^ *(\d+): *([\w.]+)(@[\w]+)?: .*$')
   reg_link = re.compile(r'^ +link/.*$')
   reg_inet = re.compile(r'^ +inet (\d+\.\d+\.\d+\.\d+/\d+) .*$')
 
@@ -154,7 +155,7 @@ class SetVIP(HookBase):
   def list_ifs(self):
     ip_addr = self.subprocess_run(['ip', 'addr'])
     state = 'start'
-    interface = {}
+    interface = dict(ips=[])
     for line in ip_addr.stdout.splitlines():
       if state == 'start':
         start_if = self.__class__.reg_start_if.match(line)
@@ -167,26 +168,36 @@ class SetVIP(HookBase):
           if inet:
             inet_if = ipaddress.ip_interface(inet.group(1))
             interface['network'] = inet_if.network
-            if 'ips' not in interface:
-              interface['ips'] = []
             interface['ips'].append(inet_if.ip)
           else:
             start_if = self.__class__.reg_start_if.match(line)
             if start_if:
-              if 'name' in interface and 'network' in interface:
-                yield interface
-              interface = dict(name=start_if.group(2))
-    if 'name' in interface and 'network' in interface:
+              assert 'name' in interface, '!!BUG!!'
+              yield interface
+              interface = dict(name=start_if.group(2), ips=[])
+    if 'name' in interface:
       yield interface
 
   def get_interface(self):
     found = None
-    vip = ipaddress.ip_address(self.label_value)
-    for interface in self.list_ifs():
-      if vip in interface['network']:
-        found = interface
-        found['vip_if'] = ipaddress.ip_interface(str(vip) + '/' + str(interface['network'].prefixlen))
-        break
+    if '@' in self.label_value:
+      at_values = self.label_value.split('@')
+      for interface in self.list_ifs():
+        if interface['name'] == at_values[1]:
+          found = interface
+          try:
+            vip_if = ipaddress.ip_interface(at_values[0])
+          except ValueError as e:
+            DAEMON.logger.error(f'Fail to parse as ip address with prefix length for {at_values[0]} : {e}')
+          found['vip_if'] = vip_if
+          break
+    else:
+      vip = ipaddress.ip_address(self.label_value)
+      for interface in self.list_ifs():
+        if 'network' in interface and vip in interface['network']:
+          found = interface
+          found['vip_if'] = ipaddress.ip_interface(str(vip) + '/' + str(interface['network'].prefixlen))
+          break
     return found
 
   def on_enter(self):
@@ -227,6 +238,36 @@ class SetVIP(HookBase):
     self.clearVip(interface)
 
 
+class SetVIP0(SetVIP):
+  label_name = 'HIVE_VIP0'
+  router_label_name = 'HIVE_ROUTER0'
+
+
+class SetVIP1(SetVIP):
+  label_name = 'HIVE_VIP1'
+  router_label_name = 'HIVE_ROUTER1'
+
+
+class SetVIP2(SetVIP):
+  label_name = 'HIVE_VIP2'
+  router_label_name = 'HIVE_ROUTER2'
+
+
+class SetVIP3(SetVIP):
+  label_name = 'HIVE_VIP3'
+  router_label_name = 'HIVE_ROUTER3'
+
+
+class SetVIP4(SetVIP):
+  label_name = 'HIVE_VIP4'
+  router_label_name = 'HIVE_ROUTER4'
+
+
+class SetVIP5(SetVIP):
+  label_name = 'HIVE_VIP5'
+  router_label_name = 'HIVE_ROUTER5'
+
+
 class FollowSwarmServiceDaemon:
   def __init__(self):
     self.client = docker.from_env()
@@ -236,7 +277,7 @@ class FollowSwarmServiceDaemon:
     self.logger = logging.getLogger(f'FollowSwarm@{self.node_name}')
     self.logger.debug(f'client.info():{json.dumps(client_info)}')
     self.hooks = {}
-    self.hook_classes = [SetVIP, MarkNode]
+    self.hook_classes = [SetVIP, SetVIP0, SetVIP1, SetVIP2, SetVIP3, SetVIP4, SetVIP5, MarkNode]
 
   def list_hooks(self):
     for service in self.client.services.list():
