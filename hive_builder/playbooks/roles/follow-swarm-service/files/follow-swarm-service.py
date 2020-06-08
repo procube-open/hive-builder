@@ -230,7 +230,7 @@ class SetVIP(HookBase):
   def on_leave(self):
     interface = self.get_interface()
     if interface is None:
-      DAEMON.logger.error(f'any network interface is not found for vip {self.label_name}')
+      DAEMON.logger.error(f'any network interface is not found for vip {self.label_value}')
       return
     if interface['vip_if'].ip not in interface['ips']:
       DAEMON.logger.info(f'vip {str(interface["vip_if"].ip)} is not bound on interface {interface["name"]} at on_leave')
