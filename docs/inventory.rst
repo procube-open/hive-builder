@@ -388,34 +388,85 @@ instance_type 属性、repository_instance_type には VM のサイズをコー�
 
 kickstart プロバイダ
 ^^^^^^^^^^^^^^^^^^^^^
-kickstart プロバイダは OS を CD-ROM からインストールする際の
-キックスタートファイルを生成します。ファイルはマウント可能な
-USBデバイスのイメージとしてコンテキストディレクトリに ks.iso
-というファイル名で生成されます。
+kickstart プロバイダは OS のインストール媒体を生成します。
+インストール媒体は、USBメモリ、DVD、isoイメージファイルに出力できます。
 VirtualBox や iDRAC で OS を最初からインストールする際に
-このイメージをセカンダリの光学ドライブとしてマウントし、
-CD-ROM ブート時に中のファイルを指定してboot してください。
-キックスタートファイルのファイル名はホスト名の最初のパートに.ksの
-拡張子をつけたものです。例えば、コンテナ収容サーバの最初のサーバを
-インストールするときは CentOS の最初の画面で ESC キーを押し、以下のように
-入力してください。
+このインストール媒体をセカンダリの光学ドライブとしてマウントして利用できます。
+
+kickstart プロバイダを利用するには motherマシンは linux でなければなりません。
+また、現在のバージョンではサーバは UEFI ブート可能なものである必要があります。
+
+kickstart プロバイダを利用する場合は、ステージオブジェクトに kickstart_config 属性に
+サーバのインストールパラメータを指定してください。 kickstart_config 属性には
+以下の属性が指定できます。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - iso_src
+      - /var/lib/isos/CentOS-7-x86_64-Minimal-2003.iso
+      - 必須
+      - 元となるOSのインストール媒体（媒体が挿されているデバイス名かISOイメージのファイル名）
+    * - iso_dest
+      -  /dev/sda
+      - 必須
+      - インストール媒体の出力先（媒体が挿されているデバイス名かISOイメージのファイル名）
+    * - media_usb
+      - - True
+        - False
+      - False
+      - インストール媒体がUSBであるかいなか
+    * - networks
+      - 未執筆
+      - 必須
+      - ネットワーク定義オブジェクトのリスト
+
+
+以下にkickstart_configの例を示します。
 
 ::
 
-  linux ks=hd:sr1:hive0.ks
-
-この画面ではキーボードが ASCII配列として起動してますので、日本語キーボード
-から入力するときは '=' は '^'、':'は'+'を押して入力してください。
-private ステージ、staging ステージの場合はホスト名のプリフィックス
-'p-', 's-' をつける必要があることに注意してください。
-
-
-kickstart プロバイダの制限事項：
-- 現在はmother マシンが Mac OS の場合のみ利用できます
-- キーボードは固定的にJIS配列が設定されます
-- 言語は固定的に日本語が設定されます
-- タイムゾーンは固定的にAsia/Tokyoが設定されます
-
+    kickstart_config:
+      iso_src: /var/lib/isos/CentOS-7-x86_64-Minimal-2003.iso
+      iso_dest: /dev/sda
+      media_usb: True
+      networks:
+      - interface: bond0
+        bonding_interfaces:
+        - eth0
+        - eth1
+        ips:
+        - 192.168.200.20
+        - 192.168.200.21
+        - 192.168.200.22
+        netmask: 255.255.255.0
+      - interface: bond0
+        vlanid: 2
+      - interface: bond0
+        vlanid: 4
+      - interface: bond0
+        vlanid: 1000
+      - interface: bond0
+        vlanid: 1001
+      - interface: bond0
+        vlanid: 1002
+        ips:
+        - 192.168.203.20
+        - 192.168.203.21
+        - 192.168.203.22
+        netmask: 255.255.255.0
+        gateway: 192.168.203.1
+        nameservers:
+        - 192.168.203.1
+      - interface: bond0
+        vlanid: 1003
+      - interface: bond0
+        vlanid: 1004
 
 prepared プロバイダ
 ^^^^^^^^^^^^^^^^^^^
@@ -454,7 +505,9 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
 各プロバイダは自動的に mirrored_disk_size で指定された大きさで複製同期用デバイスを作成しますが、prepared プロバイダの場合は、事前に複製同期用のデバイスを割り当てて、ホストのデバイスとして見えている必要があります。
 複製同期用のデバイスは以下のうちのいずれかの名前である必要があります。
 
+- /dev/sdc
 - /dev/sdb
+- /dev/vdc
 - /dev/vdb
 - /dev/xvdb
 - /dev/nvme1n1

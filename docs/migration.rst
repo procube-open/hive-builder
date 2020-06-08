@@ -25,4 +25,4 @@ hive setup-hosts を実行する場合は、その前に以下のコマンドを
 ===============================
 1.1.7 以前でマイクロサービス型のサービスのログを参照する場合には、コンテナ収容サーバにログインして、 docker service logs サービス名で参照する必要がありましたが、
 1.1.8 からはリポジトリサーバの /var/log/services/サービス名.log で参照できるようになりました。
-これを利用するためには、 hive setup-hosts を実行してリポジトリサーバに rsyslogd をセットアップし、 hive deploy-services でサービスをデプロイし直す必要があります。
+これを利用するためには、 hive setup-hosts -T rsyslogd を実行してリポジトリサーバに rsyslogd をセットアップし、 hive deploy-services でサービスをデプロイし直す必要があります。

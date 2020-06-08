@@ -7,7 +7,7 @@
 動作環境
 ====================
 
-Windows Subsystem for Linux, Mac OS, Ubuntu, Centos などの環境で以下を満たしている必要があります。
+CentOS, Windows Subsystem for Linux, Mac OS, Ubuntu,などの環境で以下を満たしている必要があります。
 
 - openssl コマンドが利用できること
 - pip が利用できること
@@ -15,17 +15,60 @@ Windows Subsystem for Linux, Mac OS, Ubuntu, Centos などの環境で以下を�
 - git コマンドが利用できること
 - docker コマンドが利用できること
 
+各OSごとにインストールの手順を示します。
+
+Centos の場合
+=================================
+
+.. note::
+
+    現在サポートしているのは CentOS 7 のみです。
+
 docker コマンドのインストール
 ------------------------------
-docker コマンドのインストールは、OSごとに以下に従ってください。docker のパッケージをインストールしても
-dockerデーモンやコンテナを動作させる必要はないことに注意してください。
-hive-builder は docker コマンドをクライアントとして利用するだけですので、
-dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
-また、prepared プロバイダを使用し、その対象サーバ内に mother 環境を作成する場合は、 docker コマンドをインストールする必要はありません。
-逆に CentOS 標準の docker-client パッケージがインストールされていると、 hive-builder がインストールする docker-ce と競合して構築に失敗しますので、注意してください。
+以下のコマンドを root で実行して docker-client をインストールしてください。
+
+::
+
+  yum install -y docker-client
+
+.. note::
+
+    prepared プロバイダを使用し、その対象サーバ内に mother 環境を作成する場合は、 docker コマンドをインストールする必要はありません。
+    逆に CentOS 標準の docker-client パッケージがインストールされていると、 hive-builder がインストールする docker-ce と競合して構築に失敗しますので、注意してください。
 
 
-Windows Subsystem for Linux, Ubuntu の場合
+.. _basic:
+
+仮想環境の作成例
+----------------------------
+hive-builder をインストールするための仮想環境 Python3 の venv モジュールを用いて作成する場合のコマンド例を示します。
+仮想環境の作成は pyenv, conda, pipenv など、他のツールを用いることもできますし、
+もともと hive-builder 専用に用意されたOSであれば、仮想環境を作成せずに利用しても良いでしょう。
+
+::
+
+  $ cd ~
+  $ python3 -m venv hive
+  $ echo . ~/hive/bin/activate >> .bashrc
+  $ pip install -U pip wheel
+
+hive-builder のインストール
+----------------------------
+以下のコマンドでインストールしてください。
+
+::
+
+  pip install hive_builder
+
+インストールがエラーになる場合は、 pip install -U pip wheel で pip と wheel を最新バージョンにアップデートしてみてください。
+
+
+Windows Subsystem for Linuxの場合
+===================================
+
+docker コマンドのインストール
+------------------------------
   以下のコマンドを root で実行して docker.io をインストールしてください。
 
 ::
@@ -34,21 +77,9 @@ Windows Subsystem for Linux, Ubuntu の場合
   apt-get install docker
   apt docker.io
 
-Centos の場合
-  以下のコマンドを root で実行して docker-client をインストールしてください。
-
-::
-
-  yum install -y docker-client
-
-Mac OS の場合
-  インストールの手順は以下のページに従ってください。
-  https://docs.docker.com/docker-for-mac/install/
-  インストール後、一度は docker アプリケーションを起動しないと docker コマンドがインストールされません。
-  デスクトップからdocker アプリケーションを起動して、docker コマンドが使えるようになったことを確認した後、
-  ステータスバーの docker のアイコンをクリックして docker を終了しても構いません。
-  hive-builder は docker コマンドを必要としますが、端末のdocker デーモンにアクセスしません。
-
+仮想環境と hive-builder のインストール
+--------------------------------------
+仮想環境と hive-builder のインストールについては、Cent OS の場合と同じです。 :ref:`そちら <basic>` を参照してください。
 
 ssh鍵のmode の問題
 ---------------------
@@ -68,12 +99,41 @@ context_dir を ~/hive-context などに設定することで回避できます�
 この操作はステージごとに必要であり、context_dir はステージごとに異なる
 必要があります。
 
-インストール方法
-====================
+Mac OS の場合
+=================================
 
-pyenv, virtualenv などでpython の仮想環境を作成し、環境を activate して、以下のコマンドでインストールしてください。
+docker コマンドのインストールは、OSごとに以下に従ってください。docker のパッケージをインストールしても
+dockerデーモンやコンテナを動作させる必要はないことに注意してください。
+hive-builder は docker コマンドをクライアントとして利用するだけですので、
+dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
+
+docker コマンドのインストール
+------------------------------
+インストールの手順は以下のページに従ってください。
+https://docs.docker.com/docker-for-mac/install/
+インストール後、一度は docker アプリケーションを起動しないと docker コマンドがインストールされません。
+デスクトップからdocker アプリケーションを起動して、docker コマンドが使えるようになったことを確認した後、
+ステータスバーの docker のアイコンをクリックして docker を終了しても構いません。
+hive-builder は docker コマンドを必要としますが、端末のdocker デーモンにアクセスしません。
+
+仮想環境と hive-builder のインストール
+--------------------------------------
+仮想環境と hive-builder のインストールについては、Cent OS の場合と同じです。 :ref:`そちら<basic>` を参照してください。
+
+
+raspbian へのインストール
+=================================
+raspberry pi にインストールする場合は、OSに raspbian を利用し、以下の手順で必要なソフトウェアをインストールしてください。
 
 ::
 
-  pip install hive_builder
+  # apt-get update
+  # apt-get upgrade
+  # curl -sSL https://get.docker.com | sh
+  # usermod -aG docker pi
+  # apt-get install build-essential libssl-dev libffi-dev python3-dev subversion python3-venv subversion xorriso
+
+仮想環境と hive-builder のインストール
+--------------------------------------
+仮想環境と hive-builder のインストールについては、Cent OS の場合と同じです。 :ref:`そちら<basic>` を参照してください。
 
