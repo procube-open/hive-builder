@@ -1,4 +1,11 @@
 ---
 hive_safe_zabbix_subnet: "{% if hive_internal_cidr is defined %}{{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 7) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }}{% else %}172.19.0.0/16{% endif %}"
-hive_safe_templates:
-  - Template OS Linux by Zabbix agent
+hive_safe_templates: >-
+  {%- set templates = ['Template OS Linux by Zabbix agent'] -%}
+  {%- if 'repository' in group_names -%}
+    {%- set _ = templates.append('Hive Repository Server') -%}
+  {%- endif -%}
+  {%- if 'hives' in group_names -%}
+    {%- set _ = templates.append('Hive Server') -%}
+  {%- endif -%}
+  {{ templates }}

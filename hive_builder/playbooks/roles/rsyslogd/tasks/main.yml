@@ -19,7 +19,7 @@
   lineinfile:
     dest: /etc/logrotate.d/syslog
     insertbefore: BOF
-    line: "/var/log/services/*"
+    line: "/var/log/services/*.log"
 
 - import_tasks: iptables.yml
   vars:

@@ -22,7 +22,7 @@ Centos の場合
 
 .. note::
 
-    現在サポートしているのは CentOS 7 のみです。
+    現在サポートしているのは CentOS 7 のみです。CentOS 6, CentOS 8 は未サポートです。
 
 docker コマンドのインストール
 ------------------------------
@@ -48,10 +48,11 @@ hive-builder をインストールするための仮想環境 Python3 の venv �
 
 ::
 
-  $ cd ~
-  $ python3 -m venv hive
-  $ echo . ~/hive/bin/activate >> .bashrc
-  $ pip install -U pip wheel
+  cd ~
+  python3 -m venv hive
+  echo source ~/hive/bin/activate >> .bashrc
+  source ~/hive/bin/activate
+  pip install -U pip wheel
 
 hive-builder のインストール
 ----------------------------
@@ -102,11 +103,6 @@ context_dir を ~/hive-context などに設定することで回避できます�
 Mac OS の場合
 =================================
 
-docker コマンドのインストールは、OSごとに以下に従ってください。docker のパッケージをインストールしても
-dockerデーモンやコンテナを動作させる必要はないことに注意してください。
-hive-builder は docker コマンドをクライアントとして利用するだけですので、
-dockerデーモンやコンテナを動作させるためのVMは不要であれば、停止させておいてください。
-
 docker コマンドのインストール
 ------------------------------
 インストールの手順は以下のページに従ってください。
@@ -115,6 +111,8 @@ https://docs.docker.com/docker-for-mac/install/
 デスクトップからdocker アプリケーションを起動して、docker コマンドが使えるようになったことを確認した後、
 ステータスバーの docker のアイコンをクリックして docker を終了しても構いません。
 hive-builder は docker コマンドを必要としますが、端末のdocker デーモンにアクセスしません。
+docker desktop for mac は VM を起動しますので、リソースを消費します。
+他に docker を必要とすることがなければ、落としておいてください。
 
 仮想環境と hive-builder のインストール
 --------------------------------------
@@ -127,11 +125,11 @@ raspberry pi にインストールする場合は、OSに raspbian を利用し�
 
 ::
 
-  # apt-get update
-  # apt-get upgrade
-  # curl -sSL https://get.docker.com | sh
-  # usermod -aG docker pi
-  # apt-get install build-essential libssl-dev libffi-dev python3-dev subversion python3-venv subversion xorriso
+  apt-get update
+  apt-get upgrade
+  curl -sSL https://get.docker.com | sh
+  usermod -aG docker pi
+  apt-get install build-essential libssl-dev libffi-dev python3-dev subversion python3-venv subversion xorriso
 
 仮想環境と hive-builder のインストール
 --------------------------------------

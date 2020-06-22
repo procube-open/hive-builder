@@ -4,7 +4,7 @@
     <date>2020-04-28T22:07:03Z</date>
     <groups>
         <group>
-            <name>Docker</name>
+            <name>Repository server</name>
         </group>
     </groups>
     <templates>
@@ -14,7 +14,7 @@
             <description>Check docker volume usage</description>
             <groups>
                 <group>
-                    <name>Docker</name>
+                    <name>Repository server</name>
                 </group>
             </groups>
             <applications>
@@ -24,8 +24,49 @@
             </applications>
             <discovery_rules>
                 <discovery_rule>
-                    <name>Volume usage discoverry</name>
+                    <name>Docker Swarm Service discovery</name>
+                    <key>user.discovery.docker-service</key>
+                    <delay>3h</delay>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Docker Swarm Service replicas {#SERVICE_NAME}</name>
+                            <key>docker-service-replicas[{#SERVICE_NAME}]</key>
+                            <applications>
+                                <application>
+                                    <name>Docker</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last(#1)}&lt;100</expression>
+                                    <name>Service {#SERVICE_NAME} replicas running percetage less than 100</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Docker Swarm Service uptime {#SERVICE_NAME}</name>
+                            <key>docker-service-uptime[{#SERVICE_NAME}]</key>
+                            <delay>5m</delay>
+                            <applications>
+                                <application>
+                                    <name>Docker</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last(#1)}&lt;28800</expression>
+                                    <name>Service {#SERVICE_NAME} restarted</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                </discovery_rule>
+                <discovery_rule>
+                    <name>Volume usage discovery</name>
                     <key>user.discovery.docker-volume</key>
+                    <delay>3h</delay>
                     <item_prototypes>
                         <item_prototype>
                             <name>Docker volume {#NAME} in {#SERVICE_NAME}</name>

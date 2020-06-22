@@ -32,19 +32,35 @@
     owner=root
     group=root
     mode=0644
-- name: put docker-volume zabbix_agentd config
-  template: >
-    src=docker-volume.j2
-    dest='/etc/zabbix/zabbix_agentd.d/docker-volume'
-    owner=root
-    group=root
-    mode=0644
+- name: put docker-volume, docker-service zabbix_agentd config
+  template:
+    src: "{{ item.src }}"
+    dest: "/etc/zabbix/zabbix_agentd.d/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - src: docker-volume.j2
+      dest: docker-volume
+    - src: docker-service.j2
+      dest: docker-service.conf
+- name: put drbd-resource zabbix_agentd config
+  copy:
+    src: drbd-resource.conf
+    dest: /etc/zabbix/zabbix_agentd.d/drbd-resource.conf
+    owner: root
+    group: root
+    mode: 0644
+
 - name: put script to discover docker volumes
   copy:
-    src: docker-volume-discover.py
-    dest: "{{ hive_home_dir }}/docker-volume-discover.py"
+    src: "{{ item }}"
+    dest: "{{ hive_home_dir }}/{{ item }}"
     owner: "{{hive_safe_admin}}"
     group: "{{hive_admin_group | default(hive_safe_admin)}}"
+  loop:
+    - docker-volume-discover.py
+    - docker-service.py
 - name: put sudoers file for zabbix agent
   copy:
     src: sudoers.zabbix

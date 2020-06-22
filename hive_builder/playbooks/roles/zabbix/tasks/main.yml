@@ -39,14 +39,15 @@
   retries: 20
   delay: 10
   register: zabbix_api_result
-- name: Create Docker group
+- name: Create Hive, Repository group
   zabbix_group:
     server_url: http://{{ inventory_hostname }}:10052
     login_user: admin
     login_password: zabbix
     state: present
     host_groups:
-      - Docker
+      - Hives
+      - Repository server
 - name: Configure macros on the Template OS Linux by Zabbix agent
   zabbix5_template:
     server_url: http://{{ inventory_hostname }}:10052
@@ -57,12 +58,15 @@
       - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
         value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
     state: present
-- name: upload hive repository server template
+- name: upload templates
   zabbix5_template:
     server_url: http://{{ inventory_hostname }}:10052
     login_user: admin
     login_password: zabbix
-    template_xml: "{{ lookup('file', 'hive-repository-server.xml') }}"
+    template_xml: "{{ lookup('file', item) }}"
+  loop:
+    - hive-repository-server.xml
+    - hive-server.xml
 
 - name: register hive hosts to zabbix
   zabbix_host:
@@ -72,7 +76,15 @@
     host_name: "{{ item }}"
     host_groups:
     - Linux servers
-    link_templates: "{{ hive_safe_templates + ['Hive Repository Server'] if inventory_hostname in groups['repository'] else hive_safe_templates }}"
+    link_templates: >-
+      {%- set templates = ['Template OS Linux by Zabbix agent'] -%}
+      {%- if item in groups['repository'] -%}
+        {%- set _ = templates.append('Hive Repository Server') -%}
+      {%- endif -%}
+      {%- if item in groups['hives'] -%}
+        {%- set _ = templates.append('Hive Server') -%}
+      {%- endif -%}
+      {{ templates }}
     interfaces:
       - type: 1
         main: 1
