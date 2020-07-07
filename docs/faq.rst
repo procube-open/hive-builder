@@ -18,13 +18,20 @@ hive-builder の要件としてリポジトリサーバが死んでいてもサ�
 
 
 build-images, initialize-services で fail to create socket のエラーになります
--------------------------------------------------------------------------
+------------------------------------------------------------------------------
 :メッセージ: fail to create socket /var/tmp/hive/docker.sock@サーバ名, another hive process may doing build-image or the file has been left because previus hive process aborted suddenly
 :コマンド: build-images, initialize-services
 :対応方法: 他の hive コマンドが同じマザーマシンで動作している場合はその終了を待ってください。そうでない場合は rm コマンドで /var/tmp/hive/docker.sock@サーバ名を削除してください。
 
 initialize-services で Authentication or permission failure のエラーになります
--------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 :メッセージ: Authentication or permission failure. In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in "/tmp".
 :コマンド: initialize-services
 :対応方法: initialize-services の実行中にサービスの再起動が行われた可能性があります。ログなどを確認して、initialize-services 実行中にサービスが再起動しないように修正してください。
+
+build-infra で Vagrant command failed のエラーになります
+-------------------------------------------------------------------------------
+:メッセージ: Vagrant command failed: Command "["/usr/bin/vagrant", "up", "--provision"]" returned non-zero exit status 1
+:コマンド: build-infra
+:対応方法: cd .hive/ステージ名; /usr/bin/vagrant up --provision を実行してエラーメッセージを確認し、修正してください。
+
