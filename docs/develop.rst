@@ -404,3 +404,19 @@ hive ではlibディレクトリの下に置くことでカスタムモジュー
   hive ssh
 
 コマンドでリポジトリサーバにログインし /var/log/services/サービス名 のファイルを参照してください。
+
+外部リポジトリへのログイン
+------------------------------
+
+build-images、および deploy-services フェーズでイメージをダウンロードする際に外部リポジトリを利用することができます。
+外部リポジトリにアクセスする際にログインが必要な場合、 hive_ext_repositories にログインに必要な情報を設定してください。
+例えば、dockerhub にアクセスする場合、インベントリ（例えば、inventory/group_vars/all.yml）に以下のように設定してください。
+
+::
+
+  credentials: "{{ lookup('file', lookup('env', 'HOME') + '/.hive/credentials.yml') | from_yaml }}"
+  hive_ext_repositories:
+    - login_user: "{{ credentials.dockerhub_login_user}}"
+      password: "{{ credentials.dockerhub_login_password}}"
+
+上記では、ログインユーザとパスワードを秘密情報をまとめたファイル ~/.hive/credentials.yml から読み込んでます。

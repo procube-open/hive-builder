@@ -14,9 +14,27 @@
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
     when: not (hive_destroy  | default(false))
+  - name: login to external repository
+    docker_login:
+      registry: "{{ item.repository | default(omit) }}"
+      username: "{{ item.login_user }}"
+      password: "{{ item.password }}"
+      email: "{{ item.email | default(omit) }}"
+    loop: "{{ hive_ext_repositories }}"
+    when: hive_ext_repositories is defined and not (hive_destroy  | default(false))
+    no_log: True
   - name: pull docker images
     docker_image:
-      name: "{%if hostvars[item].hive_image_name is defined %}{{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest{% else %}{{hostvars[item].hive_image}}{% endif %}"
+      name: >-
+        {%- if hostvars[item].hive_image_name is defined -%}
+          {%- if hive_stage in hostvars[hostvars[item].hive_image_name].hive_pull_on | default([]) -%}
+            {{ hostvars[hostvars[item].hive_image_name].hive_pull_from }}
+          {%- else -%}
+            {{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest
+          {%- endif -%}
+        {%- else -%}
+          {{hostvars[item].hive_image}}
+        {%- endif -%}
       # If you add the repository parameter, this module add an unnecessary tag like hive2.pdns:5000
       # Do not add repository: "{{ hive_registry }}"
       source: pull
@@ -39,7 +57,16 @@
       hostname: "{{ item }}"
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
       logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':514', 'syslog-facility': 'local0', 'tag': item} }) }}"
-      image: "{{ hostvars[item].hive_image | default( hive_registry + '/' + (hostvars[item].hive_image_name | default('')) + ':latest') }}"
+      image: >-
+        {%- if hostvars[item].hive_image_name is defined -%}
+          {%- if hive_stage in hostvars[hostvars[item].hive_image_name].hive_pull_on | default([]) -%}
+            {{ hostvars[hostvars[item].hive_image_name].hive_pull_from }}
+          {%- else -%}
+            {{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest
+          {%- endif -%}
+        {%- else -%}
+          {{hostvars[item].hive_image}}
+        {%- endif -%}
       # Docker calls it command, but swarmkit calls it args
       args: "{{ hostvars[item].hive_command | default(omit) }}"
       # Docker calls it entrypoint, but swarmkit calls it command

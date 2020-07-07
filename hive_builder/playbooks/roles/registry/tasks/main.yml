@@ -5,10 +5,10 @@
     state: directory
     mode: 0755
 
-- name: make htpasswd file
-  shell: "docker run --entrypoint htpasswd registry:2 -nBb  '{{ hive_safe_docker_login_user }}' '{{ lookup('password', hive_context_dir + '/registry_password length=15') }}' > {{ hive_home_dir }}/registry/htpasswd"
-  args:
-    creates: "{{ hive_home_dir }}/registry/htpasswd"
+# - name: make htpasswd file
+#   shell: "docker run --entrypoint htpasswd registry:2 -nBb  '{{ hive_safe_docker_login_user }}' '{{ lookup('password', hive_context_dir + '/registry_password length=15') }}' > {{ hive_home_dir }}/registry/htpasswd"
+#   args:
+#     creates: "{{ hive_home_dir }}/registry/htpasswd"
 
 - name: "install registry docker-compose.yml"
   template:
@@ -21,6 +21,18 @@
 
 - set_fact:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+
+- name: install passlib
+  pip:
+    name: passlib
+    state: present
+    virtualenv: "{{ hive_home_dir }}/docker"
+- name: make htpasswd file
+  htpasswd:
+    path: "{{ hive_home_dir }}/registry/htpasswd"
+    name: "{{ hive_safe_docker_login_user }}"
+    crypt_scheme: bcrypt
+    password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
 
 - name: compose up registry container
   docker_compose:

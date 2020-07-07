@@ -7,6 +7,7 @@ hive-builder ドキュメントページへようこそ
 
     overview.rst
     install.rst
+    proxy.rst
     example.rst
     develop.rst
     command.rst

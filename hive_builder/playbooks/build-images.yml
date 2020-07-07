@@ -6,12 +6,21 @@
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
 
   tasks:
-  - name: login to private registry
+  - name: login to private repository
     docker_login:
       registry: "{{ hive_registry }}"
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
       email: "{{ hive_safe_email }}"
+  - name: login to external repository
+    docker_login:
+      registry: "{{ item.repository | default(omit) }}"
+      username: "{{ item.login_user }}"
+      password: "{{ item.password }}"
+      email: "{{ item.email | default(omit) }}"
+    loop: "{{ hive_ext_repositories }}"
+    when: hive_ext_repositories is defined
+    no_log: True
 
 - name: build images
   hosts: images
@@ -39,7 +48,7 @@
       exposed_ports: "{{ hive_expose | default(omit) }}"
       name: "build_{{ inventory_hostname }}"
       hostname: "{{ inventory_hostname }}"
-      env: "{%if hive_proxy_env_block is defined %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      env: "{%if lookup('env', 'HTTP_PROXY') | length > 0 %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
       privileged: "{{ hive_privileged | default(omit) }}"
       entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
       working_dir: "{{ hive_working_dir | default(omit) }}"
@@ -47,6 +56,7 @@
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
       state: present
+    when: hive_stage not in (hive_pull_on | default([]))
   - name: start container
     delegate_to: "{{ hive_safe_repository_server }}"
     docker_container:
@@ -54,7 +64,7 @@
       exposed_ports: "{{ hive_expose | default(omit) }}"
       name: "build_{{ inventory_hostname }}"
       hostname: "{{ inventory_hostname }}"
-      env: "{%if hive_proxy_env_block is defined %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      env: "{%if lookup('env', 'HTTP_PROXY') | length > 0 %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
       privileged: "{{ hive_privileged | default(omit) }}"
       entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
       working_dir: "{{ hive_working_dir | default(omit) }}"
@@ -62,6 +72,7 @@
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
     changed_when: False
+    when: hive_stage not in (hive_pull_on | default([]))
   - name: apply role
     include_role:
       name: "{{ hive_safe_role }}"
@@ -74,6 +85,8 @@
     # avoid variable collisions and unexpected behavior.
     loop_control:
       loop_var: hive_safe_role
+    when: hive_stage not in (hive_pull_on | default([]))
 
   - name: push images
     include_tasks: push-image.yml
+    when: hive_stage not in (hive_pull_on | default([]))

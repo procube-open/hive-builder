@@ -113,7 +113,7 @@ class InventoryModule(BaseInventoryPlugin):
 
 
 IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 'standalone', 'entrypoint',
-                'command', 'privileged', 'expose']
+                'command', 'privileged', 'expose', 'pull_on', 'pull_from']
 SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'entrypoint', 'environment',
                        'hosts', 'initialize_roles', 'labels', 'logging', 'mode', 'networks', 'placement', 'replicas',
                        'restart_config', 'standalone', 'user', 'working_dir']
@@ -240,6 +240,8 @@ class Service:
         if self.options.get('standalone', False):
           inventory.set_variable(image_name, f'hive_standalone', True)
           inventory.set_variable(image_name, f'hive_privileged', True)
+        if 'pull_from' in image_value and 'pull_on' not in image_value:
+          raise AnsibleParserError(f'pull_from must be specified in "image" at service {self.name} when pull_on is specified')
         for option_name, option_value in image_value.items():
           if option_name not in IMAGE_PARAMS:
             raise AnsibleParserError(f'unknown parameter {option_name} is specified in "image" at service {self.name}')

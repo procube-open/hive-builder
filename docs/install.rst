@@ -7,7 +7,10 @@
 動作環境
 ====================
 
-CentOS, Windows Subsystem for Linux, Mac OS, Ubuntu,などの環境で以下を満たしている必要があります。
+インターネット上の各種リポジトリに http, https でアクセスできる必要があります。
+プロキシ経由でのみアクセスできる環境の場合、「プロキシ環境下での構築」を参照して事前準備を行ってください。
+
+mother マシンの OS は、CentOS, Windows Subsystem for Linux, Mac OS, Ubuntu などの環境で以下を満たしている必要があります。
 
 - openssl コマンドが利用できること
 - pip が利用できること
