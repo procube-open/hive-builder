@@ -46,8 +46,8 @@
 
 1.1.5 以前からの移行
 ===============================
-1.1.5 以前では zabbix/zabbix-web-nginx-mysql:ubuntu-trunk で提供されるイメージが 8080番ポートを公開している前提でしたが、
-zabbix/zabbix-web-nginx-mysql:ubuntu-trunk の公開ポートが 80 に変わったためイメージをロードし直す必要があります。
+1.1.5 以前では zabbix/zabbix-web-nginx-mysql:ubuntu-trunk で提供されるイメージが 80番ポートを公開している前提でしたが、
+zabbix/zabbix-web-nginx-mysql:ubuntu-trunk の公開ポートが 8080 に変わったためイメージをロードし直す必要があります。
 hive setup-hosts を実行する場合は、その前に以下のコマンドを実行して、zabbix のイメージを更新してください。
 
 ::

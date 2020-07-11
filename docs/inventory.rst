@@ -840,7 +840,7 @@ staging ステージの build-images でビルドされたイメージを外部�
 ::
 
       pull_on:
-        - staging
+        - production
       pull_from: procube/pdnsadmin_test
 
 
