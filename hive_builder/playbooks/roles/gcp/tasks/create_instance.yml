@@ -34,7 +34,7 @@
     - auto_delete: True
       boot: True
       initialize_params:
-        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(16) }}"
+        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(25) }}"
         disk_name: "boot-{{ hive_safe_name }}"
         source_image: "{{ hive_safe_image_id }}"
 - set_fact:
@@ -42,7 +42,7 @@
     - auto_delete: True
       boot: True
       initialize_params:
-        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(16) }}"
+        disk_size_gb: "{{ hostvars[gcp_host].hive_disk_size | default(25) }}"
         disk_name: "boot-{{ hive_safe_name }}"
         source_image: "{{ hive_safe_image_id }}"
     - auto_delete: True

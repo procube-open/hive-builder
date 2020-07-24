@@ -33,9 +33,9 @@ def uptime(client, logger, service_name):
           if task.get('DesiredState') == 'running':
             status = task.get('Status')
             if status.get('State') == 'running':
-              logger.debug(f'found runinig task')
+              logger.debug(f'found runinig task start_time={status.get("Timestamp")}')
               # uptime = int((datetime.now() - datetime.fromisoformat(status.get('Timestamp'))).total_seconds())
-              uptime = int((datetime.now() - fromisoformat(status.get('Timestamp'))).total_seconds())
+              uptime = int((datetime.utcnow() - fromisoformat(status.get('Timestamp'))).total_seconds())
               if min == -1 or uptime < min:
                 min = uptime
         return min

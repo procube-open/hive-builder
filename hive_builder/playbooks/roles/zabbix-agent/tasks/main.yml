@@ -1,30 +1,50 @@
+# setting retries to avoid following error on azure
+# fatal: [hive0.pdns]: FAILED! => changed=false
+#  msg: 'Failure downloading https://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm, Request failed: <urlopen error [Errno 101] Network is unreachable>'
+#  results: []
 - name: Install Zabbix Repo
   yum:
-    name: https://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm
+    name: https://repo.zabbix.com/zabbix/3.0/rhel/8/x86_64/zabbix-release-3.0-4.el8.noarch.rpm
     state: present
-- name: insert allow zabbix agent port rule into iptables (no internal network)
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 10050 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for zabbix agent {{ item }}"
-  with_items: "{{ (ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
-  when: hive_internal_net_addr is not defined
-  notify: require reboot
-- name: insert allow zabbix agent port rule into iptables for internal network
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 10050 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for zabbix agent for internal network"
-  when: hive_internal_net_addr is defined
-  notify: require reboot
+  until: not download_zabbix_repo.failed
+  retries: 10
+  delay: 5
+  register: download_zabbix_repo
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: zabbix_tcp
+    hive_safe_iptables_dports:
+      - 10050
+    hive_safe_iptables_protocol: tcp
+    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
 - name: yum install
   yum:
     name=zabbix-agent
     state=installed
+- name: copy selinux module for zabbix-agent
+  copy:
+    src: hive.te
+    dest: /root/hive.te
+  register: result_hive_zabbix_agent_policy
+  when: hive_safe_selinux != 'disabled'
+- name: install selinux module for zabbix-agent
+  make:
+    chdir: /root
+    target: load
+    file: /usr/share/selinux/devel/Makefile
+  become: yes
+  when: hive_safe_selinux != 'disabled'
+- name: set SELinux boolean for zabbix agent
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  loop:
+  - authlogin_nsswitch_use_ldap
+  - domain_can_mmap_files
+  - nis_enabled
+  - zabbix_run_sudo
+  when: hive_safe_selinux != 'disabled'
 - name: modify zabbix_agentd config
   template: >
     src=zabbix_agentd.conf.j2
@@ -32,7 +52,8 @@
     owner=root
     group=root
     mode=0644
-- name: put docker-volume, docker-service zabbix_agentd config
+  notify: zabbix-agent configured
+- name: put zabbix_agentd userparameter definition from template
   template:
     src: "{{ item.src }}"
     dest: "/etc/zabbix/zabbix_agentd.d/{{ item.dest }}"
@@ -41,18 +62,30 @@
     mode: 0644
   loop:
     - src: docker-volume.j2
-      dest: docker-volume
+      dest: docker-volume.conf
     - src: docker-service.j2
       dest: docker-service.conf
-- name: put drbd-resource zabbix_agentd config
+  notify: zabbix-agent configured
+- name: put zabbix_agentd userparameter definition
   copy:
-    src: drbd-resource.conf
-    dest: /etc/zabbix/zabbix_agentd.d/drbd-resource.conf
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
     owner: root
     group: root
     mode: 0644
-
-- name: put script to discover docker volumes
+  loop:
+    - drbd-resource.conf
+    - userparameter_systemd_services.conf
+  notify: zabbix-agent configured
+- name: put zabbix_agentd userparameter definition for selinux
+  copy:
+    src: ausearch.conf
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+  when: hive_safe_selinux != 'disabled'
+- name: put script to discover docker volumes and services
   copy:
     src: "{{ item }}"
     dest: "{{ hive_home_dir }}/{{ item }}"
@@ -61,6 +94,21 @@
   loop:
     - docker-volume-discover.py
     - docker-service.py
+- name: put script to discover and get status systemd services
+  copy:
+    src: "{{ item }}"
+    dest: "/usr/bin/"
+    mode: 0755
+  loop:
+    - zbx_service_discovery.sh
+    - zbx_service_restart_check.sh
+- name: put additional config file for zabbix discover
+  copy:
+    src: service_discovery_blacklist
+    dest: /etc/zabbix/
+    owner: root
+    group: root
+    mode: 0644
 - name: put sudoers file for zabbix agent
   copy:
     src: sudoers.zabbix
@@ -68,8 +116,7 @@
     owner: root
     group: root
     mode: 0440
-- name: enabled and start zabbix-agent
+- name: enable zabbix-agent
   service:
     name: zabbix-agent
-    state: started
     enabled: yes

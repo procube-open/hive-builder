@@ -4,18 +4,27 @@
     dest: /etc/sysconfig/iptables
     line: -A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
     state: absent
-  notify: require reboot
-  when: hive_ssh_source_ips is defined
 - name: insert src ip stricted permition for sshd port from iptables
   blockinfile:
     dest: /etc/sysconfig/iptables
     insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
     block: |
-      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport {{hive_safe_sshd_port}} -m hashlimit --hashlimit-name consul_tcp_limit --hashlimit 10/sec --hashlimit-burst 100 --hashlimit-mode srcip --hashlimit-htable-expire 360000 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
-  when: hive_ssh_source_ips is defined
-  notify: require reboot
-  with_items: "{{ hive_ssh_source_ips }}"
+      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport {{hive_safe_sshd_port}} -m limit --limit 5/sec --limit-burst 20 -j ACCEPT
+    marker: "# {mark} HIVE-BUILDER MANAGED BLOCK for SSH SOURCE IP STRICT"
+  loop: "{{ hive_ssh_source_ips }}"
+- name: insert allow ssh port rule into iptables
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    source: "{{ item }}"
+    destination_port:  "{{ hive_safe_sshd_port }}"
+    ctstate: NEW
+    limit: 5/s
+    limit_burst: 20
+    jump: ACCEPT
+    action: insert
+    rule_num: "2"
+  loop: "{{ hive_ssh_source_ips }}"
 - name: set sshd port number
   lineinfile:
     dest: /etc/ssh/sshd_config

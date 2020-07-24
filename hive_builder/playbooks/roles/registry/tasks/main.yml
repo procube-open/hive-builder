@@ -19,24 +19,23 @@
     - src: registry.yml.j2
       dest: "{{ hive_home_dir }}/registry/docker-compose.yml"
 
-- set_fact:
+- block:
+  - name: install passlib
+    pip:
+      name: passlib
+      state: present
+      virtualenv: "{{ hive_home_dir }}/docker"
+  - name: make htpasswd file
+    htpasswd:
+      path: "{{ hive_home_dir }}/registry/htpasswd"
+      name: "{{ hive_safe_docker_login_user }}"
+      crypt_scheme: bcrypt
+      password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
+  - name: compose up registry container
+    docker_compose:
+      project_src: "{{ hive_home_dir }}/registry"
+  vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-
-- name: install passlib
-  pip:
-    name: passlib
-    state: present
-    virtualenv: "{{ hive_home_dir }}/docker"
-- name: make htpasswd file
-  htpasswd:
-    path: "{{ hive_home_dir }}/registry/htpasswd"
-    name: "{{ hive_safe_docker_login_user }}"
-    crypt_scheme: bcrypt
-    password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
-
-- name: compose up registry container
-  docker_compose:
-    project_src: "{{ hive_home_dir }}/registry"
 
 - name: setup environment variable
   become: False

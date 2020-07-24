@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.0</version>
+    <date>2020-04-28T22:07:03Z</date>
+    <groups>
+        <group>
+            <name>Hives</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>Hive Server SELinux</template>
+            <name>Hive Server SELinux</name>
+            <description>Check SELinux alert</description>
+            <groups>
+                <group>
+                    <name>Hives</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>SELinux</name>
+                </application>
+            </applications>
+            <items>
+                <item>
+                    <name>SELinux alert</name>
+                    <key>ausearch</key>
+                    <delay>3m</delay>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <applications>
+                        <application>
+                            <name>SELinux</name>
+                        </application>
+                    </applications>
+                    <triggers>
+                        <trigger>
+                            <expression>{str(&lt;no matches&gt;)}=0</expression>
+                            <recovery_mode>NONE</recovery_mode>
+                            <name>Detect SELinux alert</name>
+                            <priority>WARNING</priority>
+                            <manual_close>YES</manual_close>
+                        </trigger>
+                    </triggers>
+                </item>
+            </items>
+        </template>
+    </templates>
+</zabbix_export>

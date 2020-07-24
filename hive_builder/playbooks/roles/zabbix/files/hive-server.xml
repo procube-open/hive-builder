@@ -41,8 +41,8 @@
                             </applications>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{str("UpToDate")}=0</expression>
-                                    <name>DRBD resource {#RESOURCE_NAME} status is not UpToDate</name>
+                                    <expression>{str(&quot;UpToDate&quot;)}=0 and {str(&quot;Diskless client&quot;)}=0</expression>
+                                    <name>DRBD resource {#RESOURCE_NAME} status is not UpToDate/Diskless client</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>

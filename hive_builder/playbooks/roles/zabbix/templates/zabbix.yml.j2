@@ -4,8 +4,8 @@ services:
     image: zabbix/zabbix-server-mysql:ubuntu-trunk
     container_name: zabbix-server
     environment:
-      TZ: "Asia/Tokyo"
-      DB_SERVER_HOST: mariadb
+      TZ: "{{ hive_timezone | default('Etc/GMT') }}"
+      DB_SERVER_HOST: "zabbix-db"
       MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
@@ -20,8 +20,9 @@ services:
     image: zabbix/zabbix-web-nginx-mysql:ubuntu-trunk
     container_name: zabbix-web
     environment:
-      TZ: "Asia/Tokyo"
-      DB_SERVER_HOST: mariadb
+      TZ: "{{ hive_timezone | default('Etc/GMT') }}"
+      PHP_TZ: "{{ hive_timezone | default('Etc/GMT') }}"
+      DB_SERVER_HOST: "zabbix-db"
       MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
@@ -32,11 +33,11 @@ services:
     networks:
       default:
         ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(3) | ipaddr('address') }}"
-  mariadb:
+  zabbix-db:
     image: mariadb:10.4
-    container_name: mariadb
+    container_name: zabbix-db
     environment:
-      TZ: "Asia/Tokyo"
+      TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix

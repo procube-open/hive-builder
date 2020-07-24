@@ -10,11 +10,12 @@
       https://github.com/procube-open/drbd9-rpm/releases/download/{{
         '9.0.22/drbd9-rpm-amzn2' if hive_provider == 'aws'
         else '9.0.20/drbd9-rpm' if uname_result.stdout is version('3.10.0-1127', 'lt')
-        else '9.0.22/drbd9-rpm'}}.tar.gz
+        else '9.0.24/drbd9-rpm' if uname_result.stdout is version('4.18.0', 'lt')
+        else '9.0.24/drbd9-rpm-foros8'}}.tar.gz
     remote_src: yes
     dest: /root/
 - name: gather rpm file list
-  shell: ls -1 /root/RPMS{{ '.amzn2' if hive_provider == 'aws' else '' }}/*/*.rpm
+  shell: ls -1 /root/RPMS{{ '.amzn2' if hive_provider == 'aws' else '' if uname_result.stdout is version('4.18.0', 'lt') else '.foros8' }}/*/*.rpm
   check_mode: False
   changed_when: False
   register: hive_safe_rpms
@@ -87,26 +88,13 @@
     thinpool: drbdpool
     size: "97%VG"
   when: not (hive_no_mirrored_device | default(False))
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: drbd
+    hive_safe_iptables_dports:
+      - 7000:7999
+    hive_safe_iptables_protocol: tcp
 
-- name: "insert allow drbd port rule into iptables (no internal network)"
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 7000:7999 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for drbd {{ item }}"
-  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
-  tags: iptables
-  when: hive_internal_net_addr is not defined
-- name: "insert allow drbd port rule into iptables for internal network"
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp  -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 7000:7999 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for drbd"
-  tags: iptables
-  when: hive_internal_net_addr is defined
 - name: "install drbd resource service template"
   copy:
     src: drbd-resource@.service

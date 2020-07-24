@@ -7,12 +7,34 @@
     group: root
     mode: 0644
   when: hive_provider != 'aws'
+
+- name: install docker package
+  yum:
+    name:
+      # to avoid following error install containerd.io individually 2020-07-24 07:59:00
+      # fatal: [p-hive0.pdns]: FAILED! => changed=false
+      # Depsolve Error occured:
+      #  Problem: package docker-ce-3:19.03.12-3.el7.x86_64 requires containerd.io >= 1.2.2-3, but none of the providers can be installed
+      #   - cannot install the best candidate for the job
+      #   - package containerd.io-1.2.10-3.2.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.13-3.1.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.13-3.2.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.2-3.3.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.2-3.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.4-3.1.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.5-3.1.el7.x86_64 is excluded
+      #   - package containerd.io-1.2.6-3.3.el7.x86_64 is excluded
+      - "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.13-3.2.el7.x86_64.rpm"
+      - docker-ce
+    state: present
+  when: hive_provider != 'aws'
   # AWS linux provides docker ce in amazon extra repos
 - name: install docker package
   yum:
-    name: "{{'docker' if hive_provider == 'aws' else 'docker-ce'}}"
+    name: docker
     state: present
-    enablerepo: "{{'amzn2extra-docker' if hive_provider == 'aws' else omit }}"
+    enablerepo: amzn2extra-docker
+  when: hive_provider == 'aws'
 - name: add docker group
   group:
     name: docker
@@ -23,33 +45,22 @@
     append: True
     groups: docker
   when: hive_safe_admin is defined
-- name: insert allow api port rule into iptables (no internal network)
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 2376 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api {{ item }}"
-  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
-  when: hive_internal_net_addr is not defined
-  notify: require reboot
-- name: insert allow api port rule into iptables for internal network
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 2376 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api for internal network"
-  when: hive_internal_net_addr is defined
-  notify: require reboot
-# - name: insert allow api port rule into iptables for docker container
-#   blockinfile:
-#     dest: /etc/sysconfig/iptables
-#     insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-#     block: |
-#       -A INPUT -p tcp -s 172.16.0.0/12 -m state --state NEW -m multiport --dport 2376 -j ACCEPT
-#     marker: "# {mark} ANSIBLE MANAGED BLOCK for docker api"
-#   notify: require reboot
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: docker_api_swarm
+    hive_safe_iptables_dports:
+      - 2376
+      - 2377
+      - 7946
+    hive_safe_iptables_protocol: tcp
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: docker_swarm_udp
+    hive_safe_iptables_dports:
+      - 7946
+      - 4789
+    hive_safe_iptables_protocol: udp
+
 - name: create directory /etc/docker
   file:
     dest: "/etc/docker"
@@ -68,45 +79,6 @@
     owner: root
     group: root
     mode: 0644
-- name: insert allow swarm port rule into iptables (no internal network)
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ item }} -m state --state NEW -m multiport --dport 2377,7946 -j ACCEPT
-      -A INPUT -p udp -s {{ item }} -m state --state NEW -m multiport --dport 7946,4789 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for swarm {{ item }}"
-  with_items: "{{ansible_play_batch | map('extract', hostvars, 'hive_private_ip') | list}}"
-  when: hive_internal_net_addr is not defined
-  notify: require reboot
-- name: insert allow swarm port rule into iptables for internal network
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 2377,7946 -j ACCEPT
-      -A INPUT -p udp -s {{ hive_internal_net_addr }}/{{ hive_internal_net_cidr }} -m state --state NEW -m multiport --dport 7946,4789 -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for swarm"
-  when: hive_internal_net_addr is defined
-  notify: require reboot
-- name: insert allow published tcp port rule into iptables for global
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p tcp -m state --state NEW -m multiport --dport {{ hive_published_ports_tcp | join(',') }} -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for published tcp port"
-  when: hive_published_ports_tcp | length > 0
-  notify: require reboot
-- name: insert allow published udp port rule into iptables for global
-  blockinfile:
-    dest: /etc/sysconfig/iptables
-    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-    block: |
-      -A INPUT -p udp -m state --state NEW -m multiport --dport {{ hive_published_ports_udp | join(',') }} -j ACCEPT
-    marker: "# {mark} ANSIBLE MANAGED BLOCK for published udp port"
-  when: hive_published_ports_udp | length > 0
-  notify: require reboot
 - name: check file 11-gce-network-security.conf
   stat:
     path: /etc/sysctl.d/11-gce-network-security.conf
@@ -138,5 +110,4 @@
     owner: root
     group: root
 - name: enable service
-  service: name=docker enabled=yes
-  notify: require reboot
+  service: name=docker enabled=yes state=started

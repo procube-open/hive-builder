@@ -53,7 +53,7 @@
   # args:
   #   creates: "{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
   when: csr_fetched.results[0].changed or csr_fetched.results[1].changed or not (hive_safe_tls_hostname_cert_pem.stat.exists)
-- name: install clinet cert files
+- name: install client cert files
   tags: signed
   copy:
     src: "{{ hive_safe_ca_dir }}/{{ hive_safe_tls_hostname }}_cert.pem"
