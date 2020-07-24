@@ -5,6 +5,13 @@
   yum: name=iptables-services state=present
 - name: disable firewalld
   yum: name=firewalld state=removed
+- name: create HIVE-SERVICE chain in iptables config file
+  blockinfile:
+    dest: /etc/sysconfig/iptables
+    insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    block: |
+      -N HIVE-SERVICE
+      -A INPUT -j HIVE-SERVICE
+    marker: "# {mark} HIVE-BUILDER MANAGED BLOCK setup HIVE-SERVICE chain"
 - name: enable services
-  service: name=iptables enabled=yes
-  notify: require reboot
+  service: name=iptables enabled=yes state=started

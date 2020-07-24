@@ -14,5 +14,4 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{item}}"
   with_items: "{{ hive_ntp_servers }}"
 - name: enable choronyd
-  service: name=chronyd enabled=yes
-  notify: require reboot
+  service: name=chronyd enabled=yes state=started

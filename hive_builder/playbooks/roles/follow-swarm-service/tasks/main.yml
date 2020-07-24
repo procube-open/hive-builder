@@ -4,6 +4,25 @@
     src: follow-swarm-service.py
     dest: /usr/lib/
     mode: 0644
+- name: Allow service to execute link ~/docker/bin/python
+  sefcontext:
+    ftype: l
+    target: "{{ hive_home_dir }}/docker/bin/python"
+    setype: bin_t
+    state: present
+  register: result_sefcontext_l
+  when: hive_safe_selinux != 'disabled'
+- name: Allow service to execute files ~/docker/bin/python3
+  sefcontext:
+    ftype: a
+    target: "{{ hive_home_dir }}/docker/bin/python3"
+    setype: bin_t
+    state: present
+  register: result_sefcontext_f
+  when: hive_safe_selinux != 'disabled'
+- name: Apply new SELinux file context to filesystem
+  command: "restorecon -irv {{ hive_home_dir }}/docker/bin/python*"
+  when: hive_safe_selinux != 'disabled' and (result_sefcontext_l is changed or result_sefcontext_f is changed)
 - name: setup follow swarm service service
   template:
     src: follow-swarm-service.service
