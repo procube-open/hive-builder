@@ -225,7 +225,14 @@ hive定義の internal_cidr プロパティで変更できます。
 vagrant プロバイダ
 ^^^^^^^^^^^^^^^^^^^
 vagrant プロバイダを利用するには、 Vagrant がインストールされていて、 virtualbox か libvirt の Vagrant プロバイダ
-がセットアップされている必要があります。
+がセットアップされている必要があります。また、virtualbox の場合は、 vagrant-disksize プラグインがインストールされている
+必要があります。以下のコマンドでプラグインをインストールしてください。
+
+::
+
+  vagrant plugin install vagrant-disksize
+
+
 vagrant プロバイダ固有の属性には以下のものがあります。
 
 ..  list-table::
@@ -260,6 +267,7 @@ vagrant プロバイダ固有の属性には以下のものがあります。
 - disk_size, repository_disk_size を省略した場合、Vagrant のデフォルトのサイズになります。
 - subnets 属性は指定できません
 - bridge, dev のどちらも指定しない場合、ホストオンリーネットワークに接続されます。
+
 
 
 aws プロバイダ
