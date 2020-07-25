@@ -41,6 +41,18 @@
       ansible_python_interpreter: "{{ hostvars[hive_safe_repository_server].hive_home_dir }}/docker/bin/python"
     delegate_to: "{{ hive_safe_repository_server }}"
     delegate_facts: True
+  - name: gather proxy setting values
+    setup:
+    delegate_to: "{{ hive_safe_repository_server }}"
+    delegate_facts: True
+  - set_fact:
+      hive_safe_proxy_settings:
+        HTTP_PROXY: "{{ hostvars[hive_safe_repository_server].ansible_env.HTTP_PROXY | default('') }}"
+        http_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.http_proxy | default('') }}"
+        HTTPS_PROXY: "{{ hostvars[hive_safe_repository_server].ansible_env.HTTPS_PROXY | default('') }}"
+        https_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.https_proxy | default('') }}"
+        NO_PROXY: "{{ hostvars[hive_safe_repository_server].ansible_env.NO_PROXY | default('') }}"
+        no_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.no_proxy | default('') }}"
   - name: create container
     delegate_to: "{{ hive_safe_repository_server }}"
     docker_container:
@@ -48,7 +60,7 @@
       exposed_ports: "{{ hive_expose | default(omit) }}"
       name: "build_{{ inventory_hostname }}"
       hostname: "{{ inventory_hostname }}"
-      env: "{%if lookup('env', 'HTTP_PROXY') | length > 0 %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      env: "{{(hive_env | default({})) | combine(hive_safe_proxy_settings) }}"
       privileged: "{{ hive_privileged | default(omit) }}"
       entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
       working_dir: "{{ hive_working_dir | default(omit) }}"

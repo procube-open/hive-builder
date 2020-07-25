@@ -40,7 +40,7 @@
       tags: ["follow-swarm-service"]
     - role: docker-client-proxy
       tags: ["docker-client-proxy"]
-      when: "(lookup('env', 'HTTP_PROXY')|length) > 0"
+      when: ansible_env.HTTP_PROXY is defined
     - role: zabbix-agent
       tags: ["zabbix-agent"]
     - role: reboot
