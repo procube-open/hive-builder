@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.0</version>
+    <date>2020-07-23T07:13:48Z</date>
+    <groups>
+        <group>
+            <name>Templates/Applications</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>SystemD service monitoring template</template>
+            <name>SystemD service monitoring template</name>
+            <description>Discovery enabled systemd services, checks status every 1m, and checks systemd service active time to determine if service has restarted.</description>
+            <groups>
+                <group>
+                    <name>Templates/Applications</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>systemd</name>
+                </application>
+            </applications>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>Service Discovery</name>
+                    <key>systemd.service.discovery</key>
+                    <delay>5m</delay>
+                    <lifetime>1d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>{#SERVICE} Restart</name>
+                            <key>systemd.service.restart[{#SERVICE}]</key>
+                            <history>1d</history>
+                            <trends>1d</trends>
+                            <applications>
+                                <application>
+                                    <name>systemd</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last()}&lt;&gt;0</expression>
+                                    <name>{#SERVICE} service has restarted</name>
+                                    <priority>WARNING</priority>
+                                    <description>Triggers an alert if a service has restarted</description>
+                                    <manual_close>YES</manual_close>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>{#SERVICE} Status</name>
+                            <key>systemd.service.status[{#SERVICE}]</key>
+                            <history>1d</history>
+                            <trends>1d</trends>
+                            <description>Returns the status of the</description>
+                            <applications>
+                                <application>
+                                    <name>systemd</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last()}&lt;&gt;0</expression>
+                                    <name>{#SERVICE} service not running</name>
+                                    <priority>HIGH</priority>
+                                    <manual_close>YES</manual_close>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+        </template>
+    </templates>
+</zabbix_export>

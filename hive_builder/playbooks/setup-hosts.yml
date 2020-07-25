@@ -21,14 +21,12 @@
     - role: internal-network
       tags: ["internal-network"]
       when: hive_internal_net_if is defined
-    - role: auxiliary-networks
-      tags: ["auxiliary-networks"]
-      when: (hive_config_auxiliary_networks | default(False)) and hive_auxiliary_networks is defined
     - role: users
       tags: ["users"]
       when: hive_users is defined
     - role: strict-source-ip
       tags: ["strict-source-ip"]
+      when: hive_ssh_source_ips is defined
     - role: tls-certificate
       tags: ["tls-certificate"]
     - role: docker
@@ -42,7 +40,7 @@
       tags: ["follow-swarm-service"]
     - role: docker-client-proxy
       tags: ["docker-client-proxy"]
-      when: "(lookup('env', 'HTTP_PROXY')|length) > 0"
+      when: ansible_env.HTTP_PROXY is defined
     - role: zabbix-agent
       tags: ["zabbix-agent"]
     - role: reboot

@@ -11,90 +11,91 @@
     dest: "{{ hive_home_dir }}/zabbix/docker-compose.yml"
     mode: 0755
 
-- name: set ansible_python_interpreter
-  set_fact:
+- vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  block:
+  - name: compose up zabbix container
+    docker_compose:
+      project_src: "{{ hive_home_dir }}/zabbix"
 
-- name: compose up zabbix container
-  docker_compose:
-    project_src: "{{ hive_home_dir }}/zabbix"
+  - name: install zabbix api
+    become: False
+    pip:
+      name: zabbix-api
+      state: present
+      virtualenv: "{{ hive_home_dir }}/docker"
 
-- name: install zabbix api
-  become: False
-  pip:
-    name: zabbix-api
-    state: present
-    virtualenv: "{{ hive_home_dir }}/docker"
+  - name: remove default Zabbix Server
+    zabbix_host:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      host_name: Zabbix server
+      host_groups:
+      - Zabbix servers
+      state: absent
+    until: not zabbix_api_result.failed
+    retries: 20
+    delay: 10
+    register: zabbix_api_result
+  - name: Create Hive, Repository group
+    zabbix_group:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      state: present
+      host_groups:
+        - Hives
+        - Repository server
+  - name: Configure macros on the Template OS Linux by Zabbix agent
+    zabbix5_template:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      template_name: Template OS Linux by Zabbix agent
+      macros:
+        - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
+          value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
+      state: present
+  - name: upload templates
+    zabbix5_template:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      template_xml: "{{ lookup('file', item) }}"
+    loop:
+      - hive-repository-server.xml
+      - hive-server.xml
+      - hive-server-selinux.xml
+      - Template_App_systemd_Services.xml
 
-- name: remove default Zabbix Server
-  zabbix_host:
-    server_url: http://{{ inventory_hostname }}:10052
-    login_user: admin
-    login_password: zabbix
-    host_name: Zabbix server
-    host_groups:
-    - Zabbix servers
-    state: absent
-  until: not zabbix_api_result.failed
-  retries: 20
-  delay: 10
-  register: zabbix_api_result
-- name: Create Hive, Repository group
-  zabbix_group:
-    server_url: http://{{ inventory_hostname }}:10052
-    login_user: admin
-    login_password: zabbix
-    state: present
-    host_groups:
-      - Hives
-      - Repository server
-- name: Configure macros on the Template OS Linux by Zabbix agent
-  zabbix5_template:
-    server_url: http://{{ inventory_hostname }}:10052
-    login_user: admin
-    login_password: zabbix
-    template_name: Template OS Linux by Zabbix agent
-    macros:
-      - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
-        value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
-    state: present
-- name: upload templates
-  zabbix5_template:
-    server_url: http://{{ inventory_hostname }}:10052
-    login_user: admin
-    login_password: zabbix
-    template_xml: "{{ lookup('file', item) }}"
-  loop:
-    - hive-repository-server.xml
-    - hive-server.xml
-
-- name: register hive hosts to zabbix
-  zabbix_host:
-    server_url: http://{{ inventory_hostname }}:10052
-    login_user: admin
-    login_password: zabbix
-    host_name: "{{ item }}"
-    host_groups:
-    - Linux servers
-    link_templates: >-
-      {%- set templates = ['Template OS Linux by Zabbix agent'] -%}
-      {%- if item in groups['repository'] -%}
-        {%- set _ = templates.append('Hive Repository Server') -%}
-      {%- endif -%}
-      {%- if item in groups['hives'] -%}
-        {%- set _ = templates.append('Hive Server') -%}
-      {%- endif -%}
-      {{ templates }}
-    interfaces:
-      - type: 1
-        main: 1
-        useip: 1
-        ip: "{{ hostvars[item].hive_private_ip }}"
-        dns: ""
-        port: 10050
-    state: present
-  loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
-
-- name: reset ansible_python_interpreter
-  set_fact:
-    ansible_python_interpreter: "/usr/bin/python"
+  - name: register hive hosts to zabbix
+    zabbix_host:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      host_name: "{{ item }}"
+      host_groups:
+      - Linux servers
+      link_templates: >-
+        {%- set templates = ['Template OS Linux by Zabbix agent'] -%}
+        {%- if item in groups['repository'] -%}
+          {%- set _ = templates.append('Hive Repository Server') -%}
+        {%- endif -%}
+        {%- if item in groups['hives'] -%}
+          {%- set _ = templates.append('Hive Server') -%}
+          {%- set _ = templates.append('SystemD service monitoring template') -%}
+          {%- if hive_safe_selinux != 'disabled' -%}
+            {%- set _ = templates.append('Hive Server SELinux') -%}
+          {%- endif -%}
+        {%- endif -%}
+        {{ templates }}
+      interfaces:
+        - type: 1
+          main: 1
+          useip: 1
+          ip: "{{ hostvars[item].hive_private_ip }}"
+          dns: ""
+          port: 10050
+      state: present
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"

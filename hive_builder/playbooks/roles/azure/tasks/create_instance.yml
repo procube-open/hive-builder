@@ -44,8 +44,6 @@
       public_ip_address_name: "gip-{{ hive_safe_name }}"
       primary: True
   register: primary_nic
-- debug:
-    var: primary_nic
 
 - name: Create VM
   azure_rm_virtualmachine:

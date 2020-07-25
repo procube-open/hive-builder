@@ -6,7 +6,6 @@
   vars:
     hive_safe_drbd_volumes: "{%if hive_limit is defined %}{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\\1') | list) | list}}{% else %}{{ groups['drbd_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
     hive_safe_volumes: "{%if hive_limit is defined %}{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\\1') | list) | list}}{% else %}{{ groups['volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
-    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
 
   tasks:
   - include_role:
@@ -23,6 +22,8 @@
         device: "/dev/drbd{{ hostvars[item].hive_volume.drbd.device_id }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_drbd_volumes }}"
+    vars:
+      ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
   - name: create another driver volume
     docker_volume:
       name: "{{ hostvars[item].hive_volume.name }}"
@@ -30,5 +31,7 @@
       driver_options: "{{ hostvars[item].hive_volume.dirver_options | default(omit) }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_volumes }}"
+    vars:
+      ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
   # - import_role:
       # name: reboot

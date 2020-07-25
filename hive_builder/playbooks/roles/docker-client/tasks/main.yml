@@ -12,12 +12,12 @@
     dest: "{{ hive_home_dir }}/.docker/ca.pem"
     mode: 0600
 - name: "setup tls connection - put certs"
-  become: False
   copy:
     remote_src: True
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
     mode: 0600
+    owner: "{{ hive_safe_admin }}"
   with_items:
     - src: "{{ hive_safe_tls_dir }}/private/{{ inventory_hostname }}_key.pem"
       dest: "{{ hive_home_dir }}/.docker/key.pem"

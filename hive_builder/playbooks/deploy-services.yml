@@ -44,11 +44,18 @@
     when: not (hive_destroy  | default(false))
 
 - name: deploy services
-  gather_facts: False
+  gather_facts: True
   hosts: first_hive
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] | intersect(groups[hive_stage]) | list}}{% endif %}"
+    hive_safe_proxy_setting:
+      HTTP_PROXY: "{{ ansible_env.HTTP_PROXY | default('') }}"
+      http_proxy: "{{ ansible_env.http_proxy  | default('') }}"
+      HTTPS_PROXY: "{{ ansible_env.HTTPS_PROXY | default('') }}"
+      https_proxy: "{{ ansible_env.https_proxy  | default('') }}"
+      NO_PROXY: "{{ ansible_env.NO_PROXY | default('') }}"
+      no_proxy: "{{ ansible_env.no_proxy  | default('') }}"
 
   tasks:
   - name: deploy service
@@ -71,7 +78,7 @@
       args: "{{ hostvars[item].hive_command | default(omit) }}"
       # Docker calls it entrypoint, but swarmkit calls it command
       command: "{{ hostvars[item].hive_entrypoint | default(omit) }}"
-      env: "{{ hostvars[item].hive_environment | default(omit) }}"
+      env: "{{ hostvars[item].hive_environment | default({}) | combine(hive_safe_proxy_setting) }}"
       publish: "{{ hostvars[item].hive_ports | default(omit) }}"
       mounts: "{{ hostvars[item].hive_volumes | default(omit) }}"
       labels: >-

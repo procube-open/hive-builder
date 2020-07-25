@@ -20,12 +20,12 @@ mother マシンの OS は、CentOS, Windows Subsystem for Linux, Mac OS, Ubuntu
 
 各OSごとにインストールの手順を示します。
 
-Centos の場合
+Centos 7 の場合
 =================================
 
 .. note::
 
-    現在サポートしているのは CentOS 7 のみです。CentOS 6, CentOS 8 は未サポートです。
+    現在サポートしているのは CentOS 7/8 です。CentOS 6 は未サポートです。
 
 docker コマンドのインストール
 ------------------------------
@@ -34,6 +34,18 @@ docker コマンドのインストール
 ::
 
   yum install -y docker-client
+
+Centos 8 の場合
+=================================
+
+docker コマンドのインストール
+------------------------------
+以下のコマンドを root で実行して docker-ce-cli をインストールしてください。
+
+::
+
+  yum config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  yum install -y  docker-ce-cli
 
 .. note::
 
@@ -66,7 +78,6 @@ hive-builder のインストール
   pip install hive_builder
 
 インストールがエラーになる場合は、 pip install -U pip wheel で pip と wheel を最新バージョンにアップデートしてみてください。
-
 
 Windows Subsystem for Linuxの場合
 ===================================

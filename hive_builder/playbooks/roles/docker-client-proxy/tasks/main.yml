@@ -13,11 +13,11 @@
   set_fact: config_contents="{{contents.stdout|from_json}}"
   when: "_home_docker_config_.stat.exists"
 - name: init http_proxy
-  set_fact: config_contents_http_proxy="{{lookup('env', 'HTTP_PROXY')}}"
+  set_fact: config_contents_http_proxy="{{ ansible_env.HTTP_PROXY }}"
 - name: init https_proxy
-  set_fact: config_contents_https_proxy="{{lookup('env', 'HTTPS_PROXY')}}"
+  set_fact: config_contents_https_proxy="{{ ansible_env.HTTPS_PROXY }}"
 - name: init no_proxy
-  set_fact: config_contents_no_proxy="{{lookup('env', 'NO_PROXY')}}"
+  set_fact: config_contents_no_proxy="{{ ansible_env.NO_PROXY }}"
 - name: debug
   debug:
     msg: "contents is => {{config_contents}}"

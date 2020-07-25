@@ -1,0 +1,139 @@
+
+module hive 1.0;
+
+require {
+	type kernel_t;
+	type rpm_var_lib_t;
+	type container_runtime_t;
+	type devlog_t;
+	type initrc_t;
+	type setroubleshootd_t;
+	type container_runtime_exec_t;
+	type chkpwd_exec_t;
+	type iptables_t;
+	type NetworkManager_t;
+	type user_devpts_t;
+	type chkpwd_t;
+	type zabbix_agent_t;
+	type sysstat_t;
+	type rpm_exec_t;
+	type sshd_t;
+	type system_dbusd_t;
+	type drbd_exec_t;
+	type shadow_t;
+	type unconfined_service_t;
+	type unconfined_t;
+	type container_var_lib_t;
+	type user_home_t;
+	type drbd_t;
+	type policykit_t;
+	type init_t;
+	type systemd_tmpfiles_t;
+	type auditd_etc_t;
+	type rpcbind_unit_file_t;
+	type syslogd_unit_file_t;
+	type chronyd_unit_file_t;
+	type init_t;
+	type auditd_unit_file_t;
+	type container_unit_file_t;
+	type sshd_unit_file_t;
+	type iptables_unit_file_t;
+	type rngd_unit_file_t;
+	type sssd_unit_file_t;
+	type crond_unit_file_t;
+	type systemd_systemctl_exec_t;
+	type systemd_unit_file_t;
+	type gssproxy_unit_file_t;
+	type lvm_unit_file_t;
+	type auditd_log_t;
+	type zabbix_agent_t;
+	type NetworkManager_unit_file_t;
+	type rpcd_unit_file_t;
+	type systemd_hwdb_unit_file_t;
+	type power_unit_file_t;
+	type systemd_resolved_unit_file_t;
+	class system status;
+	class service status;
+	class file { execute execute_no_trans ioctl lock open read };
+	class capability { audit_write dac_read_search dac_override net_admin };
+	class netlink_audit_socket { create nlmsg_relay read write };
+	class unix_dgram_socket { connect create sendto write };
+	class netlink_generic_socket { bind create getattr read setopt write };
+	class sock_file write;
+	class process { noatsecure rlimitinh siginh };
+	class unix_stream_socket { read write };
+	class dir search;
+	class chr_file { read write };
+}
+
+#============= NetworkManager_t ==============
+allow NetworkManager_t initrc_t:process { noatsecure rlimitinh siginh };
+
+#============= chkpwd_t ==============
+allow chkpwd_t user_devpts_t:chr_file { read write };
+
+#============= drbd_t ==============
+allow drbd_t self:netlink_generic_socket { bind create getattr read setopt write };
+
+#============= init_t ==============
+allow init_t chkpwd_t:process siginh;
+allow init_t initrc_t:process siginh;
+allow init_t unconfined_service_t:process siginh;
+allow init_t unconfined_t:process siginh;
+
+#============= iptables_t ==============
+allow iptables_t container_runtime_t:unix_stream_socket { read write };
+
+#============= policykit_t ==============
+allow policykit_t self:capability net_admin;
+
+#============= sshd_t ==============
+allow sshd_t chkpwd_t:process { noatsecure rlimitinh siginh };
+
+#============= sysstat_t ==============
+allow sysstat_t container_var_lib_t:dir search;
+
+#============= system_dbusd_t ==============
+allow system_dbusd_t self:capability net_admin;
+allow system_dbusd_t setroubleshootd_t:process { noatsecure rlimitinh siginh };
+
+#============= systemd_tmpfiles_t ==============
+allow systemd_tmpfiles_t self:capability net_admin;
+
+#============= zabbix_agent_t ==============
+allow zabbix_agent_t chkpwd_exec_t:file execute_no_trans;
+allow zabbix_agent_t container_runtime_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t devlog_t:sock_file write;
+allow zabbix_agent_t drbd_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t kernel_t:unix_dgram_socket sendto;
+allow zabbix_agent_t rpm_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t rpm_var_lib_t:file { lock open read };
+allow zabbix_agent_t self:capability { audit_write dac_read_search net_admin };
+allow zabbix_agent_t self:netlink_audit_socket { create nlmsg_relay read write };
+allow zabbix_agent_t self:netlink_generic_socket { bind create getattr read setopt write };
+allow zabbix_agent_t self:unix_dgram_socket { connect create write };
+allow zabbix_agent_t shadow_t:file { open read };
+allow zabbix_agent_t user_home_t:file { execute ioctl open read };
+allow zabbix_agent_t NetworkManager_unit_file_t:service status;
+allow zabbix_agent_t auditd_etc_t:file { open read };
+allow zabbix_agent_t auditd_log_t:file { open read };
+allow zabbix_agent_t auditd_unit_file_t:service status;
+allow zabbix_agent_t chronyd_unit_file_t:service status;
+allow zabbix_agent_t container_unit_file_t:service status;
+allow zabbix_agent_t crond_unit_file_t:service status;
+allow zabbix_agent_t gssproxy_unit_file_t:service status;
+allow zabbix_agent_t init_t:system status;
+allow zabbix_agent_t iptables_unit_file_t:service status;
+allow zabbix_agent_t lvm_unit_file_t:service status;
+allow zabbix_agent_t rngd_unit_file_t:service status;
+allow zabbix_agent_t rpcbind_unit_file_t:service status;
+allow zabbix_agent_t rpcd_unit_file_t:service status;
+allow zabbix_agent_t self:capability dac_override;
+allow zabbix_agent_t sshd_unit_file_t:service status;
+allow zabbix_agent_t sssd_unit_file_t:service status;
+allow zabbix_agent_t syslogd_unit_file_t:service status;
+allow zabbix_agent_t systemd_systemctl_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t systemd_unit_file_t:service status;
+allow zabbix_agent_t power_unit_file_t:service status;
+allow zabbix_agent_t systemd_hwdb_unit_file_t:service status;
+allow zabbix_agent_t systemd_resolved_unit_file_t:service status;

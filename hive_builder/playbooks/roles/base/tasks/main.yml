@@ -19,14 +19,24 @@
 - name: fix yum download site - set baseurl
   replace:
     path: /etc/yum.repos.d/CentOS-Base.repo
-    regexp: "^#?baseurl=.*/centos/(.*)$"
-    replace: "baseurl={{ hive_yum_url }}/\\1"
+    regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
+    replace: "baseurl={{ hive_yum_url }}/\\2"
   when: hive_yum_url is defined and hive_yum_url != omit
+- name: check kernel version
+  shell: uname -r
+  register: uname_result
+  check_mode: False
+  changed_when: False
+- name: update kernel for drbd
+  yum:
+    name: kernel
+    state: latest
+  when: hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')
+  notify: require reboot
 - name: install packages
   yum:
     state: present
     name:
-      - bridge-utils
       - wget
       - vim
       - unzip
@@ -35,16 +45,22 @@
       - strace
       - tcpdump
       - lsof
-      - libselinux-python
-- name: disable selinux
-  selinux: >
-    state=disabled
-  notify: require reboot
+      - "{{ 'libselinux-python' if hive_provider == 'aws' else 'python3-libselinux' }}"
+- name: install selinux packages
+  yum:
+    state: present
+    name:
+      - setroubleshoot
+      - selinux-policy-devel
+  when: hive_safe_selinux != 'disabled'
+- name: set selinux mode
+  selinux:
+    policy: targeted
+    state: "{{ hive_safe_selinux }}"
 - name: enable services
-  service: "name={{ item }} enabled=yes"
+  service: "name={{ item }} enabled=yes state=started"
   with_items:
     - sysstat
-  notify: require reboot
 - name: set hostname
   hostname:
     name: "{{ inventory_hostname.split('.')[0] }}"
