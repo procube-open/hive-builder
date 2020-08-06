@@ -36,6 +36,49 @@ build-infra で Vagrant command failed のエラーになります
 :コマンド: build-infra
 :対応方法: cd .hive/ステージ名; /usr/bin/vagrant up --provision を実行してエラーメッセージを確認し、修正してください。
 
+エラーメッセージに Could not create the directory が含まれる場合
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+エラーメッセージが以下のようなもので、 Could not create the directory が含まれている場合、 vagrant-disksize プラグインのバグにより、ディスクのサイズ拡張に失敗しています。
+参考： https://github.com/sprotheroe/vagrant-disksize/pull/27
+
+::
+
+
+    There was an error while executing `VBoxManage`, a CLI used by Vagrant
+    for controlling VirtualBox. The command and stderr is shown below.
+    Command: ["clonemedium", "C:\\Users\\mitsuru\\VirtualBox VMs\\p-hive0.mic-env\\CentOS-8-Vagrant-8.0.1905-1.x86_64.vmdk", "./C:\\Users\\mitsuru\\VirtualBox VMs\\p-hive0.mic-env\\CentOS-8-Vagrant-8.0.1905-1.x86_64.vdi", "--format", "VDI"]
+    Stderr: 0%...
+    Progress state: VBOX_E_IPRT_ERROR
+    VBoxManage.exe: error: Failed to clone medium
+    VBoxManage.exe: error: Could not create the directory '\\wsl$\Ubuntu\home\mitsuru\hive\private\C:\Users\mitsuru\VirtualBox VMs\p-hive0.mic-env' (VERR_INVALID_NAME)
+    VBoxManage.exe: error: Details: code VBOX_E_IPRT_ERROR (0x80bb0005), component VirtualBoxWrap, interface IVirtualBox
+    VBoxManage.exe: error: Context: "enum RTEXITCODE __cdecl handleCloneMedium(struct HandlerArg *)" at line 1071 of file VBoxManageDisk.cpp
+
+この場合、vagrant-disksize プラグインを修正することで回避できます。
+
+vagrant-disksize プラグインを以下のように修正してください。
+
+:ファイル: ~/.vagrant.d/gems/2.6.6/gems/vagrant-disksize-0.1.3/lib/vagrant/disksize/actions.rb
+:修正箇所: 151行目
+:修正前:
+
+::
+
+
+    dst = File.join(src_path, src_base) + '.vdi'
+
+:修正後:
+
+エラーメッセージに Error: Unknown repo: 'C*-base' が含まれる場合
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+エラーが VirtualBox Guest addtions のインストール中に発生し、メッセージが Error: Unknown repo: 'C*-base' である場合、vagrant-vbguest プラグインのバグである可能性が高いです。
+参考： https://github.com/dotless-de/vagrant-vbguest/issues/367
+
+この場合は、vagrant-vbguest プラグインを vagrant plugin uninstall vagrant-vbguest コマンドでアンインストールしてください。
+
+
 build-images で Release file is not valid yet のエラーが出ます
 -------------------------------------------------------------------------------
 :メッセージ: Release file for http://security.ubuntu.com/ubuntu/dists/focal-security/InRelease is not valid yet (invalid for another XXh XXmin XXs). Updates for this repository will not be applied.
@@ -52,4 +95,21 @@ zabbix の SELinux alert でエラーが出ます
 :原因: SELinux の audit log が短時間に大量に出力されたために、 /var/log/audit/audit.log がローテートしてしまい、チェックポイント機能が利用できなかった
 :対応方法: 対象サーバにログインして sudo  ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -i を実行し、 SELinux の audit ログが出力された原因を取り除いてください。
            その後、 sudo rm /var/run/zabbix/ausearch でチェックポイントファイルを削除してください。
+
+deploy-services で renaming services is not supported のエラーが出ます
+-------------------------------------------------------------------------------
+:メッセージ:
+
+::
+
+
+    An exception occurred during task execution. To see the full traceback, use -vvv. The error was: docker.errors.APIError: 501 Server Error: Not Implemented ("rpc error: code = Unimplemented desc = renaming services is not supported")
+    failed: [s-hive0.hive名] (item=サービス名) => changed=false
+      ansible_loop_var: item
+      item: サービス名
+    msg: 'An unexpected docker error occurred: 501 Server Error: Not Implemented ("rpc error: code = Unimplemented desc = renaming services is not supported")'
+
+:発生条件: 不明
+:原因: 不明
+:対応方法: hive ssh -t ステージプリフィクスhive0.hive名 でログインして、 docker service rm サービス名 を実行後に hive deploy-services を再実行してください。
 

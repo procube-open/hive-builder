@@ -2,7 +2,8 @@
 - name: check drbd resource service is active
   service_facts:
   register: hive_safe_drbd_service_facts
-- debug: msg="service={{hive_safe_drbd_service_facts.ansible_facts.services['drbd-resource@' + hive_safe_volume.name + '.service'] | default('not found')}}"
+- debug:
+    msg: "service for {{ hive_safe_volume.name }} : {{hive_safe_drbd_service_facts.ansible_facts.services['drbd-resource@' + hive_safe_volume.name + '.service'] | default('not found')}}"
 - set_fact:
     hive_safe_drbd_service_not_exists: "{{ 'drbd-resource@' + hive_safe_volume.name + '.service' not in hive_safe_drbd_service_facts.ansible_facts.services }}"
     hive_safe_drbd_with_disk: "{{ (hive_safe_volume.drbd.diskless is not defined or inventory_hostname not in hive_safe_volume.drbd.diskless) and not (hive_no_mirrored_device | default(False)) }}"

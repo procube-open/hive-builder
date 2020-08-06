@@ -9,19 +9,19 @@
     insertafter=EOF
     create=yes
     owner=root group=root mode=0644
-  when: hive_yum_url is defined and hive_yum_url != omit
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
 - name: fix yum download site - remove mirror list
   replace:
     path: /etc/yum.repos.d/CentOS-Base.repo
     regexp: "^#?mirrorlist=(.*)$"
     replace: "#mirrorlist=\\1"
-  when: hive_yum_url is defined and hive_yum_url != omit
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
 - name: fix yum download site - set baseurl
   replace:
     path: /etc/yum.repos.d/CentOS-Base.repo
     regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
     replace: "baseurl={{ hive_yum_url }}/\\2"
-  when: hive_yum_url is defined and hive_yum_url != omit
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
 - name: check kernel version
   shell: uname -r
   register: uname_result
@@ -45,6 +45,7 @@
       - strace
       - tcpdump
       - lsof
+      - chrony
       - "{{ 'libselinux-python' if hive_provider == 'aws' else 'python3-libselinux' }}"
 - name: install selinux packages
   yum:
