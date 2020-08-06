@@ -60,10 +60,9 @@ services:
     ports:
       - "80"
     environment:
-      - SQLALCHEMY_DATABASE_URI=sqlite:////app/data/padmin.sqlite
-      - GUINCORN_TIMEOUT=60
-      - GUNICORN_WORKERS=2
-      - GUNICORN_LOGLEVEL=DEBUG
+      SQLALCHEMY_DATABASE_URI: "sqlite:////app/data/padmin.sqlite"
+      GUINCORN_TIMEOUT: "60"
+      GUNICORN_WORKERS: "2"
     volumes:
     - source: pdnsadmin_data
       target: /app/data

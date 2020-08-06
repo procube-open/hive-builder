@@ -21,6 +21,7 @@ google-auth = "*"
 boto = "*"
 boto3 = "*"
 netaddr = "*"
+Pillow = ">=7.1.0"
 
 [requires]
 python_version = "3.7"
