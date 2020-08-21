@@ -44,7 +44,7 @@
     when: not (hive_destroy  | default(false))
 
 - name: deploy services
-  gather_facts: True
+  gather_facts: False
   hosts: first_hive
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
@@ -58,6 +58,26 @@
       no_proxy: "{{ ansible_env.no_proxy  | default('') }}"
 
   tasks:
+  - name: get containers for the serivce
+    shell: |
+      docker service ps --format '{% raw %}{"name": "{{.Name}}.{{.ID}}", "node": "{{.Node}}{% endraw %}.{{ hive_name }}"}' --filter desired-state=running --no-trunc {{ item }}
+    changed_when: False
+    check_mode: False
+    failed_when: False
+    register: hive_safe_ps
+    loop: "{{ hive_safe_services }}"
+  - name: get container info
+    docker_container_info:
+      name: "{{ item.name }}"
+      docker_host: "{{ item.node }}:2376"
+      tls_hostname: "{{ item.node }}"
+      tls: True
+      client_cert: "{{ hive_home_dir }}/.docker/cert.pem"
+      client_key: "{{ hive_home_dir }}/.docker/key.pem"
+      ca_cert: "{{ hive_home_dir }}/.docker/ca.pem"
+    register: hive_safe_container_info
+    loop: "{{ hive_safe_ps.results | map(attribute='stdout_lines') | flatten | map('from_json') | list }}"
+
   - name: deploy service
     docker_swarm_service:
       name: "{{ item }}"
@@ -100,8 +120,18 @@
       replicas: "{{ hostvars[item].hive_replicas | default(omit) }}"
       working_dir: "{{ hostvars[item].hive_working_dir | default(omit) }}"
       networks: "{{ hostvars[item].hive_networks | default(groups['networks']) }}"
-      force_update: "{{ hostvars[item].hive_image_name is defined and (groups['hives'] | map('extract', hostvars, ['hive_safe_pull_result', 'results']) | select('defined') | flatten | selectattr('item', 'eq', item) | select('changed') | list | length) > 0 }}"
+      force_update: |
+        {% set hive_safe_autovars = {'force_update': False} %}
+        {% if hostvars[item].hive_image_name is defined and not (hive_destroy  | default(false)) %}
+          {%- for process in (hive_safe_ps.results | selectattr('item', 'eq', item) | first).stdout_lines | map('from_json') %}
+            {%- set container = hive_safe_container_info.results | selectattr('item.name', 'eq', process.name) | first %}
+            {%- set image_id = (hostvars[process.node].hive_safe_pull_result.results | selectattr('item', 'eq', item) | first).image.Id %}
+            {%- if container.container.Image != image_id %}
+              {%- set _ = hive_safe_autovars.update({'force_update': True}) %}
+            {%- endif %}
+          {%- endfor %}
+        {% endif %}
+        {{ hive_safe_autovars.force_update }}
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_services }}"
     register: swarm_service
-
