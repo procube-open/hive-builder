@@ -17,7 +17,7 @@ services:
       default:
         ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}"
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-mysql:ubuntu-trunk
+    image: zabbix/zabbix-web-nginx-mysql:alpine-trunk
     container_name: zabbix-web
     environment:
       TZ: "Asia/Tokyo"

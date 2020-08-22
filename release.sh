@@ -4,6 +4,7 @@ usage_exit() {
         echo "Usage: $0 -f -n -m" 1>&2
         echo "-f : force do even if working tree is dirty or last commit has diestance from last tag" 1>&2
         echo "-m : do release to master" 1>&2
+        echo "-7 : do release for forOS7 branch" 1>&2
         echo "-n : do not push to github" 1>&2
         exit 1
 }
@@ -13,12 +14,15 @@ RELEASE_BRANCE=develop
 GIT_PUSH=true
 DEPLOY_SCRIPT=test-deploy
 
-while getopts fhmn OPT
+while getopts fhmn7 OPT
 do
   case $OPT in
     f)  NO_FORCE=false
         ;;
     m)  RELEASE_BRANCE=master
+        DEPLOY_SCRIPT=deploy
+        ;;
+    7)  RELEASE_BRANCE=forOS7
         DEPLOY_SCRIPT=deploy
         ;;
     n)  GIT_PUSH=false
@@ -36,7 +40,12 @@ if [ $# -ne 0 ]; then
   usage_exit
 fi
 
-if [ "$(git symbolic-ref --short HEAD)" != "develop" ]; then
+if [ "$RELEASE_BRANCE" == "forOS7" ]; then
+  if [ "$(git symbolic-ref --short HEAD)" != "forOS7" ]; then
+    echo ERROR: current branch is not forOS7
+    exit 1
+  fi
+elif [ "$(git symbolic-ref --short HEAD)" != "develop" ]; then
   echo ERROR: current branch is not develop
   exit 1
 fi
