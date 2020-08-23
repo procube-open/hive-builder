@@ -60,6 +60,9 @@ Vagrant.configure("2") do |config|
         end
       end
       node.vm.provider "virtualbox" do |v|
+        # avoid VBoxHeadless consume cpu 100%
+        # ref: https://masiuchi.com/blog/2019/02/macos-vboxheadless-cpu-100.html
+        v.customize ["modifyvm", :id, "--audio", "none"]
         v.name = "#{_name}"
         if value.key?("memory_size")
           v.memory = value['memory_size']
