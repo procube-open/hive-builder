@@ -66,6 +66,7 @@
     failed_when: False
     register: hive_safe_ps
     loop: "{{ hive_safe_services }}"
+    when: not (hive_destroy  | default(false))
   - name: get container info
     docker_container_info:
       name: "{{ item.name }}"
@@ -77,6 +78,7 @@
       ca_cert: "{{ hive_home_dir }}/.docker/ca.pem"
     register: hive_safe_container_info
     loop: "{{ hive_safe_ps.results | map(attribute='stdout_lines') | flatten | map('from_json') | list }}"
+    when: not (hive_destroy  | default(false))
 
   - name: deploy service
     docker_swarm_service:
