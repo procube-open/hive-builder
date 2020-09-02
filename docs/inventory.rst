@@ -332,6 +332,7 @@ gcp プロバイダを使用する場合は、プロジェクトのルートデ�
 サービスアカウントキーについては、
 https://cloud.google.com/iam/docs/creating-managing-service-account-keys?hl=ja
 を参照してください。
+鍵の形式でJSONを選択して、プロジェクトのルートディレクトリに gcp_credential.json という名前で保存してください。
 
 azure プロバイダ
 ^^^^^^^^^^^^^^^^^^^^^
