@@ -225,13 +225,8 @@ hive定義の internal_cidr プロパティで変更できます。
 vagrant プロバイダ
 ^^^^^^^^^^^^^^^^^^^
 vagrant プロバイダを利用するには、 Vagrant がインストールされていて、 virtualbox か libvirt の Vagrant プロバイダ
-がセットアップされている必要があります。また、virtualbox の場合は、 vagrant-disksize プラグインがインストールされている
-必要があります。以下のコマンドでプラグインをインストールしてください。
-
-::
-
-  vagrant plugin install vagrant-disksize
-
+がセットアップされている必要があります。また、 vagrant-disksize プラグインがインストールされている
+必要があります。詳細についてはインストールの章を参照してください。
 
 vagrant プロバイダ固有の属性には以下のものがあります。
 

@@ -23,6 +23,7 @@
   yum:
     state: present
     name: "{{ hive_safe_rpms.stdout_lines }}"
+    disable_gpg_check: true
   register: drbd_install
 - name: install LVM tools
   yum:
@@ -99,7 +100,7 @@
     # lvcreate calculate pool metadata spare size as same as metadata size
     # When Pool_LV_chunk_size = 1024K and Pool_LV_extent_size=16M, Pool_LV_size = (VG_size * 8192 // 8193) // 16M * 16M
     # if VG_size is not enough then cause error: lvcreate: metadata/pv_map.c:198: consume_pv_area: Assertion `to_go <= pva->count' failed.
-    size: "{{ ((hive_safe_parted.partitions | last).size | int) * 8192 // 8193 // 16 * 16 }}M"
+    size: "{{ (((hive_safe_parted.partitions | last).size | int) - 8) * 8192 // 8193 // 16 * 16 }}M"
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 - import_tasks: iptables.yml
   vars:
