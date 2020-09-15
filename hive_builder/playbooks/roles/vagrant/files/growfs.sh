@@ -6,8 +6,17 @@
 
 yum install -y e2fsprogs
 
+if [ -b /dev/sda ]; then
+  TARGET_DISK=/dev/sda
+elif [ -b /dev/vda ]; then
+  TARGET_DISK=/dev/vda
+else
+  echo "ERROR: neather /dev/sda or /dev/vda is not exists." 1>&2
+  exit 1
+fi
+
 ## resize disk
-sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | fdisk /dev/sda || true
+sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | fdisk $TARGET_DISK || true
 d  # delete partition
 n  # add a new partition
 p  # primary

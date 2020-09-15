@@ -23,13 +23,6 @@ Vagrant.configure("2") do |config|
     _ip = value["ip"]
     _netmask = value["netmask"]
 
-    if value.key?("disk_size")
-      config.vm.provision "shell", path: "growfs.sh"
-      if Vagrant.has_plugin?("vagrant-disksize") and
-        config.disksize.size = "#{value['disk_size']}GB"
-      end
-    end
-
     # node list
     config.vm.define "#{_name}" do |node|
       # network
@@ -41,6 +34,15 @@ Vagrant.configure("2") do |config|
         node.vm.network "private_network", ip: "#{_ip}", netmask: "#{_netmask}"
       end
       node.vm.hostname = "#{_name}"
+
+      # root fs disk size
+      if value.key?("disk_size")
+        node.vm.provision "shell", path: "growfs.sh"
+        if Vagrant.has_plugin?("vagrant-disksize") and
+          node.disksize.size = "#{value['disk_size']}GB"
+        end
+      end
+
       node.vm.provider :libvirt do |v|
         v.cpu_mode = "host-passthrough"
         if value.key?("memory_size")

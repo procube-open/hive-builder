@@ -72,7 +72,6 @@ vagrant のインストール
     vagrant plugin install vagrant-libvirt
     vagrant plugin install vagrant-disksize
     vagrant box add centos/8 --provider=libvirt
-    yum install python3
     python3 -m venv hive
     echo . ~/hive/bin/activate >> .bashrc
     . ~/hive/bin/activate
