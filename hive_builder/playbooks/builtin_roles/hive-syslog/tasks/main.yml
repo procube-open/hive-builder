@@ -1,0 +1,14 @@
+---
+# This role installs rsyslog
+- name: install rsyslog
+  yum:
+    name:
+      - rsyslog
+    state: latest
+- name: put rsyslog configuration
+  template:
+    src: "transfer.conf.j2"
+    dest: "/etc/rsyslog.conf"
+- name: enable service
+  shell: |
+    systemctl enable rsyslog

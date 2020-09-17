@@ -8,7 +8,7 @@
 
 - name: "install rsyslog config file"
   become: True
-  copy:
+  template:
     src: services.conf
     dest: /etc/rsyslog.d/
     mode: 0755
@@ -25,5 +25,5 @@
   vars:
     hive_safe_iptables_name: syslog
     hive_safe_iptables_dports:
-      - 514
+      - "{{ hive_safe_syslog_port }}"
     hive_safe_iptables_protocol: udp

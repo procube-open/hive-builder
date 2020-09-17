@@ -85,7 +85,7 @@
       name: "{{ item }}"
       hostname: "{{ item }}"
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
-      logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':514', 'syslog-facility': 'local0', 'tag': item} }) }}"
+      logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string), 'syslog-facility': 'local0', 'tag': item} }) }}"
       image: >-
         {%- if hostvars[item].hive_image_name is defined -%}
           {%- if hive_stage in hostvars[hostvars[item].hive_image_name].hive_pull_on | default([]) -%}
