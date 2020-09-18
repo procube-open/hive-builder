@@ -2,4 +2,4 @@
 module(load="imjournal" 	    # provides access to the systemd journal
        StateFile="imjournal.state") # File to store the position in the journal
 #### FORWRDING to repository server ####
-*.*  @{{ (groups['repository'] | intersect(groups[hive_stage]) | first).hive_private_ip }}:{{ hive_safe_syslog_port }}
+*.*  @{{ hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_private_ip }}:{{  hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_safe_syslog_port }}
