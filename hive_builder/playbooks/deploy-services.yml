@@ -1,6 +1,6 @@
 ---
 - name: download images
-  gather_facts: False
+  gather_facts: True
   hosts: hives
   vars:
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | list) | list}}{% else %}{{ groups['services']  | intersect(groups[hive_stage]) | list }}{% endif %}"

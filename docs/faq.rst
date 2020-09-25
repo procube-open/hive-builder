@@ -16,6 +16,10 @@ docker の fluentd ロギングドライバーは fluentd とTCP接続できな�
 このため、リポジトリサーバに配置した fulentd が死んでいる場合はサービスが起動できません。
 hive-builder の要件としてリポジトリサーバが死んでいてもサービス提供を続けることというのがあり、採用できませんでした。
 
+ビルドが止まってしまいます
+----------------------------------------------------------------
+ビルドで、ansible のタスク実行が次に進まなくなる場合があります。原因がわかっておりません。
+対象のサーバにログインして、プロセスの実行状況をみて、タスクを実行している様子がなければ、 ^C キーで hive コマンドを中断し、再実行してください。
 
 build-images, initialize-services で fail to create socket のエラーになります
 ------------------------------------------------------------------------------
@@ -70,6 +74,11 @@ vagrant-disksize プラグインを以下のように修正してください。
 
 :修正後:
 
+::
+
+
+    dst = src_base + '.vdi'
+
 エラーメッセージに Error: Unknown repo: 'C*-base' が含まれる場合
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -112,4 +121,38 @@ deploy-services で renaming services is not supported のエラーが出ます
 :発生条件: 不明
 :原因: 不明
 :対応方法: hive ssh -t ステージプリフィクスhive0.hive名 でログインして、 docker service rm サービス名 を実行後に hive deploy-services を再実行してください。
+
+
+build-volumes で modprobe: ERROR: could not insert 'drbd': Required key not available のエラーが出ます
+------------------------------------------------------------------------------------------------------
+:メッセージ:
+
+::
+
+    modprobe: ERROR: could not insert 'drbd': Required key not available
+    Failed to modprobe drbd (No such file or directory)
+    Command 'drbdsetup new-resource kea_config 2 --quorum=majority --on-no-quorum=io-error' terminated with exit code 20
+
+:原因: カーネルの機能でUEFI Secure boot が有効になっているため、署名されていない DRBDのカーネルモジュールは読み込むことができません
+:対応方法: 物理サーバの場合は起動時のUEFIの設定画面で、VMWareなどの仮想サーバの場合はVsphere client などの設定ツールで、サーバの
+           UEFI Secure Bootを無効にしてください。
+           参考：https://docs.vmware.com/jp/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-898217D4-689D-4EB5-866C-888353FE241C.html
+
+mother 環境構築直後の build-infra フェーズで Unexpected failure during module execution. のエラーが出ます
+----------------------------------------------------------------------------------------------------------
+:メッセージ:
+
+::
+
+    TASK [Gathering Facts] **********************************************************************************************************************************
+    An exception occurred during task execution. To see the full traceback, use -vvv. The error was: TypeError: can only concatenate str (not "NoneType") to str
+    fatal: [p-mother.op]: FAILED! =>
+      msg: Unexpected failure during module execution.
+      stdout: ''
+
+:原因: python コマンドがインストールされていない。例えば、Ubuntu などで python2系もインストールされていない状態で
+      python3 コマンドをインストールし、 pip install hive-builder で mother 環境を構築した場合、 python3 コマンドしかなく
+      python コマンドがない状態となる。
+:対応方法: 仮想環境を作成し、そこに hive-builder をインストールして、仮想環境をアクティベートしてから hiveコマンドを実行してください。
+      仮想環境をアクティベートすると、OSには python3 しかインストールされていな状態でも pythonコマンドが利用できます。
 
