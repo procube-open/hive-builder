@@ -20,8 +20,21 @@ https://hive-builder.readthedocs.io/ja/foros7/
 ===============================
 2.0.x では、リポジトリサーバのログ収集機能のポート番号は 514固定でしたが、 2.1.0 以降では、ポート番号のデフォルトが 10514 に変わりました。
 バージョンアップ後に既存の環境で deploy-services を実行するとそのサービスはポート番号 10514 にログを送ろうとします。
-これを避けるためには、 inventory/grup_vars/hosts.yml で以下のように指定してください。
+これを避けるためには、 inventory/grup_vars/servers.yml で以下のように指定してください。
 
 ::
 
   hive_syslog_port: 514
+
+2.0.1 以前からの移行
+===============================
+2.0.2 からは zabbix の SELinux に対する監視方法が変わりました。既存サイトでは一度zabbix のデータをクリアして再構築して頂く必要があります。
+hive-builder をバージョンアップ後、以下を実行してください。
+
+::
+
+  hive ssh
+  cd zabbix
+  docker-compose down  --volumes
+  exit
+  hive setup-hosts -T zabbix,zabbix-agent

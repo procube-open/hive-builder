@@ -26,9 +26,7 @@
                 <item>
                     <name>SELinux alert</name>
                     <key>ausearch</key>
-                    <delay>3m</delay>
-                    <trends>0</trends>
-                    <value_type>TEXT</value_type>
+                    <delay>10m</delay>
                     <applications>
                         <application>
                             <name>SELinux</name>
@@ -36,7 +34,7 @@
                     </applications>
                     <triggers>
                         <trigger>
-                            <expression>{str(&lt;no matches&gt;)}=0</expression>
+                            <expression>{last(#1)}&gt;0</expression>
                             <recovery_mode>NONE</recovery_mode>
                             <name>Detect SELinux alert</name>
                             <priority>WARNING</priority>
