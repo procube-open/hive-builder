@@ -28,13 +28,19 @@ https://hive-builder.readthedocs.io/ja/foros7/
 
 2.0.1 以前からの移行
 ===============================
-2.0.2 からは zabbix の SELinux に対する監視方法が変わりました。既存サイトでは一度zabbix のデータをクリアして再構築して頂く必要があります。
-hive-builder をバージョンアップ後、以下を実行してください。
+2.0.2 からは zabbix の SELinux に対する監視方法が変わりました。
+既存サイトでは hive-builder をバージョンアップ後、zabbix の Web UI にアクセスし、 Configuration -> Templates で
+Hive Server SELinux テンプレートを Delete and Clear で削除してください。
+その後、以下のコマンドを実行してください。
 
 ::
 
-  hive ssh
-  cd zabbix
-  docker-compose down  --volumes
-  exit
   hive setup-hosts -T zabbix,zabbix-agent
+  # 以下をすべてのコンテナ収容サーバで繰り返し
+  hive ssh -t サーバ名
+  sudo su -
+  make -f /usr/share/selinux/devel/Makefile reload
+  systemctl restart zabbix-agent
+  exit
+  exit
+
