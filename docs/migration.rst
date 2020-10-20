@@ -44,3 +44,15 @@ Hive Server SELinux テンプレートを Delete and Clear で削除してくだ
   exit
   exit
 
+2.1.2 以前からの移行
+===============================
+2.2.0 からは zabbix がログを監視するようになりました。また、バックアップスクリプトの生成は deploy-services で
+行うように変更されました。
+既存サイトでは hive-builder をバージョンアップ後、zabbix の Web UI にアクセスし、 Configuration -> Templates で
+Hive Server SELinux テンプレートを Delete and Clear で削除してください。
+その後、以下のコマンドを実行してください。
+
+::
+
+  hive setup-hosts -T zabbix,zabbix-agent,backup-tools
+  hive deploy-services
