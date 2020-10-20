@@ -21,3 +21,9 @@
     src: hive-backup.sh
     dest: /usr/bin/hive-backup.sh
     mode: 0755
+- name: create ignore directory
+  become: True
+  file:
+    path: /var/lib/hive-backup.d
+    state: directory
+    mode: 0775

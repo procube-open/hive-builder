@@ -57,6 +57,16 @@
         - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
           value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
       state: present
+  # upload may fail if template changed with following error
+  #  failed: [p-hive0.pdns] (item=hive-repository-server.xml) => changed=false
+  #  ansible_loop_var: item
+  #  item: hive-repository-server.xml
+  #   msg: |-
+  #    changed :...
+  # to avoid this following step
+  # 1. first delete the template
+  # 2. upload by ansible
+  # 3. download and replace template XML(avoid error caused by difference of order of elements)
   - name: upload templates
     zabbix5_template:
       server_url: http://{{ inventory_hostname }}:10052

@@ -1,5 +1,25 @@
 #### MODULES ####
+module(load="imuxsock")
 module(load="imjournal" 	    # provides access to the systemd journal
        StateFile="imjournal.state") # File to store the position in the journal
+
+#### GLOBAL DIRECTIVES ####
+# Where to place auxiliary files
+$WorkDirectory /var/lib/rsyslog
+
+# Use default timestamp format
+$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
+
+# Include all config files in /etc/rsyslog.d/
+$IncludeConfig /etc/rsyslog.d/*.conf
+
+# Turn off message reception via local log socket;
+# local messages are retrieved through imjournal now.
+$OmitLocalLogging on
+
+# File to store the position in the journal
+$IMJournalStateFile imjournal.state
+
+
 #### FORWRDING to repository server ####
 *.*  @{{ hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_private_ip }}:{{  hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_safe_syslog_port }}

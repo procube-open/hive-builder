@@ -54,7 +54,7 @@ services:
       cleanup_days_before: 10
   pdnsadmin:
     image:
-      from: ngoduykhanh/powerdns-admin:latest
+      from: ngoduykhanh/powerdns-admin:0.2.2
       roles:
       - powerdns-admin
     ports:
@@ -72,6 +72,10 @@ services:
         size: 500M
     labels:
       published_fqdn: pdnsadmin.pdns.procube-demo.jp
+    ignore_error:
+      - "Error handling request /(favicon.ico|echo.php)"
+      - "ERROR - Exception on /(favicon.ico|echo.php)"
+      - "^ [^[]"
   proxy:
     image: "procube/nginx:latest"
     ports:

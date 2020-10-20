@@ -1,0 +1,20 @@
+---
+- name: add service backup script
+  become: True
+  template:
+    src: service-backup.sh.j2
+    dest: "/var/lib/hive-backup.d/{{ hive_safe_target }}"
+    mode: 0755
+  when: not (hive_destroy | default(False))
+  loop: "{{ hive_safe_services | map('extract', hostvars) | selectattr('hive_backup_scripts', 'defined') | map(attribute='inventory_hostname') | list }}"
+  loop_control:
+    loop_var: hive_safe_target
+- name: remove service backup script
+  become: True
+  file:
+    path: "/var/lib/hive-backup.d/{{ hive_safe_target }}"
+    state: absent
+  loop: "{{ hive_safe_services | map('extract', hostvars) | selectattr('hive_backup_scripts', 'defined') | map(attribute='inventory_hostname') | list }}"
+  when: hive_destroy | default(False)
+  loop_control:
+    loop_var: hive_safe_target

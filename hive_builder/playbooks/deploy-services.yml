@@ -43,6 +43,17 @@
     register: hive_safe_pull_result
     when: not (hive_destroy  | default(false))
 
+- name: setup scripts for services
+  gather_facts: False
+  hosts: repository
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+    hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] | intersect(groups[hive_stage]) | list}}{% endif %}"
+
+  roles:
+  - service-backup
+  - service-ignore-error
+
 - name: deploy services
   gather_facts: False
   hosts: first_hive
@@ -104,15 +115,13 @@
       publish: "{{ hostvars[item].hive_ports | default(omit) }}"
       mounts: "{{ hostvars[item].hive_volumes | default(omit) }}"
       labels: >-
+        {%- set outputs = {'HIVE_STANDALONE': hostvars[item].hive_standalone | default(false) | string } -%}
         {%- if hostvars[item].hive_labels is defined -%}
-          {%- set outputs = {} -%}
           {%- for key, value in hostvars[item].hive_labels.items() -%}
             {%- set _ = outputs.update({key: value if value is string else (value | to_json)}) -%}
           {%- endfor -%}
-          {{ outputs }}
-        {%- else -%}
-          {{ omit }}
         {%- endif -%}
+        {{ outputs }}
       placement: "{{ hostvars[item].hive_placement | default(omit) }}"
       hosts: "{{ hostvars[item].hive_hosts | default(omit) }}"
       dns: "{{ hostvars[item].hive_dns | default(omit) }}"

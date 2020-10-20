@@ -3,6 +3,10 @@ module hive 1.0;
 
 require {
 	type kernel_t;
+	type kmod_exec_t;
+	type modules_conf_t;
+	type modules_dep_t;
+	type modules_object_t;
 	type rpm_var_lib_t;
 	type container_runtime_t;
 	type devlog_t;
@@ -54,6 +58,7 @@ require {
 	type systemd_resolved_unit_file_t;
 	type initctl_t;
 	type proc_kcore_t;
+	type var_log_t;
 	class system status;
 	class service status;
 	class fifo_file getattr;
@@ -144,3 +149,8 @@ allow zabbix_agent_t systemd_resolved_unit_file_t:service status;
 allow zabbix_agent_t devlog_t:sock_file getattr;
 allow zabbix_agent_t initctl_t:fifo_file getattr;
 allow zabbix_agent_t proc_kcore_t:file getattr;
+allow zabbix_agent_t kmod_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t modules_conf_t:file { open read };
+allow zabbix_agent_t modules_dep_t:file { open read };
+allow zabbix_agent_t modules_object_t:file { open read };
+allow zabbix_agent_t var_log_t:file { open read };

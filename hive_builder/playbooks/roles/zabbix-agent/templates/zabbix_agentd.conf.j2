@@ -133,7 +133,7 @@ Server=localhost,{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) if
 # Default:
 # ServerActive=
 
-ServerActive=localhost,{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) if inventory_hostname in groups['repository'] else (groups['repository'] | intersect(groups[hive_stage]) | first) }}
+ServerActive={{ groups['repository'] | intersect(groups[hive_stage]) | first }}:10051
 
 ### Option: Hostname
 #	Unique, case sensitive hostname.

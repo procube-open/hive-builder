@@ -12,7 +12,7 @@
 
 - name: stop drbd resource service
   shell: "systemctl stop --job-mode=ignore-dependencies drbd-resource@{{ hive_safe_volume.name }}"
-  when: hive_safe_drbd_with_disk and hive_safe_destroy
+  when: hive_safe_drbd_with_disk and hive_safe_destroy and not hive_safe_drbd_service_not_exists
 
 - name: put resource definition file
   template:

@@ -22,6 +22,11 @@
   yum:
     name=zabbix-agent
     state=installed
+- name: install uptime
+  pip:
+    name: uptime
+    state: present
+    virtualenv: "{{ hive_home_dir }}/docker"
 - name: copy selinux module for zabbix-agent
   copy:
     src: hive.te
@@ -67,6 +72,7 @@
     - src: docker-service.j2
       dest: docker-service.conf
   notify: zabbix-agent configured
+  when: "'repository' in group_names"
 - name: put zabbix_agentd userparameter definition
   copy:
     src: "{{ item }}"
@@ -78,6 +84,7 @@
     - drbd-resource.conf
     - userparameter_systemd_services.conf
   notify: zabbix-agent configured
+  when: "'hives' in group_names"
 - name: put zabbix_agentd userparameter definition for selinux
   copy:
     src: ausearch.conf
@@ -95,6 +102,7 @@
   loop:
     - docker-volume-discover.py
     - docker-service.py
+  when: "'repository' in group_names"
 - name: put script to discover and get status systemd services
   copy:
     src: "{{ item }}"

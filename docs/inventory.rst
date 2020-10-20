@@ -577,6 +577,10 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
       - {"test.example.com": "192.168.1.2"}
       - {}
       - サービス内の /etc/hosts ファイルに追加するホスト名をキーとしたIPアドレスの辞書（docker service create の --hosts オプションと等価）
+    * - ignore_error
+      - ["(favicon.ico|echo.php)", "^ [^[]"]
+      - []
+      - サービスが出力するエラーメッセージのうち、無視したいものに対する正規表現パターンの配列
     * - image
       - 後述
       - []

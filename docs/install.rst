@@ -136,14 +136,14 @@ hive-builder のインストール
 Windows Subsystem for Linuxの場合
 ===================================
 
-docker コマンドのインストール
-------------------------------
-  以下のコマンドを root で実行して docker.io をインストールしてください。
+python3, docker, sshpass コマンドのインストール
+-----------------------------------------------------
+  以下のコマンドを root で実行して python3, docker, sshpass  をインストールしてください。
 
 ::
 
   apt-get update
-  apt-get install docker
+  apt-get install python3 docker sshpass
   apt docker.io
 
 仮想環境と hive-builder のインストール

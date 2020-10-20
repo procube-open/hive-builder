@@ -137,7 +137,8 @@ class VagrantWrapper(object):
         sys.exit(1)
 
     # Initialize vagrant and state files
-    self.vg = vagrant.Vagrant()
+    log_cm = vagrant.make_file_cm('vagrant.log')
+    self.vg = vagrant.Vagrant(out_cm=log_cm, err_cm=log_cm)
 
     # operation will create a default data structure if none present
     self.vg_data = {"instances": {}, "num_inst": 0}

@@ -21,6 +21,13 @@
     insertbefore: BOF
     line: "/var/log/services/*.log"
 
+- name: create ignore directory
+  become: True
+  file:
+    path: /etc/rsyslog-ignore.d/
+    state: directory
+    mode: 0775
+
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: syslog

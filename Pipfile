@@ -12,7 +12,7 @@ sphinxcontrib-blockdiag = "*"
 sphinx-argparse = "*"
 
 [packages]
-"ansible[azure]" = "*"
+"ansible[azure]" = "2.9.11"
 configparser = "*"
 lockfile = "*"
 python-vagrant = "*"

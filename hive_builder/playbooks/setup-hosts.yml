@@ -38,6 +38,7 @@
       tags: ["docker-client"]
     - role: follow-swarm-service
       tags: ["follow-swarm-service"]
+      when: "'hives' in group_names"
     - role: docker-client-proxy
       tags: ["docker-client-proxy"]
       when: ansible_env.HTTP_PROXY is defined

@@ -1,0 +1,3 @@
+{% for hive_safe_regex in hostvars[hive_safe_target].hive_ignore_error %}
+if $syslogfacility-text == 'local0' and {{ '$hostname' if hostvars[hive_safe_target].hive_standalone | default(False) else '$app-name' }} == '{{ hive_safe_target }}' and re_match($msg, '{{ hive_safe_regex }}') then stop
+{% endfor %}
