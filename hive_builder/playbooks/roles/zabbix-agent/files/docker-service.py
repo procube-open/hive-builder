@@ -109,7 +109,7 @@ def discover_innerservice(clients, logger):
                 if sname not in blacklist and sname not in innerservices:
                   innerservices.add(sname)
         for sname in innerservices:
-          yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname}
+          yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}
   except Exception as e:
     logger.exception(f'fail to get services', e)
 
@@ -213,12 +213,12 @@ def main():
     print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger)])))
   elif args.uptime:
     if args.inner:
-      print(json.dumps(service_uptime_innerservice(next(iter(clients.values())), logger, args.uptime, args.inner)))
+      print(json.dumps(service_uptime_innerservice(clients, logger, args.uptime, args.inner.replace('%', '@'))))
     else:
       print(json.dumps(service_uptime(next(iter(clients.values())), logger, args.uptime)))
   elif args.replicas:
     if args.inner:
-      print(json.dumps(replicas_innerservice(next(iter(clients.values())), logger, args.status, args.inner)))
+      print(json.dumps(replicas_innerservice(clients, logger, args.replicas, args.inner.replace('%', '@'))))
     else:
       print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
   else:

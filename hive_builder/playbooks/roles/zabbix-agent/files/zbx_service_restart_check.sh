@@ -1,6 +1,6 @@
 #!/bin/bash
 
-service="$1"
+service="${1/\%/@}"
 now=$(date +%s)
 
 # Don't alert if the server has just been restarted

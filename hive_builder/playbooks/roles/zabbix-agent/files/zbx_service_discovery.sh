@@ -10,4 +10,4 @@ service_list=$(systemctl list-units --type=service --no-legend --no-pager | awk 
     service_list=$(echo "$service_list" | grep -Ev -f /etc/zabbix/service_discovery_blacklist)
 }
 
-echo -n '{"data":[';for s in ${service_list}; do echo -n "{\"{#SERVICE}\": \"${s//\\/\\\\}\"},";done | sed -e 's:\},$:\}:';echo -n ']}'
+echo -n '{"data":[';for s in ${service_list}; do s2="${s/@/%}"; echo -n "{\"{#SERVICE}\": \"${s2//\\/\\\\}\"},";done | sed -e 's:\},$:\}:';echo -n ']}'

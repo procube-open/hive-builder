@@ -54,5 +54,5 @@ Hive Server SELinux テンプレートを Delete and Clear で削除してくだ
 
 ::
 
-  hive setup-hosts -T zabbix,zabbix-agent,backup-tools
+  hive setup-hosts -T zabbix,zabbix-agent,backup-tools,rsyslogd
   hive deploy-services

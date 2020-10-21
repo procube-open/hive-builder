@@ -111,6 +111,7 @@
   loop:
     - zbx_service_discovery.sh
     - zbx_service_restart_check.sh
+    - zbx_service_status_check.sh
 - name: put additional config file for zabbix discover
   copy:
     src: service_discovery_blacklist

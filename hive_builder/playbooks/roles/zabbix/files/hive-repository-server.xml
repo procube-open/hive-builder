@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>5.0</version>
-    <date>2020-04-28T22:07:03Z</date>
+    <version>5.2</version>
+    <date>2020-10-21T09:27:37Z</date>
     <groups>
         <group>
             <name>Repository server</name>
@@ -52,6 +52,22 @@
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
+                            <name>Docker Inner-service replicas {#INNER}@{#SERVICE_NAME}</name>
+                            <key>docker-innerservice-replicas[{#SERVICE_NAME},{#INNER}]</key>
+                            <applications>
+                                <application>
+                                    <name>Docker</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last(#1)}&lt;100</expression>
+                                    <name>Service {#INNER} in container {#SERVICE_NAME} replicas running percetage less than 100</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
                             <name>Docker Inner-service uptime {#INNER}@{#SERVICE_NAME}</name>
                             <key>docker-innerservice-uptime[{#SERVICE_NAME},{#INNER}]</key>
                             <delay>5m</delay>
@@ -64,22 +80,6 @@
                                 <trigger_prototype>
                                     <expression>{last(#1)}&lt;28800</expression>
                                     <name>Service {#INNER} in container {#SERVICE_NAME} restarted</name>
-                                    <priority>WARNING</priority>
-                                </trigger_prototype>
-                            </trigger_prototypes>
-                        </item_prototype>
-                        <item_prototype>
-                            <name>Docker Inner-service replicas {#INNER}@{#SERVICE_NAME}</name>
-                            <key>docker-service-replicas[{#SERVICE_NAME},{#INNER}]</key>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
-                            <trigger_prototypes>
-                                <trigger_prototype>
-                                    <expression>{last(#1)}&lt;100</expression>
-                                    <name>Service {#INNER} in container {#SERVICE_NAME} replicas running percetage less than 100</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>

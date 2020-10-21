@@ -324,10 +324,15 @@ gcp プロバイダ固有の属性には以下のものがあります。
 
 gcp プロバイダを使用する場合は、プロジェクトのルートディレクトリに gcp_credential.json という
 名前でサービスアカウントキーを保持するファイルを置く必要があります。
+サービスアカウントの作成については、
+https://cloud.google.com/iam/docs/creating-managing-service-accounts?hl=ja
+を参照してください。サービスアカウントを作成する際には「Compute 管理者」のロールを割り当ててください。
 サービスアカウントキーについては、
 https://cloud.google.com/iam/docs/creating-managing-service-account-keys?hl=ja
 を参照してください。
 鍵の形式でJSONを選択して、プロジェクトのルートディレクトリに gcp_credential.json という名前で保存してください。
+
+gcpプロバイダで disk_size 属性を省略した場合、コンテナ収容サーバの起動ディスクのサイズは25Gになります。
 
 azure プロバイダ
 ^^^^^^^^^^^^^^^^^^^^^
