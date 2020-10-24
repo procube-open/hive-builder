@@ -22,11 +22,46 @@
   yum:
     name=zabbix-agent
     state=installed
-- name: install uptime
+- name: create zabbix home/.docker directory
+  file:
+    path: /var/lib/zabbix/.docker
+    state: directory
+    mode: 0775
+    owner: zabbix
+    group: zabbix
+- name: create virtual env for zabbix
+  become_user: zabbix
   pip:
-    name: uptime
-    state: present
-    virtualenv: "{{ hive_home_dir }}/docker"
+    name:
+      - pip
+      - wheel
+      - docker
+      - uptime
+    virtualenv: /var/lib/zabbix/docker
+    virtualenv_python: python3
+    state: latest
+  args:
+    chdir: /var/lib/zabbix
+- name: "setup tls connection - put ca certs"
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: "/var/lib/zabbix/.docker/ca.pem"
+    owner: zabbix
+    group: zabbix
+    mode: 0600
+- name: "setup tls connection - put certs"
+  copy:
+    remote_src: True
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0600
+    owner: zabbix
+    group: zabbix
+  with_items:
+    - src: "{{ hive_safe_tls_dir }}/private/{{ inventory_hostname }}_key.pem"
+      dest: "/var/lib/zabbix/.docker/key.pem"
+    - src: "{{ hive_safe_tls_dir }}/certs/{{ inventory_hostname }}_cert.pem"
+      dest: "/var/lib/zabbix/.docker/cert.pem"
 - name: copy selinux module for zabbix-agent
   copy:
     src: hive.te
@@ -96,9 +131,9 @@
 - name: put script to discover docker volumes and services
   copy:
     src: "{{ item }}"
-    dest: "{{ hive_home_dir }}/{{ item }}"
-    owner: "{{hive_safe_admin}}"
-    group: "{{hive_admin_group | default(hive_safe_admin)}}"
+    dest: /var/lib/zabbix
+    owner: zabbix
+    group: zabbix
   loop:
     - docker-volume-discover.py
     - docker-service.py
