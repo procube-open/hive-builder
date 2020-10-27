@@ -22,4 +22,4 @@ $IMJournalStateFile imjournal.state
 
 
 #### FORWRDING to repository server ####
-*.*  @{{ hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_private_ip }}:{{  hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_safe_syslog_port }}
+*.info;mail.none;authpriv.none;cron.none  @{{ hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_private_ip }}:{{  hostvars[groups['repository'] | intersect(groups[hive_stage]) | first].hive_safe_syslog_port }}
