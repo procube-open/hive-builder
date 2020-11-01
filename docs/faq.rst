@@ -156,3 +156,46 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 :対応方法: 仮想環境を作成し、そこに hive-builder をインストールして、仮想環境をアクティベートしてから hiveコマンドを実行してください。
       仮想環境をアクティベートすると、OSには python3 しかインストールされていな状態でも pythonコマンドが利用できます。
 
+UDP のサービスが特定のクライアントからのパケットを全く受信できません
+----------------------------------------------------------------------------------------------------------
+:準備:
+      rev.2.2.2以前の hive-builder で構築したサーバでは conntrack コマンドがインストールされていません。 コンテナ収容サーバに
+      yum install conntrack-tools で conntrack コマンドをインストールしてください
+
+:発生条件: 特定のIPアドレス、ポート番号から30秒より短い間隔で常時 UDP パケットを受信している状態で
+      サービスを起動あるいは再起動した場合に発生します。忙しいDHCPリレーエージェントや syslog クライアントのリクエストを
+      hive-builder のサービスで処理する場合はこれに該当します。
+
+:原因: ホストに着信したパケットは、仮想ブリッジを経由してサービスを実装するコンテナに転送されるべきですが、
+      この転送機能が機能していません。
+      docker では、Linux の iptables の DNAT機能を使用してパケットを転送しますが、このパケット転送が設定されていない状態で UDP パケットを受信すると
+      DNATがされていない情報が conntrack に登録されます。
+      その状態でサービスを起動すると、docker が iptables に DNAT を登録しますが、 iptables の DNAT 機能は対象となるパケットにマッチする情報が
+      conntrack テーブルにすでに登録されている場合は、その情報が優先して利用されるため、作動しません。
+      conntrack テーブルには、送信元IPアドレス、宛先ポート番号、宛先IPアドレス、宛先ポート番号をキーとして登録されますが、
+      プロトコルが UDPの場合はパケットを着信しない状態で30秒経過すると削除されます。
+      発生しているかどうかは conntrack コマンドで確認できます。
+      conntrack に DNAT された情報が登録されていれば、2個めの src= の後ろにコンテナのIPアドレスが表示されますが、
+      問題が発生している場合は、サーバのIPアドレスが表示されます。
+      以下にリクエストを受け付けるポート番号が 20514 である場合の例を示します。
+
+::
+
+    # 正常な場合
+    $ sudo conntrack -L -p udp --dport 20514
+    udp      17 26 src=192.168.56.1 dst=192.168.56.4 sport=55646 dport=20514 [UNREPLIED] src=172.21.34.130 dst=192.168.56.1 sport=514 dport=55646 mark=0 secctx=system_u:object_r:unlabeled_t:s0 use=1
+    conntrack v1.4.4 (conntrack-tools): 1 flow entries have been shown.
+    # 問題が発生している場合
+    $ sudo conntrack -L -p udp --dport 20514
+    udp      17 26 src=192.168.56.1 dst=192.168.56.4 sport=64953 dport=20514 [UNREPLIED] src=192.168.56.4 dst=192.168.56.1 sport=20514 dport=64953 mark=0 secctx=system_u:object_r:unlabeled_t:s0 use=1
+    conntrack v1.4.4 (conntrack-tools): 1 flow entries have been shown.
+
+:対応方法: 問題となる conntrack 情報を削除してください。conntrack コマンドに -D オプションを指定することで削除できます。
+      conntrack コマンド実行直後のパケットから受信を再開するはずです。
+      以下にリクエストを受け付けるポート番号が 20514 である場合の例を示します。
+
+::
+
+    $ conntrack -D -p udp --dport 20514
+    udp      17 25 src=192.168.56.1 dst=192.168.56.4 sport=51109 dport=20514 [UNREPLIED] src=192.168.56.4 dst=192.168.56.1 sport=20514 dport=51109 mark=0 secctx=system_u:object_r:unlabeled_t:s0 use=1
+    conntrack v1.4.4 (conntrack-tools): 1 flow entries have been deleted.

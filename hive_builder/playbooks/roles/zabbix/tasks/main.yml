@@ -109,3 +109,17 @@
           port: 10050
       state: present
     loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+  - name: "set permission for /var/logmessages"
+    become: True
+    file:
+      path: /var/log/messages
+      mode: "0640"
+      owner: root
+      group: zabbix
+  - name: "set logrotate to permission for zabbix"
+    become: True
+    lineinfile:
+      dest: /etc/logrotate.d/syslog
+      insertafter: "    endscript"
+      line: "    create 0640 root zabbix"
+    notify: syslog is updated

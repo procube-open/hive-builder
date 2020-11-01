@@ -21,25 +21,28 @@
                 <application>
                     <name>Docker</name>
                 </application>
+                <application>
+                    <name>Error Log</name>
+                </application>
             </applications>
             <items>
                 <item>
-                    <name>Error Log Detecting</name>
+                    <name>Error Log Detecting for Services</name>
                     <type>ZABBIX_ACTIVE</type>
-                    <key>log[/var/log/service-error.log]</key>
+                    <key>logrt[/var/log/service-error.log]</key>
                     <history>30d</history>
                     <trends>0</trends>
                     <value_type>LOG</value_type>
                     <applications>
                         <application>
-                            <name>Docker</name>
+                            <name>Error Log</name>
                         </application>
                     </applications>
                     <logtimefmt>yyyy/MM/dd hh:mm:ss</logtimefmt>
                     <triggers>
                         <trigger>
-                            <expression>{count(1h)}&gt;0</expression>
-                            <name>Error Log Detected</name>
+                            <expression>{count(8h)}&gt;0</expression>
+                            <name>Error Log Detected for Services</name>
                             <priority>WARNING</priority>
                         </trigger>
                     </triggers>

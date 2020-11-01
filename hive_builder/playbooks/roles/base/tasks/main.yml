@@ -46,6 +46,7 @@
       - tcpdump
       - lsof
       - chrony
+      - conntrack-tools
       - "{{ 'libselinux-python' if hive_provider == 'aws' else 'python3-libselinux' }}"
 - name: install selinux packages
   yum:

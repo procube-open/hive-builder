@@ -59,6 +59,7 @@ require {
 	type initctl_t;
 	type proc_kcore_t;
 	type var_log_t;
+	type zabbix_var_lib_t;
 	class system status;
 	class service status;
 	class fifo_file getattr;
@@ -154,3 +155,5 @@ allow zabbix_agent_t modules_conf_t:file { open read };
 allow zabbix_agent_t modules_dep_t:file { open read };
 allow zabbix_agent_t modules_object_t:file { open read };
 allow zabbix_agent_t var_log_t:file { open read };
+allow zabbix_agent_t container_var_lib_t:file { execute execute_no_trans ioctl open read };
+allow zabbix_agent_t zabbix_var_lib_t:file { ioctl open read };

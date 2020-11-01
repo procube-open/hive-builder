@@ -4,7 +4,10 @@ cloud-config.service
 NetworkManager-dispatcher.service
 dnf-makecache.service
 drbd-resource@
-user@
+user@1000.service
+user@0.service
+user-runtime-dir@1000.service
+user-runtime-dir@0.service
 getty@
 systemd-journal-catalog-update.service
 systemd-update-done.service

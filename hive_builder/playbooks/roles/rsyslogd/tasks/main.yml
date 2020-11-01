@@ -36,4 +36,4 @@
     hive_safe_iptables_protocol: udp
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) +
       [hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' +
-      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.21.34.0/25'] }}"
+      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] }}"

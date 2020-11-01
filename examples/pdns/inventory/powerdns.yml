@@ -76,6 +76,7 @@ services:
       - "Error handling request /(favicon.ico|echo.php)"
       - "ERROR - Exception on /(favicon.ico|echo.php)"
       - "^ [^[]"
+      - "error : Unknown IO error"
   proxy:
     image: "procube/nginx:latest"
     ports:

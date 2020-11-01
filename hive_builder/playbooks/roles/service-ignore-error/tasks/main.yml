@@ -9,6 +9,7 @@
   loop: "{{ hive_safe_services | map('extract', hostvars) | selectattr('hive_ignore_error', 'defined') | map(attribute='inventory_hostname') | list }}"
   loop_control:
     loop_var: hive_safe_target
+  notify: update rsyslog config
 - name: remove service ignore error script
   become: True
   file:
