@@ -11,20 +11,25 @@
 - name: install docker package
   yum:
     name:
-      # to avoid following error install containerd.io individually 2020-07-24 07:59:00
-      # fatal: [p-hive0.pdns]: FAILED! => changed=false
-      # Depsolve Error occured:
-      #  Problem: package docker-ce-3:19.03.12-3.el7.x86_64 requires containerd.io >= 1.2.2-3, but none of the providers can be installed
-      #   - cannot install the best candidate for the job
-      #   - package containerd.io-1.2.10-3.2.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.13-3.1.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.13-3.2.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.2-3.3.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.2-3.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.4-3.1.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.5-3.1.el7.x86_64 is excluded
-      #   - package containerd.io-1.2.6-3.3.el7.x86_64 is excluded
-      - "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.13-3.2.el7.x86_64.rpm"
+      # # to avoid following error install containerd.io individually 2020-07-24 07:59:00
+      # # fatal: [p-hive0.pdns]: FAILED! => changed=false
+      # # Depsolve Error occured:
+      # #  Problem: package docker-ce-3:19.03.12-3.el7.x86_64 requires containerd.io >= 1.2.2-3, but none of the providers can be installed
+      # #   - cannot install the best candidate for the job
+      # #   - package containerd.io-1.2.10-3.2.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.13-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.13-3.2.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.2-3.3.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.2-3.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.4-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.5-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.6-3.3.el7.x86_64 is excluded
+      # - "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.13-3.2.el7.x86_64.rpm"
+      # 2020-11-25 following error is occur, so revert above fix, but following error in containerd  at restart docker daemon.
+      # containerd[739]: /usr/bin/containerd: symbol lookup error: /usr/bin/containerd: undefined symbol: seccomp_api_set
+      # so, update libsecomp to 2.4.1
+      # allow_downgrade: no by default so, this must do downgrade
+      - libseccomp-2.4.1
       - docker-ce
     state: present
   when: hive_provider != 'aws'
