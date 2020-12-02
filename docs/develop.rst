@@ -426,3 +426,36 @@ build-images、および deploy-services フェーズでイメージをダウン
       password: "{{ credentials.dockerhub_login_password}}"
 
 上記では、ログインユーザとパスワードを秘密情報をまとめたファイル ~/.hive/credentials.yml から読み込んでます。
+
+
+サーバにソフトウェアを追加インストール
+----------------------------------------
+
+hive-builder では、 addon という名前の role を追加することで、サーバにソフトウェアを追加インストールすることができます。
+addon ロールは setup-hosts フェーズで呼ばれ、デフォルトでは become: True, become-user: root で実行されます。
+アドミニストレータユーザで実行したい場合は、 become: False を指定してください。
+例えば、サーバに zsh をインストールし、アドミニストレータのシェルを変更するのであれば、 roles/addon/tasks/main.yml を以下のように作成します。
+
+::
+
+  ---
+  - name: install zsh
+    yum:
+      name: zsh
+      state: present
+  - name: set zsh as login shell for administrator
+    user:
+      name: "{{hive_safe_admin}}"
+      shell: /bin/zsh
+
+構築済みのサイトに addon ロールを追加した際には、以下のコマンドで反映します。
+
+::
+
+  hive setup-hosts -T addon
+
+separate_repository: True の状態で、リポジトリサーバを除いてコンテナ収容サーバにのみインストールしたいときは、以下のような when 条件を付与してください。
+
+::
+
+    when: inventory_hostname in groups['hives']

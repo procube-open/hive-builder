@@ -54,14 +54,17 @@ prepared プロバイダを使用する場合、事前に全てのサーバの /
 NO_PROXY には、リポジトリサーバのサーバ名と localhost, 127.0.0.1 を含めてください。
 例えば、root ユーザで以下を実行します。
 
-# cat <<'_EOF' > /etc/environment
-HTTP_PROXY=http://192.168.56.100:3128
-http_proxy=http://192.168.56.100:3128
-HTTPS_PROXY=http://192.168.56.100:3128
-https_proxy=http://192.168.56.100:3128
-NO_PROXY=p-hive0.pdns,localhost,127.0.0.1
-no_proxy=p-hive0.pdns,localhost,127.0.0.1
-_EOF
+::
+
+
+    # cat <<'_EOF' > /etc/environment
+    HTTP_PROXY=http://192.168.56.100:3128
+    http_proxy=http://192.168.56.100:3128
+    HTTPS_PROXY=http://192.168.56.100:3128
+    https_proxy=http://192.168.56.100:3128
+    NO_PROXY=p-hive0.pdns,localhost,127.0.0.1
+    no_proxy=p-hive0.pdns,localhost,127.0.0.1
+    _EOF
 
 上記の例ではリポジトリサーバのホスト名として p-hive0.pdns を指定しています。
 このホスト名は、hive名が pdns で、private 環境で、サーバが1台（number_of_hosts=1）の場合のリポジトリサーバのホスト名です。

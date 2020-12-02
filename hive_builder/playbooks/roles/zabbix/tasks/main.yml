@@ -122,4 +122,3 @@
       dest: /etc/logrotate.d/syslog
       insertafter: "    endscript"
       line: "    create 0640 root zabbix"
-    notify: syslog is updated
