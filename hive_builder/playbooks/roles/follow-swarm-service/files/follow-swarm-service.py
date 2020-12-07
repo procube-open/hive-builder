@@ -45,14 +45,14 @@ class HookBase:
 
   def check_tasks(self):
     stay = False
-    task = None
+    running_task = None
     for task in DAEMON.client.services.get(self.serivce_id).tasks():
       if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
         DAEMON.logger.debug(f'found task: {json.dumps(task)}')
         stay = True
-        task = task
+        running_task = task
         break
-    self.task = task
+    self.task = running_task
     if self.stay and not stay:
       self.on_leave()
     elif stay and not self.stay:
