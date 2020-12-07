@@ -280,7 +280,7 @@ class SetVIP(HookBase):
           break
         rest_count -= 1
         time.sleep(10)
-      if not(succeeded):
+      if not(success):
         DAEMON.logger.error(f'Exceed max retry ping test count:5')
         self.clearVip(interface)
         return
