@@ -294,16 +294,16 @@ class SetVIP(HookBase):
         if not(port):
           continue
         DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
-        self.subprocess_run(['iptables', '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', container_ip + ':' + port])
+        self.subprocess_run(['iptables', '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', container_ip + ':' + port, '-m', 'comment', '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
         DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
-        self.subprocess_run(['iptables', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME])
+        self.subprocess_run(['iptables', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
 
   def resolveNATRuleDst(self, interface, proto, port):
     if not(port):
       return
     nat_list = self.subprocess_run(['iptables', '-L', '-v', '-n', '-t', 'nat'])
     for line in nat_list.stdout.splitlines():
-      if not(re.match(r'^.*DNAT.* {0} .*{1} dpt:{2}'.format(interface["vip_if"].ip, proto, port), line)):
+      if not(re.match(r'^.*DNAT.* {0} .*{1} dpt:{2} .* hive_dnat_{0}_{1}_{2}_ .*$'.format(interface["vip_if"].ip, proto, port), line)):
         DAEMON.logger.debug(f'checking nat line not match:{line}')
         continue
       matcher = re.match(r"^.* to:([^:]*:[^:]*)$", line)
@@ -320,10 +320,10 @@ class SetVIP(HookBase):
       return
     nat_list = self.subprocess_run(['iptables', '-L', '-v', '-n' ])
     for line in nat_list.stdout.splitlines():
-      if not(re.match(r'^.*ACCEPT.* {0} .*{1} dpt:{2}'.format(DNAT_TARGET_INTERFACE_NAME, proto, port), line)):
+      if not(re.match(r'^.*ACCEPT.* {0} .*{1} dpt:{2} .* hive_accept_{3}_{1}_{2}_ .*$'.format(DNAT_TARGET_INTERFACE_NAME, proto, port, interface["vip_if"].ip), line)):
         DAEMON.logger.debug(f'checking filter line not match:{line}')
         continue
-      matcher = re.match(r"^.* 0.0.0.0/0 *([^ ]*) *{0} dpt:{1}$".format(proto, port), line)
+      matcher = re.match(r"^.* 0.0.0.0/0 *([^ ]*) *{0} dpt:{1} .*$".format(proto, port), line)
       if matcher:
         ip = matcher.group(1)
         DAEMON.logger.debug(f'Resolve filter dst ip from iptables :"{ip}"')
@@ -338,10 +338,10 @@ class SetVIP(HookBase):
         proto, port = self.resolveNatProto(p)
         for nat_rule_dst in self.resolveNATRuleDst(interface, proto, port):
           DAEMON.logger.debug(f'Delete DNAT({interface["vip_if"].ip}:{port}/{proto} -> {nat_rule_dst}/{proto})')
-          self.subprocess_run(['iptables', '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst])
+          self.subprocess_run(['iptables', '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst, '-m', 'comment', '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
         for filter_rule_dst in self.resolveFilterRuleDst(interface, proto, port):
           DAEMON.logger.debug(f'Delete ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {filter_rule_dst}:{port}/{proto}')
-          self.subprocess_run(['iptables', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME])
+          self.subprocess_run(['iptables', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
 
   def on_leave(self):
     interface = self.get_interface()
