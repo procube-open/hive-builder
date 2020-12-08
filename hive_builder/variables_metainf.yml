@@ -307,3 +307,8 @@ azure_tenant:
   description: tenant id of azure application
   name_in_environment: AZURE_TENANT
   persistent_scope: stage
+timeout:
+  description: |
+    This is the default SSH timeout to use on connection attempts.
+  type: int
+  name_in_ansible_cfg: timeout

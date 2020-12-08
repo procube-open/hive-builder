@@ -29,7 +29,7 @@
       # containerd[739]: /usr/bin/containerd: symbol lookup error: /usr/bin/containerd: undefined symbol: seccomp_api_set
       # so, update libsecomp to 2.4.1
       # allow_downgrade: no by default so, this must do downgrade
-      - libseccomp-2.4.1
+      - libseccomp-2.4.*
       - docker-ce
     state: present
   when: hive_provider != 'aws'

@@ -47,12 +47,12 @@
       host_groups:
         - Hives
         - Repository server
-  - name: Configure macros on the Template OS Linux by Zabbix agent
+  - name: Configure macros on the Linux by Zabbix agent
     zabbix5_template:
       server_url: http://{{ inventory_hostname }}:10052
       login_user: admin
       login_password: zabbix
-      template_name: Template OS Linux by Zabbix agent
+      template_name: Linux by Zabbix agent
       macros:
         - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
           value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
@@ -88,7 +88,7 @@
       host_groups:
       - Linux servers
       link_templates: >-
-        {%- set templates = ['Template OS Linux by Zabbix agent'] -%}
+        {%- set templates = ['Linux by Zabbix agent'] -%}
         {%- if item in groups['repository'] -%}
           {%- set _ = templates.append('Hive Repository Server') -%}
         {%- endif -%}

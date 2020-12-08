@@ -561,11 +561,6 @@ class Template(object):
             'templateLinkage': {
                 'createMissing': True
             },
-            'templateScreens': {
-                'createMissing': True,
-                'updateExisting': True,
-                'deleteMissing': True
-            },
             'triggers': {
                 'createMissing': True,
                 'updateExisting': True,
