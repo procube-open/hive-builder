@@ -6,7 +6,7 @@ Wants=docker.service
 [Service]
 Type=simple
 ExecStart={{ hive_home_dir }}/docker/bin/python /usr/lib/follow-swarm-service.py
-Restart=on-failure
+Restart=always
 RestartSec=15s
 
 [Install]
