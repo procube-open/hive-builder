@@ -123,6 +123,7 @@
         {%- endif -%}
         {{ outputs }}
       placement: "{{ hostvars[item].hive_placement | default(omit) }}"
+      healthcheck: "{{ hostvars[item].hive_healthcheck | default(omit) }}"
       hosts: "{{ hostvars[item].hive_hosts | default(omit) }}"
       dns: "{{ hostvars[item].hive_dns | default(omit) }}"
       mode: "{{ hostvars[item].hive_mode | default(omit) }}"

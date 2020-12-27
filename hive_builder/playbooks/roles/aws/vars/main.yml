@@ -2,4 +2,22 @@
 # Service Acccount Email only works with Machine Account-based authentication
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
 hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
-hive_safe_image_id: "{{ hive_image_name | default('ami-0f310fced6141e627') }}"
+hive_safe_image_id: "{{ hive_image_name | default('ami-00f045aed21a55240') }}"
+# Version hisotry memo
+# old image ami-0f310fced6141e627 used by until 2.2.4
+# [ec2-user@ip-192-168-0-5 ~]$ uname -r
+# 4.14.173-137.229.amzn2.x86_64
+
+# yum update on 2020-12-13
+# [ec2-user@ip-192-168-0-5 ~]$ uname -r
+# 4.14.209-160.335.amzn2.x86_64
+
+# DBRD module compiled on 2020-12-08
+# kmod-drbd-9.0.24_4.14.203_156.332.amzn2.x86_64-1.x86_64.rpm
+
+# new image ami-0f310fced6141e627 used by since 2.2.5
+# (docker) [ec2-user@s-hive1 ~]$ uname -r
+# 4.14.203-156.332.amzn2.x86_64
+
+# DBRD module compiled on 2020-12-13
+# kmod-drbd-9.0.24_4.14.209_160.335.amzn2.x86_64-1.x86_64.rpm

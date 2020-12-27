@@ -22,6 +22,12 @@
     regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
     replace: "baseurl={{ hive_yum_url }}/\\2"
   when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
+- name: make yum do not update kernel* package
+  lineinfile:
+    path: /etc/yum.conf
+    insertafter: EOF
+    regexp: '^exclude='
+    line: 'exclude=kernel*'
 - name: check kernel version
   shell: uname -r
   register: uname_result
@@ -30,6 +36,7 @@
 - name: update kernel for drbd
   yum:
     name: kernel
+    disable_excludes: main
     state: latest
   when: hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')
   notify: require reboot

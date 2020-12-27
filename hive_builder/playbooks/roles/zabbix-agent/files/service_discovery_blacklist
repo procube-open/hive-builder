@@ -1,8 +1,8 @@
+polkit.service
 kdump.service
 ec2-instance-connect.service
 cloud-config.service
 NetworkManager-dispatcher.service
-dnf-makecache.service
 drbd-resource@
 user@1000.service
 user@0.service
@@ -12,3 +12,9 @@ getty@
 systemd-journal-catalog-update.service
 systemd-update-done.service
 systemd-hwdb-update.service
+backup.service
+dnf-makecache.service
+sysstat-collect.service
+sysstat-summary.service
+systemd-tmpfiles-clean.service
+unbound-anchor.service
