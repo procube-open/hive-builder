@@ -41,10 +41,10 @@ if [ "$(git symbolic-ref --short HEAD)" != "develop" ]; then
   exit 1
 fi
 
-VERSION=$(git describe --tags)
+VERSION=$(pipenv run version)
 
-if $NO_FORCE && [[ "$VERSION" == *-* ]]; then
-  echo "ERROR: tree is not clean or has distance from last tag: version=$VERSION"
+if ! CHECK_RESULT=$(pipenv run check-version $VERSION); then
+  echo "ERROR: Version $VERSION is not canonical according to Pep 440"
   exit 1
 fi
 
@@ -52,7 +52,7 @@ echo start release $VERSION
 set -ex
 if [ "$RELEASE_BRANCE" == "master" ]; then
   git checkout master
-  git merge "$VERSION"
+  git merge develop
 fi
 pipenv run clean
 pipenv run build
