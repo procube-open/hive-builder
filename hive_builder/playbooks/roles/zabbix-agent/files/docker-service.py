@@ -42,7 +42,7 @@ def service_uptime(client, logger, service_name):
         return min
     logger.error(f'service {service_name} is not found')
   except Exception as e:
-    logger.exception(f'fail to get services', e)
+    logger.exception(f'fail to get uptime for "{service_name}": {e}')
 
 
 def replicas(client, logger, service_name):
@@ -62,7 +62,7 @@ def replicas(client, logger, service_name):
         return running_count * 100 / desired_count if desired_count > 0 else 0
     logger.error(f'service {service_name} is not found')
   except Exception as e:
-    logger.exception(f'fail to get services', e.message)
+    logger.exception(f'fail to get replicas for "{service_name}": {e}')
 
 
 def discover(client, logger):
@@ -71,7 +71,7 @@ def discover(client, logger):
       logger.debug(f'found services : {service.name}')
       yield {'{#SERVICE_NAME}': service.name}
   except Exception as e:
-    logger.exception(f'fail to get services', e)
+    logger.exception(f'fail to get list of services: {e}')
 
 
 def read_blacklist():
@@ -111,7 +111,7 @@ def discover_innerservice(clients, logger):
         for sname in innerservices:
           yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}
   except Exception as e:
-    logger.exception(f'fail to get services', e)
+    logger.exception(f'fail to get inner services: {e}')
 
 
 def service_uptime_innerservice(clients, logger, service_name, inner):
@@ -144,7 +144,7 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
             min = s_uptime
     return min
   except Exception as e:
-    logger.exception(f'fail to get uptime for inner service "{inner}" in container "{service_name}": ', e)
+    logger.exception(f'fail to get uptime for inner service "{inner}" in container "{service_name}": {e}')
 
 
 def replicas_innerservice(clients, logger, service_name, inner):
@@ -171,7 +171,7 @@ def replicas_innerservice(clients, logger, service_name, inner):
             running_count += 1
     return running_count * 100 / desired_count if desired_count > 0 else 0
   except Exception as e:
-    logger.exception(f'fail to get replicas for inner service "{inner}" in container "{service_name}": ', e)
+    logger.exception(f'fail to get replicas for inner service "{inner}" in container "{service_name}": {e}')
 
 
 def main():
@@ -222,7 +222,7 @@ def main():
     else:
       print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
   else:
-    logger.exception('command option is required')
+    logger.error('command option is required')
 
 
 if __name__ == "__main__":
