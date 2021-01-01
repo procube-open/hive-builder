@@ -1,6 +1,7 @@
 UserParameter=user.discovery.docker-service,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=user.discovery.docker-standalone-service,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-standalone {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
 UserParameter=docker-service-uptime[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
 UserParameter=docker-service-replicas[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replicas $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
 UserParameter=user.discovery.docker-innerservice,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-innerservice {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
 UserParameter=docker-innerservice-uptime[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 --inner $2 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker-innerservice-replicas[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replicas $1 --inner $2 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker-failed-innerservice-count[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --failed-innerservice-count $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-service_list=$(systemctl list-units --type=service --no-legend --no-pager | awk '{print $1}')
+service_list=$(systemctl list-unit-files --type service --no-pager --no-legend | awk '$2=="enabled" && $1 !~ "@" {print $1}' )
 
 [[ -r /etc/zabbix/service_discovery_whitelist ]] && {
     service_list=$(echo "$service_list" | grep -E -f /etc/zabbix/service_discovery_whitelist)
@@ -10,4 +10,12 @@ service_list=$(systemctl list-units --type=service --no-legend --no-pager | awk 
     service_list=$(echo "$service_list" | grep -Ev -f /etc/zabbix/service_discovery_blacklist)
 }
 
-echo -n '{"data":[';for s in ${service_list}; do s2="${s/@/%}"; echo -n "{\"{#SERVICE}\": \"${s2//\\/\\\\}\"},";done | sed -e 's:\},$:\}:';echo -n ']}'
+service_json='{"data":['
+sepalator=''
+for s in ${service_list}; do
+  if [ $(systemctl show --property=Type $s | awk -F = '{print $2}') != "oneshot" ]; then
+    service_json="${service_json}${sepalator}{\"{#SERVICE}\": \"${s}\"}"
+    sepalator=","
+  fi
+done
+echo -n "${service_json}]}"

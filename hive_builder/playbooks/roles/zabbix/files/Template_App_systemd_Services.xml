@@ -22,6 +22,28 @@
                     <name>systemd</name>
                 </application>
             </applications>
+            <items>
+              <item>
+                  <name>Failed Service Count</name>
+                  <key>systemd.service.failed.count</key>
+                  <history>1d</history>
+                  <trends>1d</trends>
+                  <description>Returns the number of failed service</description>
+                  <applications>
+                      <application>
+                          <name>systemd</name>
+                      </application>
+                  </applications>
+                  <triggers>
+                      <trigger>
+                          <expression>{last()}&gt;0</expression>
+                          <name>Some service status are failed</name>
+                          <priority>HIGH</priority>
+                          <manual_close>YES</manual_close>
+                      </trigger>
+                  </triggers>
+              </item>
+            </items>
             <discovery_rules>
                 <discovery_rule>
                     <name>Service Discovery</name>
@@ -45,26 +67,6 @@
                                     <name>{#SERVICE} service has restarted</name>
                                     <priority>WARNING</priority>
                                     <description>Triggers an alert if a service has restarted</description>
-                                    <manual_close>YES</manual_close>
-                                </trigger_prototype>
-                            </trigger_prototypes>
-                        </item_prototype>
-                        <item_prototype>
-                            <name>{#SERVICE} Status</name>
-                            <key>systemd.service.status[{#SERVICE}]</key>
-                            <history>1d</history>
-                            <trends>1d</trends>
-                            <description>Returns the status of the</description>
-                            <applications>
-                                <application>
-                                    <name>systemd</name>
-                                </application>
-                            </applications>
-                            <trigger_prototypes>
-                                <trigger_prototype>
-                                    <expression>{last()}&lt;&gt;0</expression>
-                                    <name>{#SERVICE} service not running</name>
-                                    <priority>HIGH</priority>
                                     <manual_close>YES</manual_close>
                                 </trigger_prototype>
                             </trigger_prototypes>

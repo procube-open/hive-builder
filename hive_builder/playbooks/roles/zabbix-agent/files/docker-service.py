@@ -43,6 +43,7 @@ def service_uptime(client, logger, service_name):
     logger.error(f'service {service_name} is not found')
   except Exception as e:
     logger.exception(f'fail to get uptime for "{service_name}": {e}')
+  return 0
 
 
 def replicas(client, logger, service_name):
@@ -63,13 +64,15 @@ def replicas(client, logger, service_name):
     logger.error(f'service {service_name} is not found')
   except Exception as e:
     logger.exception(f'fail to get replicas for "{service_name}": {e}')
+  return 0
 
 
-def discover(client, logger):
+def discover(client, logger, standalone=False):
   try:
     for service in client.services.list():
       logger.debug(f'found services : {service.name}')
-      yield {'{#SERVICE_NAME}': service.name}
+      if (not standalone) or service.attrs.get('Spec', {}).get('Labels', {}).get('HIVE_STANDALONE', "False") == 'True':
+        yield {'{#SERVICE_NAME}': service.name}
   except Exception as e:
     logger.exception(f'fail to get list of services: {e}')
 
@@ -77,7 +80,7 @@ def discover(client, logger):
 def read_blacklist():
   try:
     with open('/etc/zabbix/service_discovery_blacklist') as f:
-      return f.readlines()
+      return list(map(lambda x: re.compile(x.replace('\n', '')), f.readlines()))
   except FileNotFoundError:
     return []
 
@@ -97,17 +100,42 @@ def discover_innerservice(clients, logger):
               logger.debug(f'found runinig task on {task.get("NodeID")}')
               container_id = task.get('Status', {}).get('ContainerStatus', {}).get('ContainerID', '')
               if len(container_id) == 0:
-                logger.error(f'fail to get container ID for service "{service}" on node "{task.get("NodeID")}"')
+                logger.error(f'fail to get container ID for service "{service.name}" on node "{task.get("NodeID")}"')
                 return
               container = clients[task.get('NodeID')].containers.get(container_id)
-              (rc, data) = container.exec_run('systemctl list-units --type=service --no-legend --no-pager', user='root')
+              (rc, data) = container.exec_run(
+                  'systemctl list-unit-files --type service --no-pager --no-legend',
+                  user='root')
+              decoded_data = ''
+              try:
+                decoded_data = data.decode('utf-8')
+              except Exception:
+                pass
               if rc != 0:
-                logger.error(f'fail to execute list-units on node "{task.get("NodeID")}"')
+                logger.error(f'fail to execute list-units on node "{task.get("NodeID")}": {decoded_data}')
                 return
-              for l in data.decode('utf-8').splitlines():
+              for l in decoded_data.splitlines():
                 sname = l.split()[0]
-                if sname not in blacklist and sname not in innerservices:
-                  innerservices.add(sname)
+                status = l.split()[1]
+                if status == 'enabled' and ('@' not in sname) and not any(map(lambda pattern: pattern.match(sname), blacklist)):
+                  (rc, data) = container.exec_run(
+                      'systemctl show -p Type ' + sname, user='root')
+                  decoded_data = ''
+                  try:
+                    decoded_data = data.decode('utf-8')
+                  except Exception:
+                    pass
+                  if rc != 0:
+                    logger.error(f'fail to execute show -p Type {sname} in service "{service.name}" on node "{task.get("NodeID")}": {decoded_data}')
+                    return
+                  key_value = decoded_data.split('=')
+                  logger.debug(f'type of innner service {sname} of service "{service.name}" on node "{task.get("NodeID")}" is "{key_value[1]}"')
+                  if len(key_value) != 2 or key_value[0] != 'Type':
+                    logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p Type {sname}' +
+                                 f' in "{service.name}" on node "{task.get("NodeID")}"')
+                    return -1
+                  if key_value[1] != 'oneshot' and sname not in innerservices:
+                    innerservices.add(sname)
         for sname in innerservices:
           yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}
   except Exception as e:
@@ -119,7 +147,7 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
     sl = next(iter(clients.values())).services.list(filters={'name': service_name})
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
-      return
+      return -1
     min = -1
     for task in sl[0].tasks():
       if task.get('DesiredState') == 'running':
@@ -132,12 +160,18 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
             return
           container = clients[task.get('NodeID')].containers.get(container_id)
           (rc, data) = container.exec_run('systemctl show -p ActiveEnterTimestampMonotonic ' + inner, user='root')
+          decoded_data = ''
+          try:
+            decoded_data = data.decode('utf-8')
+          except Exception:
+            pass
           if rc != 0:
-            logger.error(f'fail to execute list-units on node "{task.get("NodeID")}"')
+            logger.error(f'fail to get Timestamp of service "{inner}@{service_name}" on node "{task.get("NodeID")}": {decoded_data}')
             return -1
-          key_value = data.decode('utf-8').split('=')
+          key_value = decoded_data.split('=')
           if len(key_value) != 2:
-            logger.error(f'fail to parse output "{data.decode("utf-8")}" of command systemctl show -p ActiveEnterTimestampMonotonic {inner}')
+            logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p ActiveEnterTimestampMonotonic {inner}' +
+                         f' in "{service_name}" on node "{task.get("NodeID")}"')
             return -1
           s_uptime = int(uptime.uptime() - (float(key_value[1]) / 1000000))
           if min == -1 or s_uptime < min:
@@ -145,19 +179,19 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
     return min
   except Exception as e:
     logger.exception(f'fail to get uptime for inner service "{inner}" in container "{service_name}": {e}')
+  return -1
 
 
-def replicas_innerservice(clients, logger, service_name, inner):
+def failed_innerservice_count(clients, logger, service_name):
+  blacklist = read_blacklist()
   try:
     sl = next(iter(clients.values())).services.list(filters={'name': service_name})
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
-      return
-    desired_count = 0
-    running_count = 0
+      return -1
+    failed_count = 0
     for task in sl[0].tasks():
       if task.get('DesiredState') == 'running':
-        desired_count += 1
         status = task.get('Status')
         if status.get('State') == 'running':
           logger.debug(f'found runinig task on {task.get("NodeID")}')
@@ -166,12 +200,26 @@ def replicas_innerservice(clients, logger, service_name, inner):
             logger.error(f'fail to get container ID for service "{service_name}" on node "{task.get("NodeID")}"')
             return
           container = clients[task.get('NodeID')].containers.get(container_id)
-          (rc, data) = container.exec_run('systemctl is-active ' + inner, user='root')
-          if rc == 0:
-            running_count += 1
-    return running_count * 100 / desired_count if desired_count > 0 else 0
+          (rc, data) = container.exec_run(
+              'systemctl list-units --type=service --no-pager --no-legend --state=failed --all',
+              user='root')
+          decoded_data = ''
+          try:
+            decoded_data = data.decode('utf-8')
+          except Exception:
+            pass
+          if rc != 0:
+            logger.error(f'fail to execute list-units in service "{service_name}" on node "{task.get("NodeID")}: {decoded_data}"')
+            return 99
+          for l in decoded_data.splitlines():
+            sname = l.split()[0]
+            logger.debug(f'found failed service "{sname}" in service "{service_name}" on node "{task.get("NodeID")}"')
+            if not any(map(lambda pattern: pattern.match(sname), blacklist)):
+              failed_count += 1
+    return failed_count
   except Exception as e:
-    logger.exception(f'fail to get replicas for inner service "{inner}" in container "{service_name}": {e}')
+    logger.exception(f'fail to get failed service count in container "{service_name}": {e}')
+  return 99
 
 
 def main():
@@ -180,11 +228,14 @@ def main():
                       help='list of docker swarm node server')
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--discover", help="discover services and print zabbix discover data format json.", action="store_true")
+  group.add_argument("--discover-standalone", help="discover standalone type services and print zabbix discover data format json.", action="store_true")
   group.add_argument("--discover-innerservice",
                      help="discover inner-services in a standalone type container and print zabbix discover data format json.", action="store_true")
   group.add_argument("--uptime", help="print least uptime for the service.", metavar='service')
   group.add_argument("--replicas", help="print available running task persentage for the service.", metavar='service')
   parser.add_argument("--inner", help="name of inner service for standalone container.", metavar='inner')
+  group.add_argument("--failed-innerservice-count",
+                     help="count number of failed serivces in standalone type container and print", metavar='service')
   args = parser.parse_args()
   logger = logging.getLogger('docker-service')
   logger.setLevel(os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
@@ -198,7 +249,7 @@ def main():
     try:
       client = docker.DockerClient(base_url=f'tcp://{server}:2376', tls=tls_config)
       info = client.info()
-    except docker.errors.APIError as e:
+    except (docker.errors.APIError, docker.errors.DockerException) as e:
       logger.error(f'fail to initialize docker client for server {server}: {e}')
       continue
     node_id = info.get('Swarm', {}).get('NodeID', '')
@@ -209,6 +260,8 @@ def main():
 
   if args.discover:
     print(json.dumps(dict(data=[v for v in discover(next(iter(clients.values())), logger)])))
+  elif args.discover_standalone:
+    print(json.dumps(dict(data=[v for v in discover(next(iter(clients.values())), logger, standalone=True)])))
   elif args.discover_innerservice:
     print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger)])))
   elif args.uptime:
@@ -217,10 +270,9 @@ def main():
     else:
       print(json.dumps(service_uptime(next(iter(clients.values())), logger, args.uptime)))
   elif args.replicas:
-    if args.inner:
-      print(json.dumps(replicas_innerservice(clients, logger, args.replicas, args.inner.replace('%', '@'))))
-    else:
-      print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
+    print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
+  elif args.failed_innerservice_count:
+    print(json.dumps(failed_innerservice_count(clients, logger, args.failed_innerservice_count)))
   else:
     logger.error('command option is required')
 

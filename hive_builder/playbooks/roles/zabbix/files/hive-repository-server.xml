@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>5.2</version>
-    <date>2020-10-21T09:27:37Z</date>
+    <date>2020-12-31T02:54:34Z</date>
     <groups>
         <group>
             <name>Repository server</name>
@@ -55,22 +55,6 @@
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Docker Inner-service replicas {#INNER}@{#SERVICE_NAME}</name>
-                            <key>docker-innerservice-replicas[{#SERVICE_NAME},{#INNER}]</key>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
-                            <trigger_prototypes>
-                                <trigger_prototype>
-                                    <expression>{last(#1)}&lt;100</expression>
-                                    <name>Service {#INNER} in container {#SERVICE_NAME} replicas running percetage less than 100</name>
-                                    <priority>WARNING</priority>
-                                </trigger_prototype>
-                            </trigger_prototypes>
-                        </item_prototype>
-                        <item_prototype>
                             <name>Docker Inner-service uptime {#INNER}@{#SERVICE_NAME}</name>
                             <key>docker-innerservice-uptime[{#SERVICE_NAME},{#INNER}]</key>
                             <delay>5m</delay>
@@ -123,6 +107,29 @@
                                 <trigger_prototype>
                                     <expression>{last(#1)}&lt;28800</expression>
                                     <name>Service {#SERVICE_NAME} restarted</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                </discovery_rule>
+                <discovery_rule>
+                    <name>Docker Swarm Standalone Service discovery</name>
+                    <key>user.discovery.docker-standalone-service</key>
+                    <delay>1h</delay>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Docker Failed Innerservice count in {#SERVICE_NAME}</name>
+                            <key>docker-failed-innerservice-count[{#SERVICE_NAME}]</key>
+                            <applications>
+                                <application>
+                                    <name>Docker</name>
+                                </application>
+                            </applications>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last(#1)}&gt;0</expression>
+                                    <name>Some service in standalone type container {#SERVICE_NAME} was failed</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
