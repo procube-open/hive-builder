@@ -144,7 +144,7 @@ def discover_innerservice(clients, logger):
 
 def service_uptime_innerservice(clients, logger, service_name, inner):
   try:
-    sl = next(iter(clients.values())).services.list(filters={'name': service_name})
+    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return -1
@@ -185,7 +185,7 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
 def failed_innerservice_count(clients, logger, service_name):
   blacklist = read_blacklist()
   try:
-    sl = next(iter(clients.values())).services.list(filters={'name': service_name})
+    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return -1
