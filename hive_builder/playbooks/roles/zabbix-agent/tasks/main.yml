@@ -83,6 +83,7 @@
   loop:
   - authlogin_nsswitch_use_ldap
   - domain_can_mmap_files
+  - daemons_dump_core
   - nis_enabled
   - zabbix_run_sudo
   when: hive_safe_selinux != 'disabled'

@@ -1,0 +1,23 @@
+---
+- name: add monitor service log script
+  become: True
+  template:
+    src: monitor-service-log.j2
+    dest: "/etc/rsyslog-services.d/{{ hive_safe_target }}.conf"
+    mode: 0755
+  when: not (hive_destroy | default(False))
+  loop: "{{ hive_safe_services | map('extract', hostvars) | selectattr('hive_monitor_error', 'defined') | map(attribute='inventory_hostname') | list }}"
+  loop_control:
+    loop_var: hive_safe_target
+  notify: update rsyslog config
+- name: remove monitor service log script
+  become: True
+  file:
+    path: "/etc/rsyslog-services.d/{{ hive_safe_target }}.conf"
+    state: absent
+  when: hive_destroy | default(False)
+  loop: "{{ hive_safe_services | map('extract', hostvars) | selectattr('hive_monitor_error', 'defined') | map(attribute='inventory_hostname') | list }}"
+  loop_control:
+    loop_var: hive_safe_target
+  notify: update rsyslog config
+

@@ -1,0 +1,21 @@
+{% if hostvars[hive_safe_target].hive_standalone | default(False) %}
+if $hostname == '{{ hive_safe_target }}' then {
+{% else %}
+if $syslogfacility-text == 'local0' and $app-name == '{{ hive_safe_target }}' then {
+{% endif %}
+  if
+{% if (hostvars[hive_safe_target].hive_ignore_error | default([]) | length) > 0 %}
+    not (re_match($msg, '{{hostvars[hive_safe_target].hive_ignore_error | join("') or re_match($msg, '")}}')) and
+{% endif %}
+    (re_match($msg, '{{hostvars[hive_safe_target].hive_monitor_error | join("') or re_match($msg, '")}}')) then {
+{% if hostvars[hive_safe_target].hive_standalone | default(False) %}
+    if $syslogfacility-text == 'local1' then {
+      action(type="omfile" file="/var/log/service-error.log" template="logFormatErrorInner")
+    } else {
+      action(type="omfile" file="/var/log/service-error.log" template="logFormatErrorStandalone")
+    }
+{% else %}
+    action(type="omfile" file="/var/log/service-error.log" template="logFormatErrorApp" action.copyMsg="on")
+{% endif %}
+  }
+}

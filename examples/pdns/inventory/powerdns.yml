@@ -72,11 +72,12 @@ services:
         size: 500M
     labels:
       published_fqdn: pdnsadmin.pdns.procube-demo.jp
+    monitor_error:
+      - Error
+      - Exception
     ignore_error:
       - "Error handling request /(favicon.ico|echo.php)"
       - "ERROR - Exception on /(favicon.ico|echo.php)"
-      - "^ [^[]"
-      - "error : Unknown IO error"
   proxy:
     image: "procube/nginx:latest"
     ports:

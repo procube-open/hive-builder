@@ -24,7 +24,7 @@
 - name: create ignore directory
   become: True
   file:
-    path: /etc/rsyslog-ignore.d/
+    path: /etc/rsyslog-services.d/
     state: directory
     mode: 0775
 

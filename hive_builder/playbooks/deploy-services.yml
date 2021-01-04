@@ -52,7 +52,7 @@
 
   roles:
   - service-backup
-  - service-ignore-error
+  - monitor-service-log
 
 - name: deploy services
   gather_facts: False
