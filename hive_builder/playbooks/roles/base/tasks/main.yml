@@ -129,13 +129,24 @@
     dest: /usr/lib/systemd/system/
     mode: 0644
     directory_mode: 0755
+  # check if HTTP_PROXY environment variable is set or not
+  # we cannnot use
+  #   when: ansible_env.HTTP_PROXY is defined
+  # because it is depends on gather_facts, but if we do "hive setup-hosts -T base" then
+  # skip gather_facts and ansible_env is not set.
+- name: check whether /etc/environment contains HTTP_PROXY
+     command: grep "^HTTP_PROXY=" /etc/environment
+     register: check_http_proxy
+     check_mode: no
+     ignore_errors: yes
+     changed_when: no
 - name: ensures /usr/lib/systemd/system/dnf-makecache.service.d dir exists
   file: path=/usr/lib/systemd/system/dnf-makecache.service.d state=directory
-  when: ansible_env.HTTP_PROXY is defined
+  when: check_http_proxy.rc == 0
 - name: make dnf-makecache.service use proxy
   copy:
     contents: |
       [Service]
       EnvironmentFile=-/etc/environment
     dest: /usr/lib/systemd/system/dnf-makecache.service.d/override.conf
-  when: ansible_env.HTTP_PROXY is defined
+  when: check_http_proxy.rc == 0
