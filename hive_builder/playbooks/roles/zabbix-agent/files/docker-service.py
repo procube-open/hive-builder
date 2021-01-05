@@ -134,7 +134,7 @@ def discover_innerservice(clients, logger):
                     logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p Type {sname}' +
                                  f' in "{service.name}" on node "{task.get("NodeID")}"')
                     return -1
-                  if key_value[1] != 'oneshot' and sname not in innerservices:
+                  if key_value[1] not in ['oneshot', 'dbus'] and sname not in innerservices:
                     innerservices.add(sname)
         for sname in innerservices:
           yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}

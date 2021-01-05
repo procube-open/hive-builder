@@ -13,7 +13,7 @@ service_list=$(systemctl list-unit-files --type service --no-pager --no-legend |
 service_json='{"data":['
 sepalator=''
 for s in ${service_list}; do
-  if [ $(systemctl show --property=Type $s | awk -F = '{print $2}') != "oneshot" ]; then
+  if systemctl show --property=Type $s | awk -F = '{print $2}' | egrep -qv '^(oneshot|dbus)'; then
     service_json="${service_json}${sepalator}{\"{#SERVICE}\": \"${s}\"}"
     sepalator=","
   fi
