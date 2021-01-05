@@ -135,17 +135,17 @@
   # because it is depends on gather_facts, but if we do "hive setup-hosts -T base" then
   # skip gather_facts and ansible_env is not set.
 - name: check whether /etc/environment contains HTTP_PROXY
-     command: grep "^HTTP_PROXY=" /etc/environment
-     register: check_http_proxy
-     check_mode: no
-     ignore_errors: yes
-     changed_when: no
+  command: "grep '^HTTP_PROXY=' /etc/environment"
+  register: check_http_proxy
+  check_mode: no
+  ignore_errors: yes
+  changed_when: no
 - name: ensures /usr/lib/systemd/system/dnf-makecache.service.d dir exists
   file: path=/usr/lib/systemd/system/dnf-makecache.service.d state=directory
   when: check_http_proxy.rc == 0
 - name: make dnf-makecache.service use proxy
   copy:
-    contents: |
+    content: |
       [Service]
       EnvironmentFile=-/etc/environment
     dest: /usr/lib/systemd/system/dnf-makecache.service.d/override.conf
