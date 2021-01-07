@@ -19,6 +19,7 @@ DAEMON = None
 DNAT_TARGET_RULE_NAME = "DOCKER"
 DNAT_TARGET_INTERFACE_NAME = "docker_gwbridge"
 
+
 class HookBase:
   def __init__(self, label_value, serivce_id, service_name):
     self.label_value = label_value
@@ -248,7 +249,7 @@ class SetVIP(HookBase):
         DAEMON.logger.info(f'State is not running. wait 1 second...')
         rest_count -= 1
         time.sleep(1)
-        latest_task = DAEMON.client.services.get(self.serivce_id).tasks({"id":latest_task.get('ID')})[0]
+        latest_task = DAEMON.client.services.get(self.serivce_id).tasks({"id": latest_task.get('ID')})[0]
         continue
       cstatus = status.get('ContainerStatus')
       container_id = cstatus['ContainerID']
@@ -294,9 +295,13 @@ class SetVIP(HookBase):
         if not(port):
           continue
         DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
-        self.subprocess_run(['iptables', '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', container_ip + ':' + port, '-m', 'comment', '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
+        self.subprocess_run(['iptables', '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
+                            str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', container_ip + ':' + port, '-m', 'comment',
+                            '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
         DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
-        self.subprocess_run(['iptables', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
+        self.subprocess_run(['iptables', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip,
+                             '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
+                             '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
 
   def resolveNATRuleDst(self, interface, proto, port):
     if not(port):
@@ -314,13 +319,13 @@ class SetVIP(HookBase):
       else:
         DAEMON.logger.debug(f'parsing nat line not match:{line}')
 
-
   def resolveFilterRuleDst(self, interface, proto, port):
     if not(port):
       return
-    nat_list = self.subprocess_run(['iptables', '-L', '-v', '-n' ])
+    nat_list = self.subprocess_run(['iptables', '-L', '-v', '-n'])
     for line in nat_list.stdout.splitlines():
-      if not(re.match(r'^.*ACCEPT.* {0} .*{1} dpt:{2} .* hive_accept_{3}_{1}_{2}_ .*$'.format(DNAT_TARGET_INTERFACE_NAME, proto, port, interface["vip_if"].ip), line)):
+      if not(re.match(r'^.*ACCEPT.* {0} .*{1} dpt:{2} .* hive_accept_{3}_{1}_{2}_ .*$'.format(
+             DNAT_TARGET_INTERFACE_NAME, proto, port, interface["vip_if"].ip), line)):
         DAEMON.logger.debug(f'checking filter line not match:{line}')
         continue
       matcher = re.match(r"^.* 0.0.0.0/0 *([^ ]*) *{0} dpt:{1} .*$".format(proto, port), line)
@@ -338,10 +343,14 @@ class SetVIP(HookBase):
         proto, port = self.resolveNatProto(p)
         for nat_rule_dst in self.resolveNATRuleDst(interface, proto, port):
           DAEMON.logger.debug(f'Delete DNAT({interface["vip_if"].ip}:{port}/{proto} -> {nat_rule_dst}/{proto})')
-          self.subprocess_run(['iptables', '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst, '-m', 'comment', '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
+          self.subprocess_run(['iptables', '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
+                               str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst,
+                               '-m', 'comment', '--comment', f'hive_dnat_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
         for filter_rule_dst in self.resolveFilterRuleDst(interface, proto, port):
           DAEMON.logger.debug(f'Delete ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {filter_rule_dst}:{port}/{proto}')
-          self.subprocess_run(['iptables', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
+          self.subprocess_run(['iptables', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst,
+                               '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
+                               '-m', 'comment', '--comment', f'hive_accept_{str(interface["vip_if"].ip)}_{proto}_{port}_'])
 
   def on_leave(self):
     interface = self.get_interface()
