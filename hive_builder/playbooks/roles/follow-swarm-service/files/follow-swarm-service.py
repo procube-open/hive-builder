@@ -322,7 +322,7 @@ class SetVIP(HookBase):
       return
     nat_list = self.subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n', '-t', 'nat'])
     for line in nat_list.stdout.splitlines():
-      matcher = re.match(r'^.*DNAT.* {0} .*{1} dpt:{2} .* {3} .* to:([^:]*:[^:]*)$'.format(interface["vip_if"].ip, proto, port, self.gen_dnat_comment(interface["vip_if"].ip, proto, port)), line)
+      matcher = re.match(r'^.*DNAT.* {0} .*{1} dpt:{2} .* {3} .* to:(([^:]*|\[[^\]]*\]):[^:]*)$'.format(interface["vip_if"].ip, proto, port, self.gen_dnat_comment(interface["vip_if"].ip, proto, port)), line)
       if not(matcher):
         DAEMON.logger.debug(f'checking nat line not match:{line}')
         continue
