@@ -106,7 +106,7 @@ class MarkNode(HookBase):
 class SetVIP(HookBase):
   label_name = 'HIVE_VIP'
   router_label_name = 'HIVE_ROUTER'
-  dnat_ports = 'HIVE_DNAT_PORTS'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS'
 
   @classmethod
   def check_service(cls, service):
@@ -118,7 +118,7 @@ class SetVIP(HookBase):
       return None
     me.router = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.router_label_name)
     DAEMON.logger.debug(f'label "HIVE_ROUTER" value is {me.router}')
-    me.dnat_ports = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.dnat_ports)
+    me.dnat_ports = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.dnat_ports_label_name)
     DAEMON.logger.debug(f'label "HIVE_DNAT_PORTS" value is {me.dnat_ports}')
     return me
 
@@ -357,31 +357,37 @@ class SetVIP(HookBase):
 class SetVIP0(SetVIP):
   label_name = 'HIVE_VIP0'
   router_label_name = 'HIVE_ROUTER0'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS0'
 
 
 class SetVIP1(SetVIP):
   label_name = 'HIVE_VIP1'
   router_label_name = 'HIVE_ROUTER1'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS1'
 
 
 class SetVIP2(SetVIP):
   label_name = 'HIVE_VIP2'
   router_label_name = 'HIVE_ROUTER2'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS2'
 
 
 class SetVIP3(SetVIP):
   label_name = 'HIVE_VIP3'
   router_label_name = 'HIVE_ROUTER3'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS3'
 
 
 class SetVIP4(SetVIP):
   label_name = 'HIVE_VIP4'
   router_label_name = 'HIVE_ROUTER4'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS4'
 
 
 class SetVIP5(SetVIP):
   label_name = 'HIVE_VIP5'
   router_label_name = 'HIVE_ROUTER5'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS5'
 
 
 class FollowSwarmServiceDaemon:
