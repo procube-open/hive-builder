@@ -313,9 +313,9 @@ class SetVIP(HookBase):
         if not(port):
           continue
         DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
-        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', self.wrap_dnat_address(container_ip) + ':' + port, '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
+        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', self.wrap_dnat_address(container_ip) + ':' + port, '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
         DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
-        self.subprocess_run([self.__class__.cmd_iptables, '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+        self.subprocess_run([self.__class__.cmd_iptables, '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
 
   def resolveNATRuleDst(self, interface, proto, port):
     if not(port):
