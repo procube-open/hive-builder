@@ -171,7 +171,7 @@ class SetVIP(HookBase):
   def list_ifs(self):
     ip_addr = self.subprocess_run(['ip', 'addr'])
     state = 'start'
-    interface = dict(ips=[])
+    interface = dict(ips=[], network=[])
     for line in ip_addr.stdout.splitlines():
       if state == 'start':
         start_if = self.__class__.reg_start_if.match(line)
@@ -183,14 +183,14 @@ class SetVIP(HookBase):
           inet = self.__class__.reg_inet.match(line)
           if inet:
             inet_if = ipaddress.ip_interface(inet.group(1))
-            interface['network'] = inet_if.network
+            interface['network'].append(inet_if.network)
             interface['ips'].append(inet_if.ip)
           else:
             start_if = self.__class__.reg_start_if.match(line)
             if start_if:
               assert 'name' in interface, '!!BUG!!'
               yield interface
-              interface = dict(name=start_if.group(2), ips=[])
+              interface = dict(name=start_if.group(2), ips=[], network=[])
     if 'name' in interface:
       yield interface
 
@@ -210,10 +210,11 @@ class SetVIP(HookBase):
     else:
       vip = ipaddress.ip_address(self.label_value)
       for interface in self.list_ifs():
-        if 'network' in interface and vip in interface['network']:
-          found = interface
-          found['vip_if'] = ipaddress.ip_interface(str(vip) + '/' + str(interface['network'].prefixlen))
-          break
+        for nw in interface['network']:
+          if vip in nw:
+            found = interface
+            found['vip_if'] = ipaddress.ip_interface(str(vip) + '/' + str(nw.prefixlen))
+            break
     return found
 
   def on_enter(self):
@@ -282,6 +283,9 @@ class SetVIP(HookBase):
   def clear_link_address_cache(self, interface_name, ip):
     self.subprocess_run(['arping', '-c', '1', '-A', '-I', interface_name, ip])
 
+  def wrap_dnat_address(self, ip):
+    return ip
+
   def setVip(self, interface):
     self.subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
     self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip))
@@ -309,7 +313,7 @@ class SetVIP(HookBase):
         if not(port):
           continue
         DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
-        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', container_ip + ':' + port, '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
+        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', self.wrap_dnat_address(container_ip) + ':' + port, '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
         DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
         self.subprocess_run([self.__class__.cmd_iptables, '-A', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip, '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME, '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
 
@@ -397,6 +401,52 @@ class SetVIP5(SetVIP):
   router_label_name = 'HIVE_ROUTER5'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5'
 
+class SetVIPv6(SetVIP):
+  label_name = 'HIVE_VIP_V6'
+  router_label_name = 'HIVE_ROUTER_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS_V6'
+  reg_inet = re.compile(r'^ +inet6 ([0-9a-f:]+/\d+) .*$')
+  container_ip_prop_name = "IPv6Address"
+  cmd_iptables = 'ip6tables'
+  cmd_ping = 'ping6'
+  cmd_ip_opts = '-6'
+  any_address = '::/0'
+
+  def clear_link_address_cache(self, interface_name, ip):
+    DAEMON.logger.debug('cachec clear command is unimplemented')
+
+  def wrap_dnat_address(self, ip):
+    return '[' + ip + ']'
+
+class SetVIP0v6(SetVIPv6):
+  label_name = 'HIVE_VIP0_V6'
+  router_label_name = 'HIVE_ROUTER0_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS0_V6'
+
+class SetVIP1v6(SetVIPv6):
+  label_name = 'HIVE_VIP1_V6'
+  router_label_name = 'HIVE_ROUTER1_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS1_V6'
+
+class SetVIP2v6(SetVIPv6):
+  label_name = 'HIVE_VIP2_V6'
+  router_label_name = 'HIVE_ROUTER2_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS2_V6'
+
+class SetVIP3v6(SetVIPv6):
+  label_name = 'HIVE_VIP3_V6'
+  router_label_name = 'HIVE_ROUTER3_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS3_V6'
+
+class SetVIP4v6(SetVIPv6):
+  label_name = 'HIVE_VIP4_V6'
+  router_label_name = 'HIVE_ROUTER4_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS4_V6'
+
+class SetVIP5v6(SetVIPv6):
+  label_name = 'HIVE_VIP5_V6'
+  router_label_name = 'HIVE_ROUTER5_V6'
+  dnat_ports_label_name = 'HIVE_DNAT_PORTS5_V6'
 
 class FollowSwarmServiceDaemon:
   def __init__(self):
@@ -407,7 +457,7 @@ class FollowSwarmServiceDaemon:
     self.logger = logging.getLogger(f'FollowSwarm@{self.node_name}')
     self.logger.debug(f'client.info():{json.dumps(client_info)}')
     self.hooks = {}
-    self.hook_classes = [SetVIP, SetVIP0, SetVIP1, SetVIP2, SetVIP3, SetVIP4, SetVIP5, MarkNode]
+    self.hook_classes = [SetVIP, SetVIP0, SetVIP1, SetVIP2, SetVIP3, SetVIP4, SetVIP5, MarkNode, SetVIPv6, SetVIP0v6, SetVIP1v6, SetVIP2v6, SetVIP3v6, SetVIP4v6, SetVIP5v6]
 
   def list_hooks(self):
     for service in self.client.services.list():

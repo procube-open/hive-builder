@@ -5,9 +5,135 @@
   changed_when: false
   check_mode: False
 
+- name: "Resolve subnet option"
+  set_fact:
+    subnet_v4: "{{ (hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string)) if hive_internal_cidr is defined else omit}}"
+    subnet_v6: "{{ (hive_internal_cidr_v6 | ipaddr((hive_internal_cidr_v6 | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr_v6 | ipaddr('prefix')) + 3) | string)) if hive_internal_cidr_v6 is defined else omit}}"
+
+- name: "Resolve subnet option"
+  set_fact:
+    subnet_opts_v4: "{{'--subnet ' + subnet_v4 if hive_internal_cidr is defined else omit}}"
+    subnet_opts_v6: "{{'--ipv6 --subnet ' + subnet_v6 if hive_internal_cidr_v6 is defined else omit}}"
+
+- name: debug
+  debug:
+    msg: "subnet_opts_v4 is => '{{subnet_opts_v4 if subnet_opts_v4 is defined}}'. subnet_opts_v6 is => '{{subnet_opts_v6 if subnet_opts_v6 is defined}}'"
+
 - name: set docker_gwbridge subnet
-  shell: "docker network create --subnet {{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }} --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge"
-  when: hive_internal_cidr is defined and hive_docker_info.stdout == "inactive"
+  shell: "docker network create {{subnet_opts_v4 if subnet_opts_v4 is defined}} {{subnet_opts_v6 if subnet_opts_v6 is defined}} --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true docker_gwbridge"
+  when: (hive_internal_cidr is defined or hive_internal_cidr_v6 is defined) and hive_docker_info.stdout == "inactive"
+
+- name: gather ipv6tables_userchain info for nat
+  shell: ip6tables -L DOCKER -t nat
+  register: ipv6tables_nat_userchain_exists
+  changed_when: false
+  check_mode: False
+  ignore_errors: true
+  when: hive_internal_cidr_v6 is defined
+
+- name: create iptables info for nat
+  shell: ip6tables -N DOCKER -t nat
+  changed_when: false
+  check_mode: False
+  when: hive_internal_cidr_v6 is defined and ipv6tables_nat_userchain_exists is failed
+
+# - name: create ipv6 user-chain for nat table
+#   iptables:
+#     ip_version: ipv6
+#     table: nat
+#     chain: DOCKER
+#   when: hive_internal_cidr_v6 is defined
+
+- name: add prerouting rule for nat table
+  iptables:
+    ip_version: ipv6
+    table: nat
+    chain: PREROUTING
+    jump: DOCKER
+  when: hive_internal_cidr_v6 is defined
+
+- name: add output rule for nat table
+  iptables:
+    ip_version: ipv6
+    table: nat
+    chain: OUTPUT
+    jump: DOCKER
+  when: hive_internal_cidr_v6 is defined
+
+- name: add masquarade rule for nat table 1
+  iptables:
+    ip_version: ipv6
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+    out_interface: docker_gwbridge
+  when: hive_internal_cidr_v6 is defined
+
+- name: add masquarade rule for nat table 2
+  iptables:
+    ip_version: ipv6
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+    out_interface: "!docker_gwbridge"
+    source: "{{subnet_v6}}"
+  when: hive_internal_cidr_v6 is defined
+
+- name: gather ipv6tables_userchain info
+  shell: ip6tables -L DOCKER
+  register: ipv6tables_userchain_exists
+  changed_when: false
+  check_mode: False
+  ignore_errors: true
+  when: hive_internal_cidr_v6 is defined
+
+- name: create iptables info
+  shell: ip6tables -N DOCKER
+  changed_when: false
+  check_mode: False
+  when: hive_internal_cidr_v6 is defined and ipv6tables_userchain_exists is failed
+
+- name: add forward rule 1
+  iptables:
+    ip_version: ipv6
+    chain: FORWARD
+    jump: ACCEPT
+    out_interface : docker_gwbridge
+    ctstate: ESTABLISHED,RELATED
+  when: hive_internal_cidr_v6 is defined
+
+- name: add forward rule 2
+  iptables:
+    ip_version: ipv6
+    chain: FORWARD
+    jump: DOCKER
+    out_interface : docker_gwbridge
+  when: hive_internal_cidr_v6 is defined
+
+- name: add forward rule 3
+  iptables:
+    ip_version: ipv6
+    chain: FORWARD
+    jump: ACCEPT
+    in_interface : docker_gwbridge
+    out_interface : "!docker_gwbridge"
+  when: hive_internal_cidr_v6 is defined
+
+- name: add forward rule 4
+  iptables:
+    ip_version: ipv6
+    chain: FORWARD
+    jump: DROP
+    in_interface : docker_gwbridge
+    out_interface : docker_gwbridge
+  when: hive_internal_cidr_v6 is defined
+
+- name: set forward policy to DROP
+  iptables:
+    ip_version: ipv6
+    chain: FORWARD
+    policy: DROP
+  when: hive_internal_cidr_v6 is defined
 
 - name: initialize master node
   shell: "docker swarm init --advertise-addr {{ hive_private_ip }}"
