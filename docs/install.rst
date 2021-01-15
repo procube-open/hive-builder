@@ -105,20 +105,27 @@ vagrant のインストール
 
 ::
 
-    yum install qemu-kvm qemu-img virt-install git gcc ruby ruby-devel cmake libcmocka-devel libcmocka
+    yum install -y --enablerepo=powertools dnsmasq qemu-kvm qemu-img git gcc ruby ruby-devel cmake libcmocka-devel \
+      libcmocka wget make gcc-c++ rpcgen python3-docutils ninja-build glib2-devel gnutls-devel \
+      libxslt-devel libtirpc-devel yajl-devel byacc
     python3 -m venv ~/meson
     source ~/meson/bin/activate
-    dnf install --enablerepo=powertools rpcgen python3-docutils ninja-build glib2-devel gnutls-devel libxslt-devel libtirpc-devel yajl-devel
+    pip install meson
     wget https://github.com/libvirt/libvirt/archive/v6.10.0.tar.gz
     wget https://gitlab.com/keycodemap/keycodemapdb/-/archive/master/keycodemapdb-master.tar.gz
+    tar xzf v6.10.0.tar.gz
     tar xzf keycodemapdb-master.tar.gz
     ln -s  ~/keycodemapdb-master/* libvirt-6.10.0/src/keycodemapdb/
     cd libvirt-6.10.0/
-    meson --prefix=/usr --localstatedir=/var --sharedstatedir=/var/lib --reconfigure  -D driver_qemu=enabled build
+    groupadd libvirt
+    chgrp -R libvirt /var/log/libvirt
+    sed -i -e "s/^SELINUX=enforcing$/SELINUX=disabled/g" /etc/selinux/config
+    setenforce 0
+    meson --prefix=/usr --localstatedir=/var --sharedstatedir=/var/lib -D driver_qemu=enabled build
     ninja -C build
     ninja -C build install
-    systemctl enable --now virtnetworkd libvirtd virtqemud
-    yum install https://releases.hashicorp.com/vagrant/2.2.14/vagrant_2.2.14_x86_64.rpm
+    systemctl enable virtnetworkd libvirtd virtqemud virtstoraged
+    dnf install -y https://releases.hashicorp.com/vagrant/2.2.14/vagrant_2.2.14_x86_64.rpm
     cd /tmp; wget https://vault.centos.org/8.3.2011/BaseOS/Source/SPackages/krb5-1.18.2-5.el8.src.rpm
     rpm2cpio krb5-1.18.2-5.el8.src.rpm | cpio -imdV
     tar xf krb5-1.18.2.tar.gz
@@ -138,13 +145,16 @@ vagrant のインストール
     cp lib/libssh.so.4.8.5 /opt/vagrant/embedded/lib64/
     ln -s libssh.so.4.8.5 /opt/vagrant/embedded/lib64/libssh.so.4
     ln -s libssh.so.4 /opt/vagrant/embedded/lib64/libssh.so
-    sh -c 'echo echo 5.2.30r130521 > /usr/bin/VBoxManage'
-    chmod +x /usr/bin/VBoxManage
+    sh -c 'echo echo 5.2.30r130521 > /usr/bin/VBoxManage'
+    chmod +x /usr/bin/VBoxManage
 
 .. note::
 
-    vagrant 2.2.14 を安定して動作させるためには libvirt, libk5crypto, libssh をソースコードからビルドして
-    インストールする必要があります。この手順は将来のバージョンで必要なくなる可能性があります。
+    CentOS Stream release 8 で vagrant 2.2.14 を安定して動作させるためには libvirt, libk5crypto, libssh をソースコードからビルドして
+    インストールする必要があります。libvirt-6.0.0-29 では、vagrant up 時に Waiting for domain to get an IP address...
+    のメッセージの後、ストールする場合がありました。また、 vagrant に付属のlibcrypto.so は CentOS 8 のものと
+    互換性がなく「symbol EVP_KDF_ctrl version OPENSSL_1_1_1b not defined in file libcrypto.so.1.1 」というエラーが
+    libk5cryptoとlibsshのロード時に発生しました。この手順は将来のバージョンで必要なくなる可能性があります。
 
 
 .. note::
@@ -153,9 +163,6 @@ vagrant のインストール
     エラーが出る場合に必要となる回避策です。Vagrant のバージョンによっては不要になる可能性があります。
 
 
-また、以下のコマンドを使用するユーザで実行してください。
-::
-
 
 vagrant プラグインのロード
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -163,12 +170,11 @@ vagrant プラグインのロード
 
 ::
 
+    sudo usermod --append --groups libvirt `whoami`
     vagrant plugin install vagrant-libvirt vagrant-disksize
-    gem install nokogiri
     vagrant box add centos/8 --provider=libvirt
     # stream-8 を使う場合
     # vagrant box add centos/8 https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-Vagrant-8-20200113.0.x86_64.vagrant-libvirt.box
-    sudo usermod --append --groups libvirt `whoami`
 
 
 docker コマンドのインストール
@@ -197,10 +203,10 @@ hive-builder をインストールするための仮想環境 Python3 の venv �
 ::
 
   cd ~
-  python3 -m venv hive
+  python3 -m venv hive --system-site-packages
   echo source ~/hive/bin/activate >> .bashrc
   source ~/hive/bin/activate
-  pip install -U pip wheel
+  pip install -U pip wheel selinux
 
 hive-builder のインストール
 ----------------------------
