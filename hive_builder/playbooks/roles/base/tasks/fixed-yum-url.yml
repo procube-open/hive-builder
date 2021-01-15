@@ -1,0 +1,39 @@
+---
+- name: get list of repo files
+  stat:
+    path: "/etc/yum.repos.d/{{ item }}"
+  register: repo_files
+  loop:
+  # 8.1
+  - CentOS-AppStream.repo
+  - CentOS-Base.repo
+  - CentOS-Extras.repo
+  # > 8.2
+  - CentOS-Linux-AppStream.repo
+  - CentOS-Linux-BaseOS.repo
+  - CentOS-Linux-Extras.repo
+  # stream 8
+  - CentOS-Stream-AppStream.repo
+  - CentOS-Stream-Base.repo
+  - CentOS-Stream-Extras.repo
+- name: Disable yum-fastestmirror
+  lineinfile: >
+    dest="/etc/yum/pluginconf.d/fastestmirror.conf"
+    line="enabled=0"
+    state=present
+    regexp="^#?enabled="
+    insertafter=EOF
+    create=yes
+    owner=root group=root mode=0644
+- name: fix yum download site - remove mirror list
+  replace:
+    path: "/etc/yum.repos.d/{{ item }}"
+    regexp: "^#?mirrorlist=(.*)$"
+    replace: "#mirrorlist=\\1"
+  loop: "{{ repo_files.results | selectattr('stat.exists', 'eq', True) | map(attribute='item') | list }}"
+- name: fix yum download site - set baseurl
+  replace:
+    path: "/etc/yum.repos.d/{{ item }}"
+    regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
+    replace: "baseurl={{ hive_yum_url }}/\\2"
+  loop: "{{ repo_files.results | selectattr('stat.exists', 'eq', True) | map(attribute='item') | list }}"

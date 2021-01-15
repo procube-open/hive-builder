@@ -1,26 +1,6 @@
 ---
 # common utiility packages.
-- name: Disable yum-fastestmirror
-  lineinfile: >
-    dest="/etc/yum/pluginconf.d/fastestmirror.conf"
-    line="enabled=0"
-    state=present
-    regexp="^#?enabled="
-    insertafter=EOF
-    create=yes
-    owner=root group=root mode=0644
-  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
-- name: fix yum download site - remove mirror list
-  replace:
-    path: /etc/yum.repos.d/CentOS-Base.repo
-    regexp: "^#?mirrorlist=(.*)$"
-    replace: "#mirrorlist=\\1"
-  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
-- name: fix yum download site - set baseurl
-  replace:
-    path: /etc/yum.repos.d/CentOS-Base.repo
-    regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
-    replace: "baseurl={{ hive_yum_url }}/\\2"
+- import_tasks: fixed-yum-url.yml
   when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
 - name: make yum do not update kernel* package
   lineinfile:
@@ -138,7 +118,7 @@
   command: "grep '^HTTP_PROXY=' /etc/environment"
   register: check_http_proxy
   check_mode: no
-  ignore_errors: yes
+  failed_when: no
   changed_when: no
 - name: ensures /usr/lib/systemd/system/dnf-makecache.service.d dir exists
   file: path=/usr/lib/systemd/system/dnf-makecache.service.d state=directory
