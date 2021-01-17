@@ -166,7 +166,7 @@ else
   set +x
   if $GIT_PUSH; then
     set -x
-    git push --tags origin "$RELEASE_BRANCH"
+    git push --tags origin "$BRANCH"
     set +x
   fi
 fi
