@@ -155,3 +155,24 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
       python コマンドがない状態となる。
 :対応方法: 仮想環境を作成し、そこに hive-builder をインストールして、仮想環境をアクティベートしてから hiveコマンドを実行してください。
       仮想環境をアクティベートすると、OSには python3 しかインストールされていな状態でも pythonコマンドが利用できます。
+
+異常がないのに zabbix で Some service status are failed のトリガーがあがる
+----------------------------------------------------------------------------------------------------------
+:現象:
+
+異常がないのに zabbix で Some service status are failed のトリガーがあがる。
+以下のコマンドを実行すると失敗しているサービス名はわかったが、そのサービスはすでに削除されている。
+たとえば、DRBD のボリュームがエラーになった後、 build-volumes -l ボリューム名 -D などで削除した場合、
+以下のように表示される
+
+::
+
+    $ systemctl list-units --type=service --no-pager --no-legend --state=failed --all
+    drbd-resource@some_data.service loaded failed failed DRBD resource : some_data
+
+:原因: サービスを削除した後、 systemd が失敗したユニットを記憶しているため、アイテムの数が 0になりません。
+:対応方法: 以下のコマンドでリセットしてください。
+
+::
+
+    $ sudo systemctl reset-failed
