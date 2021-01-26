@@ -92,7 +92,7 @@ IFS=" "
 REVISION=${REVISIONS[${#REVISIONS[@]}-1]}
 NO_SERIES_VERSION=${VERSION}
 NUMBER_ONLY='^[0-9]+$'
-if [[ $REVISON =~ $NUMBER_ONLY ]]; then
+if [[ $REVISION =~ $NUMBER_ONLY ]]; then
   DEFAULT_SERIES=a
 else
   case $REVISION in
