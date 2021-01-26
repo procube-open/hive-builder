@@ -75,8 +75,8 @@ function restore_{{ hive_safe_target }}() {
         {%- endif %}
         {%- elif hive_safe_backup_script.directory is defined %}
 
-    dcp -L $backup_file {{ hive_safe_target }}:/tmp/restore.tar.gz
-    if dexec -n {{ hive_safe_target }} sh -c 'cd {{hive_safe_backup_script.directory}}; rm -rf $(find . -maxdepth 1 -not -name .); tar xzf /tmp/restore.tar.gz'; then
+    dcp -L $backup_file {{ hive_safe_target }}:{{ '/root' if (hostvars[hive_safe_target].hive_standalone | default(False)) else '/tmp' }}/restore.tar.gz
+    if dexec -n {{ hive_safe_target }} sh -c 'cd {{hive_safe_backup_script.directory}}; rm -rf $(find . -maxdepth 1 -not -name .); tar xzf {{ '/root' if (hostvars[hive_safe_target].hive_standalone | default(False)) else '/tmp' }}/restore.tar.gz'; then
       {%- endif %}
 
       message "END restore for {{ hive_safe_backup_script.name }}"
