@@ -1,5 +1,5 @@
 # github flow
-This repository is maintained according to [github flow] (http://scottchacon.com/2011/08/31/github-flow.html). The naming convention for pull request branches in github flow is as follows
+This repository is maintained according to [github flow](https://scottchacon.com/2011/08/31/github-flow.html). The naming convention for pull request branches in github flow is as follows
 
 Feature type/$(git describe --tags)/Feature name
 

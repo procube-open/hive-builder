@@ -1,5 +1,5 @@
 # github flow
-このリポジトリは [github flow] (http://scottchacon.com/2011/08/31/github-flow.html) に基づいて管理されています。github flow におけるプルリクエストのブランチの命名規則を以下に示します。
+このリポジトリは [github flow](https://gist.github.com/Gab-km/3705015) に基づいて管理されています。github flow におけるプルリクエストのブランチの命名規則を以下に示します。
 
 機能種別/$(git describe --tags)/機能名
 
