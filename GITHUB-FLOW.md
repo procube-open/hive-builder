@@ -42,16 +42,16 @@ git checkout -b Feature/$(git describe --tags)/support-bonding-NIC
 
 #### Note
 > You can create a branch even if you've already started modifying on the master branch, as long as you haven't done add/commit.
-> In that case, your modifications will not be lost by the above command. If you have mixed up your modifications with those for other purposes, you can choose which files to include in the pull request using the Staging procedure described below. If you get mixed up within a file, you may need to use git stash or something similar to separate the files.
+> In that case, your modifications will not be lost by the above command. If you have mixed up your modifications with those for other purposes, you can choose which files to include in the pull request at the Staging step described below. If you get mixed up within a file, you may need to use git stash or something similar to separate the modifications.
 
-## 2. Fix & Test
-Repeat fixing and testing in your local repository.
+## 2. Modification & Test
+Repeat mofying and testing in your local repository.
 
 ## 3. Staging
 Move your modified files and files to be added to staging.
 
 #### Note
-> If you have no additional files and want to commit all modified files, you can skip this step by adding the -a option to the next commit command.
+> If you have no additional files and want to commit all modified files, you can skip this step by adding the -a option to the commit command of the next step.
 
 ### 3-A. Specifying a file name
 Use the following command to specify a file and move it to staging.
@@ -104,7 +104,7 @@ If you need to modify the request due to review, please modify your local reposi
 > If more than one person is working on the pull request, pull the branch to their local repository and modify it.
 
 ## 8. Merge
-Click on "Squah and merge" to merge the pull requests that have been reviewed.
+Click on "Squash and merge" to merge the pull requests that have been reviewed.
 #### Note
 > After you merge, the pull request is complete and closed. If you need to make a new modification, even if it is related to the previous pull request, start this procedure over from the beginning and make it a new pull request.
 
