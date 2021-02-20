@@ -18,7 +18,7 @@
     name: kernel
     disable_excludes: main
     state: latest
-  when: hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')
+  when: hive_provider != 'aws' and uname_result.stdout is version('4.14.219-161', 'lt')
   notify: require reboot
 - name: install packages
   yum:
