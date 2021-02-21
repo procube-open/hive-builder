@@ -26,6 +26,14 @@
     state: latest
   args:
     chdir: "{{ hive_home_dir }}"
+- name: set PyPi index url
+  become: False
+  copy:
+    content: |
+      [global]
+      index-url = {{ hive_pip_index_url }}
+    dest: "{{ hive_home_dir }}j/docker/pip.conf"
+  when: hive_pip_index_url is defined
 - name: install python-dxf
   become: False
   pip:
