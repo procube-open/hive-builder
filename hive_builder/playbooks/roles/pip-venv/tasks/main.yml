@@ -32,7 +32,7 @@
     content: |
       [global]
       index-url = {{ hive_pip_index_url }}
-    dest: "{{ hive_home_dir }}j/docker/pip.conf"
+    dest: "{{ hive_home_dir }}/docker/pip.conf"
   when: hive_pip_index_url is defined
 - name: install python-dxf
   become: False
