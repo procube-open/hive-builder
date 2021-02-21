@@ -34,12 +34,28 @@
   pip:
     name:
       - pip
+    virtualenv: /var/lib/zabbix/docker
+    virtualenv_python: python3
+    state: latest
+  args:
+    chdir: /var/lib/zabbix
+- name: set PyPi index url for zabbix
+  become_user: zabbix
+  copy:
+    content: |
+      [global]
+      index-url = {{ hive_pip_index_url }}
+    dest: /var/lib/zabbix/docker/pip.conf
+  when: hive_pip_index_url is defined
+- name: create virtual env for zabbix
+  become_user: zabbix
+  pip:
+    name:
       - wheel
       - docker
       - uptime
     virtualenv: /var/lib/zabbix/docker
-    virtualenv_python: python3
-    state: latest
+    state: present
   args:
     chdir: /var/lib/zabbix
 - name: "setup tls connection - put ca certs"
