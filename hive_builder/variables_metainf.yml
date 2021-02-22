@@ -246,7 +246,7 @@ ssh_args:
   description: ssh command line option
   name_in_ansible_cfg: ssh_args
   section_in_ansible_cfg: ssh_connection
-  default: "-F {context_dir}/ssh_config -o ControlMaster=auto -o ControlPersist=180s -o ControlPath={temp_dir}/mux-%r@%h:%p"
+  default: "-F {context_dir}/ssh_config -o ControlMaster=auto -o ControlPersist=60s"
 repository_docker_socket:
   description: "forwarded docker api socket of the repository server, which is last server of servers"
   name_in_ansible: hive_repository_docker_socket

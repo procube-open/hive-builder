@@ -50,6 +50,9 @@
     append: True
     groups: docker
   when: hive_safe_admin is defined
+- name: reset ssh connection to make id of ssh persistent session belongs to docker group
+  meta: reset_connection
+  register: meta_reset_connection
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: docker_api_swarm
