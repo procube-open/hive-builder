@@ -234,6 +234,7 @@ forks:
 pipelining:
   description: whether use piplining mode at ansible play
   name_in_ansible_cfg: pipelining
+  section_in_ansible_cfg: ssh_connection
   type: boolean
   default: True
 force_handlers:
@@ -245,7 +246,7 @@ ssh_args:
   description: ssh command line option
   name_in_ansible_cfg: ssh_args
   section_in_ansible_cfg: ssh_connection
-  default: "-F {context_dir}/ssh_config -o ControlMaster=auto -o ControlPath={temp_dir}/mux-%r@%h:%p"
+  default: "-F {context_dir}/ssh_config -o ControlMaster=auto -o ControlPersist=60s"
 repository_docker_socket:
   description: "forwarded docker api socket of the repository server, which is last server of servers"
   name_in_ansible: hive_repository_docker_socket
@@ -312,3 +313,13 @@ timeout:
     This is the default SSH timeout to use on connection attempts.
   type: int
   name_in_ansible_cfg: timeout
+retries:
+  description: |
+    Adds the option to retry failed ssh executions if the failure is encountered in ssh itself,
+    not the remote command.
+    This can be helpful if there are transient network issues.
+    Enabled by setting retries to an integer greater than 1.
+  type: int
+  default: 0
+  name_in_ansible_cfg: retries
+  section_in_ansible_cfg: ssh_connection

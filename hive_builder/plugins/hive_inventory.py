@@ -346,7 +346,7 @@ class Stage:
           self.inventory.set_variable(host_name, 'hive_mirrored_disk_size', self.stage['mirrored_disk_size'])
 
       if 'image_name' in self.stage:
-        self.inventory.set_variable(host_name, 'hive_image_name', self.stage['image_name'])
+        self.inventory.set_variable(host_name, 'hive_vm_image_name', self.stage['image_name'])
 
       subnet = self.subnets[idx % len(self.subnets)]
       if 'name' in subnet:
