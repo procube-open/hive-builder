@@ -36,6 +36,7 @@
       - pip
     virtualenv: /var/lib/zabbix/docker
     virtualenv_python: python3
+    extra_args: "{{ '-i ' + hive_pip_index_url if hive_pip_index_url is defined else omit }}"
     state: latest
   args:
     chdir: /var/lib/zabbix

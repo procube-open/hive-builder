@@ -23,6 +23,7 @@
     # hive-builder does not require libselinux module,
     # but inherit system site-pacakges for addon which requires libselinux module
     virtualenv_site_packages: True
+    extra_args: "{{ '-i ' + hive_pip_index_url if hive_pip_index_url is defined else omit }}"
     state: latest
   args:
     chdir: "{{ hive_home_dir }}"
