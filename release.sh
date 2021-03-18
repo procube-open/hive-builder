@@ -83,9 +83,6 @@ fi
 if ! SETUP_VERSION=$(pipenv run version 2>&1); then
   error_exit "fail to get default version: pipenv run version -> $DEFAULT_VERSION"
 fi
-if [[ "$SETUP_VERSION" == "$GIT_TAG" ]]; then
-  error_exit "the target version $SETUP_VERSION is already tagged"
-fi
 VERSION=${SETUP_VERSION%.dev*}
 IFS=. REVISIONS=(${VERSION})
 IFS=" "
@@ -123,6 +120,11 @@ fi
 if ! CHECK_RESULT=$(pipenv run check-version $VERSION 2>&1); then
   error_exit "version $VERSION is not canonical according to Pep 440: $CHECK_RESULT"
 fi
+
+if [[ "$VERSION" == "$GIT_TAG" ]]; then
+  error_exit "the target version $SETUP_VERSION is already tagged"
+fi
+
 
 if [[ "${DEPLOY_TARGET}" == "" ]]; then
   case $SERIES in
