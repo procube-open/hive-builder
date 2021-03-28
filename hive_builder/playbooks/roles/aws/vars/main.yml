@@ -2,7 +2,7 @@
 # Service Acccount Email only works with Machine Account-based authentication
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
 hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
-hive_safe_image_id: "{{ hive_vm_image_name | default('ami-0992fc94ca0f1415a') }}"
+hive_safe_image_id: "{{ hive_vm_image_name | default('ami-0bc8ae3ec8e338cbc') }}"
 # Version hisotry memo
 # old image ami-0f310fced6141e627 used by until 2.2.4
 # [ec2-user@ip-192-168-0-5 ~]$ uname -r
