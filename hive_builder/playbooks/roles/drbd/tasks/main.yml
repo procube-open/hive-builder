@@ -15,7 +15,8 @@
       https://github.com/procube-open/drbd9-rpm/releases/download/{{
         ('9.0.22/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.203', 'lt')
          else '9.0.25/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.219', 'lt')
-         else '9.0.27/drbd9-rpm-amzn2'
+         else '9.0.27/drbd9-rpm-amzn2'  if uname_result.stdout is version('4.14.225', 'lt')
+         else '9.0.28/drbd9-rpm-amzn2_225_169.362'
         ) if hive_provider == 'aws'
         else '9.0.20/drbd9-rpm' if uname_result.stdout is version('3.10.0-1127', 'lt')
         else '9.0.24/drbd9-rpm' if uname_result.stdout is version('4.18.0', 'lt')
