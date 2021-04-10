@@ -176,3 +176,91 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 ::
 
     $ sudo systemctl reset-failed
+
+異なるホストに配置されたサービス間の通信ができない
+----------------------------------------------------------------------------------------------------
+:現象: 異なるホストに配置されたサービス間で通信できない。例えば、hive-builder のサンプルにおいて、
+       powerdns サービスから pdnsdb へのアクセスが異なるホストに配置されたときのみアクセスができないという現象が発生する場合がある。
+:原因1: VMWare の NSX機能やネットワーク機器のVXLAN機能が動作していることが原因で swarm のオーバレイネットワークの通信に必要な 4789/udp のパケットが到達できない。
+        https://stackoverflow.com/questions/43933143/docker-swarm-overlay-network-is-not-working-for-containers-in-different-hosts
+:原因2: ホストに複数のネットワークインタフェースがある場合に swarm のオーバレイネットワークの通信に利用するIPアドレスが間違っている
+:対応方法: 以下の手順でdocker swarm のオーバレイネットワークが使用するポート番号やIPアドレスを変更してください。
+
+1. 全サービスを削除
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+オーバレイネットワークを再構築するために一旦全サービスを削除してください。
+
+::
+
+    hive deploy-services -D
+
+2. iptables を修正
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+リポジトリサーバを除く各ホストの以下の手順で /etc/sysconfig/iptables を修正し、4789 を 8472 に置換して iptables を再起動してください。
+
+::
+
+    hive ssh -t ホスト名
+    vim /etc/sysconfig/iptables
+    sudo systemctl restart iptables
+    sudo systemctl restart docker
+    logout
+
+3. swarm クラスタの解除
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+リポジトリサーバを除く各ホストの以下の手順でクラスタを解除してください。
+
+::
+
+    hive ssh -t ホスト名
+    docker swarm leave --force
+    logout
+
+4. swarm クラスタの初期化
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1号機で以下の手順を実行してクラスタを構築してください。
+
+::
+
+    hive ssh -t １号機のホスト名
+    docker swarm init --advertise-addr １号機のIPアドレス --data-path-port 8472
+    docker swarm join-token manager
+    logout
+
+docker swarm join-token manager で表示されたトークンの値を記録してください。
+
+5. swarm クラスタの構築
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1号機以外のホスト（リポジトリサーバを除く）で以下の手順を実行してクラスタを構築してください。
+
+::
+
+    hive ssh -t ホスト名
+    docker swarm join --advertise-addr ホストのIPアドレス --token トークン １号機のIPアドレス:2377
+    logout
+
+6. hive_default_network の復旧
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドで hive_default_network を復旧してください。
+
+::
+
+    hive build-networks
+
+7. サービスを起動
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドで全サービスを起動してください。
+
+::
+
+    hive deploy-services
+
+8. follow-swarm-service 再起動
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをリポジトリサーバを除く各ホストで実行し、follow-swarm-service  を再起動してください。
+
+::
+
+    hive ssh -t ホスト名
+    sudo systemctl restart follow-swarm-service.service
+    logout

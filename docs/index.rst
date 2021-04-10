@@ -15,6 +15,7 @@ hive-builder ドキュメントページへようこそ
     phases.rst
     swarmextender.rst
     migration.rst
+    repair.rst
     faq.rst
 
 ..
