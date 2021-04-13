@@ -126,6 +126,16 @@
       dest: docker-service.conf
   notify: zabbix-agent configured
   when: "'repository' in group_names"
+- name: add cache builder for zabbix agent service
+  template:
+    src: "{{item}}"
+    dest: /usr/lib/systemd/system
+    mode: 0644
+  with_items:
+    - zabbix-agent-cache-builder.service
+    - zabbix-agent-cache-builder.timer
+  when: "'repository' in group_names"
+  notify: zabbix-agent-cache-builder configured
 - name: put zabbix_agentd userparameter definition
   copy:
     src: "{{ item }}"
