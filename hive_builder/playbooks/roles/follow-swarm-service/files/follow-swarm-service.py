@@ -50,8 +50,13 @@ class HookBase:
     for task in DAEMON.client.services.get(self.serivce_id).tasks():
       if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
         DAEMON.logger.debug(f'found task: {json.dumps(task)}')
-        stay = True
-        running_task = task
+        status = task.get('Status')
+        if (status and status.get('State') == 'running'):
+          DAEMON.logger.debug(f'task state is running')
+          stay = True
+          running_task = task
+        else:
+          DAEMON.logger.debug(f'task state is not running')
         break
     self.task = running_task
     if self.stay and not stay:
