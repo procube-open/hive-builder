@@ -28,6 +28,7 @@ require {
 	type unconfined_service_t;
 	type unconfined_t;
 	type container_var_lib_t;
+	type init_var_lib_t;
 	type user_home_t;
 	type drbd_t;
 	type policykit_t;
@@ -66,7 +67,7 @@ require {
 	class service status;
 	class fifo_file getattr;
 	class sock_file getattr;
-	class file { execute execute_no_trans ioctl lock open read getattr};
+	class file { execute execute_no_trans ioctl lock open read write getattr};
 	class capability { audit_write dac_read_search dac_override net_admin };
 	class netlink_audit_socket { create nlmsg_relay read write };
 	class unix_dgram_socket { connect create sendto write };
@@ -92,6 +93,8 @@ allow init_t chkpwd_t:process siginh;
 allow init_t initrc_t:process siginh;
 allow init_t unconfined_service_t:process siginh;
 allow init_t unconfined_t:process siginh;
+allow init_t container_var_lib_t:file { execute execute_no_trans };
+allow init_t zabbix_var_lib_t:file { ioctl open read };
 
 #============= iptables_t ==============
 allow iptables_t container_runtime_t:unix_stream_socket { read write };
@@ -161,3 +164,4 @@ allow zabbix_agent_t container_var_lib_t:file { execute execute_no_trans ioctl o
 allow zabbix_agent_t zabbix_var_lib_t:file { ioctl open read };
 allow zabbix_agent_t nfsd_unit_file_t:service status;
 allow zabbix_agent_t vmtools_unit_file_t:service status;
+allow zabbix_agent_t init_var_lib_t:file { ioctl open read write };

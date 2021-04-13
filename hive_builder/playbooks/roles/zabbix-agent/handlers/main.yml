@@ -3,3 +3,12 @@
     name: zabbix-agent
     state: restarted
   listen: zabbix-agent configured
+- name: enable and start cache builder timer service
+  become: True
+  service:
+    daemon_reload: True
+    name: "zabbix-agent-cache-builder.timer"
+    enabled: True
+    state: started
+  listen: zabbix-agent-cache-builder configured
+  when: "'repository' in group_names"

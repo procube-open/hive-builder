@@ -1,0 +1,11 @@
+[Unit]
+Description=Cache Builder for Zabbix Agent
+RefuseManualStart=no
+RefuseManualStop=yes
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/lib/zabbix
+ExecStart=/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-innerservice --dispose 2 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+User=zabbix
+Group=zabbix
