@@ -19,6 +19,7 @@ DAEMON = None
 DNAT_TARGET_RULE_NAME = "DOCKER"
 DNAT_TARGET_INTERFACE_NAME = "docker_gwbridge"
 
+SNAT_TARGET_RULE_NAME =  "POSTROUTING"
 
 class HookBase:
   def __init__(self, label_value, serivce_id, service_name):
@@ -113,6 +114,7 @@ class SetVIP(HookBase):
   label_name = 'HIVE_VIP'
   router_label_name = 'HIVE_ROUTER'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT'
 
   @classmethod
   def check_service(cls, service):
@@ -126,6 +128,8 @@ class SetVIP(HookBase):
     DAEMON.logger.debug(f'label "HIVE_ROUTER" value is {me.router}')
     me.dnat_ports = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.dnat_ports_label_name)
     DAEMON.logger.debug(f'label "HIVE_DNAT_PORTS" value is {me.dnat_ports}')
+    me.enable_vip_snat = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.enable_vip_snat_label_name)
+    DAEMON.logger.debug(f'label "HIVE_ENABLE_VIP_SNAT" value is {me.enable_vip_snat}')
     return me
 
 # sample of output of ip addr command
@@ -286,6 +290,9 @@ class SetVIP(HookBase):
   def gen_accept_comment(self, ip, proto, port):
     return f'hive_accept_{ip}_{proto}_{port}_'
 
+  def gen_snat_comment(self, ip):
+    return f'hive_snat_{ip}_'
+
   def clear_link_address_cache(self, interface_name, ip):
     self.subprocess_run(['arping', '-c', '1', '-A', '-I', interface_name, ip])
 
@@ -326,6 +333,15 @@ class SetVIP(HookBase):
         self.subprocess_run([self.__class__.cmd_iptables, '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip,
                              '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
                              '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+    if self.enable_vip_snat and self.enable_vip_snat.upper() == 'TRUE':
+      container_ip = self.resolveContainerIpFromTask()
+      if not(container_ip):
+        DAEMON.logger.warn(f'Failed to resolve container ip address')
+        return
+      DAEMON.logger.debug(f'Add SNAT({container_ip} -> {interface["vip_if"].ip})')
+      self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-I', SNAT_TARGET_RULE_NAME, '-s', container_ip, '-o', interface['name'],
+                            '-j', 'SNAT', '--to-source',  str(interface['vip_if'].ip),
+                            '-m', 'comment', '--comment', self.gen_snat_comment(str(interface["vip_if"].ip))])
 
   def resolveNATRuleDst(self, interface, proto, port):
     if not(port):
@@ -339,6 +355,19 @@ class SetVIP(HookBase):
         continue
       ip = matcher.group(1)
       DAEMON.logger.debug(f'Resolve nat dst ip from iptables :"{ip}"')
+      yield ip
+
+  def resolveSNATRuleDst(self, vip):
+    if not(vip):
+      return
+    nat_list = self.subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n', '-t', 'nat'])
+    for line in nat_list.stdout.splitlines():
+      matcher = re.match(r'^.*SNAT\s+.*\s+([^\s]+)\s+0.0.0.0/0\s+.*\s+to:{0}$'.format(vip), line)
+      if not(matcher):
+        DAEMON.logger.debug(f'checking snat line not match:{line}')
+        continue
+      ip = matcher.group(1)
+      DAEMON.logger.debug(f'Resolve nat src ip from iptables :"{ip}"')
       yield ip
 
   def resolveFilterRuleDst(self, interface, proto, port):
@@ -371,6 +400,13 @@ class SetVIP(HookBase):
           self.subprocess_run([self.__class__.cmd_iptables, '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst,
                                '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
                                '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+    if self.enable_vip_snat and self.enable_vip_snat.upper() == 'TRUE':
+      ipaddr = str(interface["vip_if"].ip)
+      for nat_rule_src in self.resolveSNATRuleDst(ipaddr):
+        DAEMON.logger.debug(f'Delete SNAT({nat_rule_src} -> {interface["vip_if"].ip})')
+        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-D', SNAT_TARGET_RULE_NAME, '-s', nat_rule_src, '-o', interface['name'],
+                            '-j', 'SNAT', '--to-source',  ipaddr,
+                            '-m', 'comment', '--comment', self.gen_snat_comment(ipaddr)])
 
   def on_leave(self):
     interface = self.get_interface()
@@ -387,42 +423,49 @@ class SetVIP0(SetVIP):
   label_name = 'HIVE_VIP0'
   router_label_name = 'HIVE_ROUTER0'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0'
 
 
 class SetVIP1(SetVIP):
   label_name = 'HIVE_VIP1'
   router_label_name = 'HIVE_ROUTER1'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1'
 
 
 class SetVIP2(SetVIP):
   label_name = 'HIVE_VIP2'
   router_label_name = 'HIVE_ROUTER2'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2'
 
 
 class SetVIP3(SetVIP):
   label_name = 'HIVE_VIP3'
   router_label_name = 'HIVE_ROUTER3'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3'
 
 
 class SetVIP4(SetVIP):
   label_name = 'HIVE_VIP4'
   router_label_name = 'HIVE_ROUTER4'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4'
 
 
 class SetVIP5(SetVIP):
   label_name = 'HIVE_VIP5'
   router_label_name = 'HIVE_ROUTER5'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5'
 
 
 class SetVIPv6(SetVIP):
   label_name = 'HIVE_VIP_V6'
   router_label_name = 'HIVE_ROUTER_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT_V6'
   reg_inet = re.compile(r'^ +inet6 ([0-9a-f:]+/\d+) .*$')
   container_ip_prop_name = "IPv6Address"
   cmd_iptables = 'ip6tables'
@@ -441,36 +484,42 @@ class SetVIP0v6(SetVIPv6):
   label_name = 'HIVE_VIP0_V6'
   router_label_name = 'HIVE_ROUTER0_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0_V6'
 
 
 class SetVIP1v6(SetVIPv6):
   label_name = 'HIVE_VIP1_V6'
   router_label_name = 'HIVE_ROUTER1_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1_V6'
 
 
 class SetVIP2v6(SetVIPv6):
   label_name = 'HIVE_VIP2_V6'
   router_label_name = 'HIVE_ROUTER2_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2_V6'
 
 
 class SetVIP3v6(SetVIPv6):
   label_name = 'HIVE_VIP3_V6'
   router_label_name = 'HIVE_ROUTER3_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3_V6'
 
 
 class SetVIP4v6(SetVIPv6):
   label_name = 'HIVE_VIP4_V6'
   router_label_name = 'HIVE_ROUTER4_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4_V6'
 
 
 class SetVIP5v6(SetVIPv6):
   label_name = 'HIVE_VIP5_V6'
   router_label_name = 'HIVE_ROUTER5_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5_V6'
 
 
 class FollowSwarmServiceDaemon:
