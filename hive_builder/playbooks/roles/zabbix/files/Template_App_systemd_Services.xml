@@ -37,7 +37,7 @@
                   <triggers>
                       <trigger>
                           <expression>{last()}&gt;0</expression>
-                          <name>Some service status are failed</name>
+                          <name>At least one of the services is in a failed state</name>
                           <priority>HIGH</priority>
                           <manual_close>YES</manual_close>
                       </trigger>
