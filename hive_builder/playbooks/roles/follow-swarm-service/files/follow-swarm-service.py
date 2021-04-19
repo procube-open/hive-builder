@@ -12,6 +12,7 @@ import ipaddress
 import json
 import signal
 import time
+import threading
 
 logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
@@ -19,6 +20,208 @@ DAEMON = None
 DNAT_TARGET_RULE_NAME = "DOCKER"
 DNAT_TARGET_INTERFACE_NAME = "docker_gwbridge"
 
+SNAT_TARGET_RULE_NAME =  "POSTROUTING"
+
+def subprocess_run(args):
+  proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='UTF-8')
+  if proc.returncode != 0:
+    DAEMON.logger.error(f'fail to execute "{" ".join(args)}" command. stderr: {proc.stderr}')
+    return proc
+  DAEMON.logger.info(f'success to execute "{" ".join(args)}" command. stdout: {proc.stdout}')
+  return proc
+
+class NATExecutor:
+
+  cmd_iptables = 'iptables'
+  any_address = '0.0.0.0/0'
+  container_ip_prop_name = "IPv4Address"
+
+
+  def __init__(self, serivce_id, service_name, dnat_ports, enable_vip_snat):
+    self.serivce_id = serivce_id
+    self.service_name = service_name
+    self.dnat_ports = dnat_ports
+    self.enable_vip_snat = enable_vip_snat
+    self.thread = None
+    self.cancel_task = False
+    self.latest_task = None
+
+  def resolveNatProto(self, val):
+    proto = 'tcp'
+    port = None
+    matcher = re.match('^([1-9][0-9]*)/(tcp|udp)$', val.strip())
+    if matcher:
+      port = matcher.group(1)
+      proto = matcher.group(2)
+    else:
+      port = val
+    DAEMON.logger.debug(f'nat proto input:"{val}", output:"{proto}, {port}"')
+    return proto, port
+
+  def gen_dnat_comment(self, ip, proto, port):
+    return f'hive_dnat_{ip}_{proto}_{port}_'
+
+  def gen_accept_comment(self, ip, proto, port):
+    return f'hive_accept_{ip}_{proto}_{port}_'
+
+  def gen_snat_comment(self, ip):
+    return f'hive_snat_{ip}_'
+
+  def wrap_dnat_address(self, ip):
+    return ip
+
+  def resolveNATRuleDst(self, interface, proto, port):
+    if not(port):
+      return
+    nat_list = subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n', '-t', 'nat'])
+    for line in nat_list.stdout.splitlines():
+      matcher = re.match(r'^.*DNAT.* {0} .*{1} dpt:{2} .* {3} .* to:(([^:]*|\[[^\]]*\]):[^:]*)$'.format(
+                         interface["vip_if"].ip, proto, port, self.gen_dnat_comment(interface["vip_if"].ip, proto, port)), line)
+      if not(matcher):
+        DAEMON.logger.debug(f'checking nat line not match:{line}')
+        continue
+      ip = matcher.group(1)
+      DAEMON.logger.debug(f'Resolve nat dst ip from iptables :"{ip}"')
+      yield ip
+
+  def resolveSNATRuleDst(self, vip):
+    if not(vip):
+      return
+    nat_list = subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n', '-t', 'nat'])
+    for line in nat_list.stdout.splitlines():
+      matcher = re.match(r'^.*SNAT\s+.*\s+([^\s]+)\s+{0}\s+.*\s+to:{1}$'.format(self.__class__.any_address, vip), line)
+      if not(matcher):
+        DAEMON.logger.debug(f'checking snat line not match:{line}')
+        continue
+      ip = matcher.group(1)
+      DAEMON.logger.debug(f'Resolve nat src ip from iptables :"{ip}"')
+      yield ip
+
+  def resolveFilterRuleDst(self, interface, proto, port):
+    if not(port):
+      return
+    nat_list = subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n'])
+    for line in nat_list.stdout.splitlines():
+      matcher = re.match(r'^.*ACCEPT.* {0} *{4} *([^ ]*) *{1} dpt:{2} .* {3} .*$'.format(
+                         DNAT_TARGET_INTERFACE_NAME, proto, port, self.gen_accept_comment(interface["vip_if"].ip, proto, port),
+                         self.__class__.any_address), line)
+      if not(matcher):
+        DAEMON.logger.debug(f'checking filter line not match:{line}')
+        continue
+      ip = matcher.group(1)
+      DAEMON.logger.debug(f'Resolve filter dst ip from iptables :"{ip}"')
+      yield ip
+
+  def resolveContainerIpFromTask(self):
+    if not(self.latest_task):
+      DAEMON.logger.warn(f'task object not found')
+      raise Exception("task not found")
+    container_id = None
+    while container_id == None and not(self.cancel_task):
+      status = self.latest_task.get('Status')
+      if not(status) or status.get("State") != "running":
+        DAEMON.logger.info(f'State is not running. wait 1 second...')
+        time.sleep(1)
+        self.latest_task = DAEMON.client.services.get(self.serivce_id).tasks({"id": self.latest_task.get('ID')})[0]
+        continue
+      cstatus = status.get('ContainerStatus')
+      container_id = cstatus['ContainerID']
+    if (self.cancel_task):
+      return
+    for network in DAEMON.client.networks.list():
+      if network.name == DNAT_TARGET_INTERFACE_NAME:
+        container_nw = DAEMON.client.networks.get(network.id).attrs['Containers'][container_id]
+        if not(container_nw):
+          DAEMON.logger.warn(f'Container network not found by container_id:"{container_id}"')
+          raise Exception("container network not found")
+        DAEMON.logger.debug(f'Succeeded to resolve container ip:"{container_nw.get(self.__class__.container_ip_prop_name)}"')
+        container_ip = container_nw.get(self.__class__.container_ip_prop_name)
+        if not(container_ip):
+          DAEMON.logger.warn(f'Failed to resolve Container ip address by key("{self.__class__.container_ip_prop_name}")')
+          raise Exception("Failed to resolve Container ip address")
+        return str(ipaddress.ip_interface(container_ip).ip)
+    DAEMON.logger.warn(f'{DNAT_TARGET_INTERFACE_NAME} network not found by')
+    raise Exception(f'{DNAT_TARGET_INTERFACE_NAME} network not found by')
+
+  def add_nat_rules(self, task, interface):
+    self.latest_task = task
+    DAEMON.logger.info(f'Try to add NAT rules({self.service_name})')
+    if self.dnat_ports:
+      container_ip = self.resolveContainerIpFromTask()
+      if not(container_ip):
+        return
+      for p in self.dnat_ports.split(","):
+        proto, port = self.resolveNatProto(p)
+        if not(port):
+          continue
+        DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
+        subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
+                             str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', self.wrap_dnat_address(container_ip) + ':' + port,
+                             '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
+        DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
+        subprocess_run([self.__class__.cmd_iptables, '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip,
+                             '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
+                             '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+    if self.enable_vip_snat and self.enable_vip_snat.upper() == 'TRUE':
+      container_ip = self.resolveContainerIpFromTask()
+      if not(container_ip):
+        return
+      DAEMON.logger.debug(f'Add SNAT({container_ip} -> {interface["vip_if"].ip})')
+      subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-I', SNAT_TARGET_RULE_NAME, '-s', container_ip, '-o', interface['name'],
+                            '-j', 'SNAT', '--to-source',  str(interface['vip_if'].ip),
+                            '-m', 'comment', '--comment', self.gen_snat_comment(str(interface["vip_if"].ip))])
+    DAEMON.logger.info(f'Succeeded to add NAT rules({self.service_name})')
+
+  def run(self, task, interface):
+    self.add_nat_rules(task, interface)
+    self.thread = None
+    self.do_cancel = False
+
+  def remove_nat_rules(self, interface):
+    DAEMON.logger.info(f'Try to remove NAT rules({self.service_name})')
+    if self.dnat_ports:
+      for p in self.dnat_ports.split(","):
+        proto, port = self.resolveNatProto(p)
+        for nat_rule_dst in self.resolveNATRuleDst(interface, proto, port):
+          DAEMON.logger.debug(f'Delete DNAT({interface["vip_if"].ip}:{port}/{proto} -> {nat_rule_dst}/{proto})')
+          subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
+                               str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst,
+                               '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
+        for filter_rule_dst in self.resolveFilterRuleDst(interface, proto, port):
+          DAEMON.logger.debug(f'Delete ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {filter_rule_dst}:{port}/{proto}')
+          subprocess_run([self.__class__.cmd_iptables, '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst,
+                               '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
+                               '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+    if self.enable_vip_snat and self.enable_vip_snat.upper() == 'TRUE':
+      ipaddr = str(interface["vip_if"].ip)
+      for nat_rule_src in self.resolveSNATRuleDst(ipaddr):
+        DAEMON.logger.debug(f'Delete SNAT({nat_rule_src} -> {interface["vip_if"].ip})')
+        subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-D', SNAT_TARGET_RULE_NAME, '-s', nat_rule_src, '-o', interface['name'],
+                            '-j', 'SNAT', '--to-source',  ipaddr,
+                            '-m', 'comment', '--comment', self.gen_snat_comment(ipaddr)])
+    DAEMON.logger.info(f'Succeeded to remove NAT rules({self.service_name})')
+
+  def start(self, task, interface):
+    if self.thread:
+      DAEMON.logger.info(f'Add task has already running({self.service_name})')
+      return
+    self.thread = threading.Thread(target=self.run, args=(task, interface))
+    self.thread.start()
+
+  def stop(self, interface):
+    if self.thread:
+      DAEMON.logger.info(f'Cancel task ({self.service_name})')
+      self.do_cancel = True
+      self.thread.join(10.0)
+    else:
+      self.remove_nat_rules(interface)
+    self.thread = None
+    self.do_cancel = False
+
+class NATExecutorv6(NATExecutor):
+  container_ip_prop_name = "IPv6Address"
+  cmd_iptables = 'ip6tables'
+  any_address = '::/0'
 
 class HookBase:
   def __init__(self, label_value, serivce_id, service_name):
@@ -50,13 +253,8 @@ class HookBase:
     for task in DAEMON.client.services.get(self.serivce_id).tasks():
       if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
         DAEMON.logger.debug(f'found task: {json.dumps(task)}')
-        status = task.get('Status')
-        if (status and status.get('State') == 'running'):
-          DAEMON.logger.debug(f'task state is running')
-          stay = True
-          running_task = task
-        else:
-          DAEMON.logger.debug(f'task state is not running')
+        stay = True
+        running_task = task
         break
     self.task = running_task
     if self.stay and not stay:
@@ -113,6 +311,8 @@ class SetVIP(HookBase):
   label_name = 'HIVE_VIP'
   router_label_name = 'HIVE_ROUTER'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT'
+  nat_executor_class = NATExecutor
 
   @classmethod
   def check_service(cls, service):
@@ -124,8 +324,11 @@ class SetVIP(HookBase):
       return None
     me.router = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.router_label_name)
     DAEMON.logger.debug(f'label "HIVE_ROUTER" value is {me.router}')
-    me.dnat_ports = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.dnat_ports_label_name)
-    DAEMON.logger.debug(f'label "HIVE_DNAT_PORTS" value is {me.dnat_ports}')
+    dnat_ports = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.dnat_ports_label_name)
+    DAEMON.logger.debug(f'label "HIVE_DNAT_PORTS" value is {dnat_ports}')
+    enable_vip_snat = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.enable_vip_snat_label_name)
+    DAEMON.logger.debug(f'label "HIVE_ENABLE_VIP_SNAT" value is {enable_vip_snat}')
+    me.nat_executor = me.__class__.nat_executor_class(me.serivce_id, me.service_name, dnat_ports, enable_vip_snat)
     return me
 
 # sample of output of ip addr command
@@ -160,22 +363,14 @@ class SetVIP(HookBase):
   reg_link = re.compile(r'^ +link/.*$')
   reg_inet = re.compile(r'^ +inet (\d+\.\d+\.\d+\.\d+/\d+) .*$')
 
-  container_ip_prop_name = "IPv4Address"
-  cmd_iptables = 'iptables'
   cmd_ping = 'ping'
   cmd_ip_opts = '-4'
-  any_address = '0.0.0.0/0'
 
-  def subprocess_run(self, args):
-    proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='UTF-8')
-    if proc.returncode != 0:
-      DAEMON.logger.error(f'fail to execute "{" ".join(args)}" command. stderr: {proc.stderr}')
-      return proc
-    DAEMON.logger.info(f'success to execute "{" ".join(args)}" command. stdout: {proc.stdout}')
-    return proc
+  def clear_link_address_cache(self, interface_name, ip):
+    subprocess_run(['arping', '-c', '1', '-A', '-I', interface_name, ip])
 
   def list_ifs(self):
-    ip_addr = self.subprocess_run(['ip', 'addr'])
+    ip_addr = subprocess_run(['ip', 'addr'])
     state = 'start'
     interface = dict(ips=[], network=[])
     for line in ip_addr.stdout.splitlines():
@@ -233,73 +428,14 @@ class SetVIP(HookBase):
       return
     self.setVip(interface)
 
-  def resolveNatProto(self, val):
-    proto = 'tcp'
-    port = None
-    matcher = re.match('^([1-9][0-9]*)/(tcp|udp)$', val.strip())
-    if matcher:
-      port = matcher.group(1)
-      proto = matcher.group(2)
-    else:
-      port = val
-    DAEMON.logger.debug(f'nat proto input:"{val}", output:"{proto}, {port}"')
-    return proto, port
-
-  def resolveContainerIpFromTask(self):
-    if not(self.task):
-      DAEMON.logger.warn(f'task object not found')
-      return None
-    latest_task = self.task
-    rest_count = 10
-    container_id = None
-    while rest_count > 0:
-      status = latest_task.get('Status')
-      if not(status):
-        DAEMON.logger.warn(f'Status not found')
-        return None
-      if status.get("State") != "running":
-        DAEMON.logger.info(f'State is not running. wait 1 second...')
-        rest_count -= 1
-        time.sleep(1)
-        latest_task = DAEMON.client.services.get(self.serivce_id).tasks({"id": latest_task.get('ID')})[0]
-        continue
-      cstatus = status.get('ContainerStatus')
-      container_id = cstatus['ContainerID']
-      break
-    if not(container_id):
-      DAEMON.logger.error(f'Exceed max retry container status check count:10')
-      return None
-    for network in DAEMON.client.networks.list():
-      if network.name == DNAT_TARGET_INTERFACE_NAME:
-        container_nw = DAEMON.client.networks.get(network.id).attrs['Containers'][container_id]
-        if not(container_nw):
-          DAEMON.logger.warn(f'Container network not found by container_id:"{container_id}"')
-          return None
-        DAEMON.logger.debug(f'Succeeded to resolve container ip:"{container_nw.get(self.__class__.container_ip_prop_name)}"')
-        return str(ipaddress.ip_interface(container_nw.get(self.__class__.container_ip_prop_name)).ip)
-    DAEMON.logger.warn(f'{DNAT_TARGET_INTERFACE_NAME} network not found by')
-    return None
-
-  def gen_dnat_comment(self, ip, proto, port):
-    return f'hive_dnat_{ip}_{proto}_{port}_'
-
-  def gen_accept_comment(self, ip, proto, port):
-    return f'hive_accept_{ip}_{proto}_{port}_'
-
-  def clear_link_address_cache(self, interface_name, ip):
-    self.subprocess_run(['arping', '-c', '1', '-A', '-I', interface_name, ip])
-
-  def wrap_dnat_address(self, ip):
-    return ip
-
   def setVip(self, interface):
-    self.subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
+    subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
     self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip))
     success = False
     if self.router:
       rest_count = 5
       while rest_count > 0:
-        ping_proc = self.subprocess_run([self.__class__.cmd_ping, '-c', '1', self.router, '-I', str(interface['vip_if'].ip)])
+        ping_proc = subprocess_run([self.__class__.cmd_ping, '-c', '1', self.router, '-I', str(interface['vip_if'].ip)])
         if ping_proc.returncode == 0:
           success = True
           break
@@ -309,68 +445,11 @@ class SetVIP(HookBase):
         DAEMON.logger.error(f'Exceed max retry ping test count:5')
         self.clearVip(interface)
         return
-    if self.dnat_ports:
-      container_ip = self.resolveContainerIpFromTask()
-      if not(container_ip):
-        DAEMON.logger.warn(f'Failed to resolve container ip address')
-        return
-      for p in self.dnat_ports.split(","):
-        proto, port = self.resolveNatProto(p)
-        if not(port):
-          continue
-        DAEMON.logger.debug(f'Add DNAT({interface["vip_if"].ip}:{port}/{proto} -> {container_ip}:{port}/{proto})')
-        self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
-                             str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', self.wrap_dnat_address(container_ip) + ':' + port,
-                             '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
-        DAEMON.logger.debug(f'Add ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {container_ip}:{port}/{proto}')
-        self.subprocess_run([self.__class__.cmd_iptables, '-I', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', container_ip,
-                             '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
-                             '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
-
-  def resolveNATRuleDst(self, interface, proto, port):
-    if not(port):
-      return
-    nat_list = self.subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n', '-t', 'nat'])
-    for line in nat_list.stdout.splitlines():
-      matcher = re.match(r'^.*DNAT.* {0} .*{1} dpt:{2} .* {3} .* to:(([^:]*|\[[^\]]*\]):[^:]*)$'.format(
-                         interface["vip_if"].ip, proto, port, self.gen_dnat_comment(interface["vip_if"].ip, proto, port)), line)
-      if not(matcher):
-        DAEMON.logger.debug(f'checking nat line not match:{line}')
-        continue
-      ip = matcher.group(1)
-      DAEMON.logger.debug(f'Resolve nat dst ip from iptables :"{ip}"')
-      yield ip
-
-  def resolveFilterRuleDst(self, interface, proto, port):
-    if not(port):
-      return
-    nat_list = self.subprocess_run([self.__class__.cmd_iptables, '-L', '-v', '-n'])
-    for line in nat_list.stdout.splitlines():
-      matcher = re.match(r'^.*ACCEPT.* {0} *{4} *([^ ]*) *{1} dpt:{2} .* {3} .*$'.format(
-                         DNAT_TARGET_INTERFACE_NAME, proto, port, self.gen_accept_comment(interface["vip_if"].ip, proto, port),
-                         self.__class__.any_address), line)
-      if not(matcher):
-        DAEMON.logger.debug(f'checking filter line not match:{line}')
-        continue
-      ip = matcher.group(1)
-      DAEMON.logger.debug(f'Resolve filter dst ip from iptables :"{ip}"')
-      yield ip
+    self.nat_executor.start(self.task, interface)
 
   def clearVip(self, interface):
-    self.subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'del', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
-    if self.dnat_ports:
-      for p in self.dnat_ports.split(","):
-        proto, port = self.resolveNatProto(p)
-        for nat_rule_dst in self.resolveNATRuleDst(interface, proto, port):
-          DAEMON.logger.debug(f'Delete DNAT({interface["vip_if"].ip}:{port}/{proto} -> {nat_rule_dst}/{proto})')
-          self.subprocess_run([self.__class__.cmd_iptables, '-t', 'nat', '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d',
-                               str(interface['vip_if'].ip), '--dport', port, '-j', 'DNAT', '--to-destination', nat_rule_dst,
-                               '-m', 'comment', '--comment', self.gen_dnat_comment(str(interface["vip_if"].ip), proto, port)])
-        for filter_rule_dst in self.resolveFilterRuleDst(interface, proto, port):
-          DAEMON.logger.debug(f'Delete ACCEPT from !{DNAT_TARGET_INTERFACE_NAME} to {filter_rule_dst}:{port}/{proto}')
-          self.subprocess_run([self.__class__.cmd_iptables, '-D', DNAT_TARGET_RULE_NAME, '-p', proto, '-d', filter_rule_dst,
-                               '--dport', port, '-j', 'ACCEPT', '!', '-i', DNAT_TARGET_INTERFACE_NAME, '-o', DNAT_TARGET_INTERFACE_NAME,
-                               '-m', 'comment', '--comment', self.gen_accept_comment(str(interface["vip_if"].ip), proto, port)])
+    subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'del', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
+    self.nat_executor.stop(interface)
 
   def on_leave(self):
     interface = self.get_interface()
@@ -387,48 +466,53 @@ class SetVIP0(SetVIP):
   label_name = 'HIVE_VIP0'
   router_label_name = 'HIVE_ROUTER0'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0'
 
 
 class SetVIP1(SetVIP):
   label_name = 'HIVE_VIP1'
   router_label_name = 'HIVE_ROUTER1'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1'
 
 
 class SetVIP2(SetVIP):
   label_name = 'HIVE_VIP2'
   router_label_name = 'HIVE_ROUTER2'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2'
 
 
 class SetVIP3(SetVIP):
   label_name = 'HIVE_VIP3'
   router_label_name = 'HIVE_ROUTER3'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3'
 
 
 class SetVIP4(SetVIP):
   label_name = 'HIVE_VIP4'
   router_label_name = 'HIVE_ROUTER4'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4'
 
 
 class SetVIP5(SetVIP):
   label_name = 'HIVE_VIP5'
   router_label_name = 'HIVE_ROUTER5'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5'
 
 
 class SetVIPv6(SetVIP):
   label_name = 'HIVE_VIP_V6'
   router_label_name = 'HIVE_ROUTER_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT_V6'
   reg_inet = re.compile(r'^ +inet6 ([0-9a-f:]+/\d+) .*$')
-  container_ip_prop_name = "IPv6Address"
-  cmd_iptables = 'ip6tables'
   cmd_ping = 'ping6'
   cmd_ip_opts = '-6'
-  any_address = '::/0'
+  nat_executor_class = NATExecutorv6
 
   def clear_link_address_cache(self, interface_name, ip):
     DAEMON.logger.debug('cachec clear command is unimplemented')
@@ -441,37 +525,42 @@ class SetVIP0v6(SetVIPv6):
   label_name = 'HIVE_VIP0_V6'
   router_label_name = 'HIVE_ROUTER0_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0_V6'
 
 
 class SetVIP1v6(SetVIPv6):
   label_name = 'HIVE_VIP1_V6'
   router_label_name = 'HIVE_ROUTER1_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1_V6'
 
 
 class SetVIP2v6(SetVIPv6):
   label_name = 'HIVE_VIP2_V6'
   router_label_name = 'HIVE_ROUTER2_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2_V6'
 
 
 class SetVIP3v6(SetVIPv6):
   label_name = 'HIVE_VIP3_V6'
   router_label_name = 'HIVE_ROUTER3_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3_V6'
 
 
 class SetVIP4v6(SetVIPv6):
   label_name = 'HIVE_VIP4_V6'
   router_label_name = 'HIVE_ROUTER4_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4_V6'
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4_V6'
 
 
 class SetVIP5v6(SetVIPv6):
   label_name = 'HIVE_VIP5_V6'
   router_label_name = 'HIVE_ROUTER5_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5_V6'
-
+  enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5_V6'
 
 class FollowSwarmServiceDaemon:
   def __init__(self):
