@@ -129,7 +129,7 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#1)}&gt;0</expression>
-                                    <name>Some service in standalone type container {#SERVICE_NAME} was failed</name>
+                                    <name>At least one of the services in standalone type container {#SERVICE_NAME} is in a failed state</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>

@@ -156,11 +156,11 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 :対応方法: 仮想環境を作成し、そこに hive-builder をインストールして、仮想環境をアクティベートしてから hiveコマンドを実行してください。
       仮想環境をアクティベートすると、OSには python3 しかインストールされていな状態でも pythonコマンドが利用できます。
 
-異常がないのに zabbix で Some service status are failed のトリガーがあがる
+異常がないのに zabbix で At least one of the services is in a failed state のトリガーがあがる
 ----------------------------------------------------------------------------------------------------------
 :現象:
 
-異常がないのに zabbix で Some service status are failed のトリガーがあがる。
+異常がないのに zabbix で At least one of the services is in a failed state のトリガーがあがる。
 以下のコマンドを実行すると失敗しているサービス名はわかったが、そのサービスはすでに削除されている。
 たとえば、DRBD のボリュームがエラーになった後、 build-volumes -l ボリューム名 -D などで削除した場合、
 以下のように表示される

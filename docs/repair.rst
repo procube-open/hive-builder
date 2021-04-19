@@ -143,7 +143,7 @@ DRBDボリュームのディスク残量
 
 ホスト内サービスの失敗
 =================================
-ホストの中でサービスの実行に失敗し、zabbix から "Problem: Some service status are failed" の警告メッセージが上がる場合があります。
+ホストの中でサービスの実行に失敗し、zabbix から "Problem: At least one of the services is in a failed state" の警告メッセージが上がる場合があります。
 
 この場合、以下のコマンドで失敗しているサービスを特定しその原因を追求して対策を講じてください。
 

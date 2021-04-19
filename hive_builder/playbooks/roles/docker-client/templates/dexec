@@ -40,15 +40,17 @@ suffix={{ hive_name }}
 # (ex. name=dhcp is matching for dhcp and dhcpdb)
 # num_replicas=$(docker service ls --format '{{.Replicas}}' --filter "name=$1" | cut -f 1 -d /)
 num_replicas=$(docker service ls --format '{{.Name}} {{.Replicas}}' | awk '$1 == "'$1'" {cnt = split($2, r, "/");print r[1]}')
-if [ -z $num_replicas ]; then
+if [ -z "$num_replicas" ]; then
   error "service $1 is not found."
 fi
 if [ ${no_arg} -gt $num_replicas ]; then
   error "the index ${no_arg} exceed the nubmer of replicas of the service $num_replicas."
 fi
 set -eo pipefail
-if docker_command=$(docker service ps "$1" --format "docker -H tcp://{{.Node}}.$suffix:2376 exec $exec_opts {{.Name}}.{{.ID}}" --filter desired-state=running --no-trunc | head -$no_arg | tail -1); then
-  shift
-  exec $docker_command "$@"
+docker_command=$(docker service ps "$1" --format "docker -H tcp://{{.Node}}.$suffix:2376 exec $exec_opts {{.Name}}.{{.ID}}" --filter desired-state=running --no-trunc | head -$no_arg | tail -1)
+if [ -z "$docker_command" ]; then
+  error "the service $1 is not runing"
 fi
+shift
+exec $docker_command "$@"
 {% endraw %}
