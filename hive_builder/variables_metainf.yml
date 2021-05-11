@@ -90,12 +90,14 @@ local_python_path:
   persistent_scope: none
 inventory_plugins:
   description: "directory where hive inventory plugin is installed"
-  type: directory
-  default: "{install_dir}/plugins"
+  default: "{root_dir}/plugins/inventory:{install_dir}/plugins"
   name_in_ansible_cfg: inventory_plugins
+filter_plugins:
+  description: "directory where hive filter plugin is installed"
+  default: "{root_dir}/plugins/filter"
+  name_in_ansible_cfg: filter_plugins
 library:
   description: "directory where custom modules are installed"
-  type: directory
   default: "{root_dir}/lib:{install_dir}/lib"
   name_in_ansible_cfg: library
 enable_plugins:
