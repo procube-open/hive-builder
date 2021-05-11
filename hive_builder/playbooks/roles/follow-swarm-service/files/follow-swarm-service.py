@@ -222,6 +222,9 @@ class NATExecutorv6(NATExecutor):
   container_ip_prop_name = "IPv6Address"
   cmd_iptables = 'ip6tables'
   any_address = '::/0'
+  def wrap_dnat_address(self, ip):
+    return '[' + ip + ']'
+
 
 class HookBase:
   def __init__(self, label_value, serivce_id, service_name):
@@ -516,9 +519,6 @@ class SetVIPv6(SetVIP):
 
   def clear_link_address_cache(self, interface_name, ip):
     DAEMON.logger.debug('cachec clear command is unimplemented')
-
-  def wrap_dnat_address(self, ip):
-    return '[' + ip + ']'
 
 
 class SetVIP0v6(SetVIPv6):
