@@ -23,10 +23,24 @@
       dest: "{{ hive_home_dir }}/.docker/key.pem"
     - src: "{{ hive_safe_tls_dir }}/certs/{{ inventory_hostname }}_cert.pem"
       dest: "{{ hive_home_dir }}/.docker/cert.pem"
+# 2021/05/19 following error occured in newly build AWS environment(amazon linux 2), so add module six
+# 'Failed to import the required Python library (Docker SDK for Python: docker (Python >= 2.7) or
+# docker-py (Python 2.6)) on s-hive2''s Python /home/ec2-user/docker/bin/python.
+# Please read module documentation and install in the appropriate location.
+# If the required library is installed, but Ansible is using the wrong Python interpreter,
+# please consult the documentation on ansible_python_interpreter, for example via `pip install docker`
+# or `pip install docker-py` (Python 2.6). The error was: No module named ''six'''
+# The verions when above error occured
+# $ python --version
+# Python 3.7.9
+# $ pip list | grep docker
+# docker           5.0.0
 - name: install docker python module
   become: False
   pip:
-    name: docker
+    name:
+    - docker
+    - six
     state: present
     virtualenv: "{{ hive_home_dir }}/docker"
 - name: install utility comnand
