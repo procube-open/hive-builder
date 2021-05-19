@@ -15,7 +15,7 @@
   changed_when: False
 - name: update kernel for drbd
   yum:
-    name: kernel
+    name: "kernel-{{ '4.14.225-169.362.amzn2' if hive_provider == 'aws' else '4.18.0-193.el8' }}"
     disable_excludes: main
     state: latest
   when: (hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')) or

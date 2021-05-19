@@ -13,7 +13,7 @@ from datetime import datetime
 from time import time
 import re
 import uptime
-# logging.basicConfig(level=os.environ.get('HIVE_LOG)_LEVEL', logging.INFO))
+# logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
 CACHE_FILE_DIR = '/var/lib/zabbix'
 
