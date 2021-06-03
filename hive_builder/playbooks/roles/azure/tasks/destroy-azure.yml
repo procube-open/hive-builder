@@ -43,3 +43,4 @@
     name: "{{ hive_safe_azure_resourcegroup }}"
     location: "{{ hive_region }}"
     state: absent
+    force_delete_nonempty: yes 
