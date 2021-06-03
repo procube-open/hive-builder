@@ -545,8 +545,18 @@ class execSsh(ansbileCommandBase):
       ssh_proc.send_signal(signal.SIGTERM)
       ssh_proc.wait()
 
+class installCollection(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('install-collection', 'install ansible collections')
 
-SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh()]
+  def do(self, context):
+    self.build_context(context)
+    args_role = ['ansible-galaxy', 'role', 'install', '-r', 'requirements.yml', '-p', context.vars['context_dir'] + '/roles']
+    args_collection = ['ansible-galaxy', 'collection', 'install', '-r', 'requirements.yml', '-p', context.vars['context_dir'] + '/collections']
+    subprocess.run(args_role)
+    subprocess.run(args_collection)
+
+SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection()]
 
 
 def get_parser():

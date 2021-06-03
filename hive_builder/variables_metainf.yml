@@ -227,7 +227,12 @@ bin_ansible_callbacks:
 roles_path:
   description: roles path for ansible-playbook
   name_in_ansible_cfg: roles_path
-  default: "{root_dir}/roles:{playbooks_dir}/builtin_roles"
+  default: "{root_dir}/roles:{playbooks_dir}/builtin_roles:{context_dir}/roles"
+collections_path:
+  desctiption: collections path for ansible-playbook
+  type: directory
+  name_in_ansible_cfg: collections_path
+  default: "{context_dir}/collections"
 forks:
   description: max concurrent execution of ansible play
   name_in_ansible_cfg: forks

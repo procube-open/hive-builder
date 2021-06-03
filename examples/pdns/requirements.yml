@@ -1,0 +1,14 @@
+---
+roles:
+ - powerdns.pdns
+collections:
+ - ansible.posix
+ - ansible.netcommon
+ - community.crypto
+ - community.general
+ - community.docker
+ - community.zabbix
+ - community.aws
+ - amazon.aws
+ - google.cloud
+ - azure.azcollection
