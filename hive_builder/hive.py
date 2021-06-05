@@ -551,8 +551,8 @@ class installCollection(ansbileCommandBase):
 
   def do(self, context):
     self.build_context(context)
-    args_role = ['ansible-galaxy', 'role', 'install', '-r', 'requirements.yml', '-p', context.vars['context_dir'] + '/roles']
-    args_collection = ['ansible-galaxy', 'collection', 'install', '-r', 'requirements.yml', '-p', context.vars['context_dir'] + '/collections']
+    args_role = ['ansible-galaxy', 'role', 'install', '-r', context.vars['install_dir'] + '/requirements.yml', '-p', context.vars['context_dir'] + '/roles']
+    args_collection = ['ansible-galaxy', 'collection', 'install', '-r', context.vars['install_dir'] + '/requirements.yml', '-p', context.vars['context_dir'] + '/collections']
     subprocess.run(args_role)
     subprocess.run(args_collection)
 
