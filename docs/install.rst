@@ -281,9 +281,12 @@ docker desktop for mac は VM を起動しますので、リソースを消費�
 vagrant プロバイダを使用する場合
 ----------------------------------
 vagrant プロバイダを使用する場合 VirtualBox と Vagrant がインストールされている必要があります。
-また、 vagrant-disksize プラグインがインストールされている必要があります。
+また、 vagrant-disksize と vagrant-proxyconf プラグインがインストールされている必要があり、vagrant-libvirt が入っている場合はアンインストールしてください。
 
-（詳細未）
+::
+
+    vagrant plugin install vagrant-libvirt vagrant-disksize
+    vagrant box add centos/8 --provider=virtualbox
 
 raspbian へのインストール
 =================================
@@ -300,4 +303,3 @@ raspberry pi にインストールする場合は、OSに raspbian を利用し�
 仮想環境と hive-builder のインストール
 --------------------------------------
 仮想環境と hive-builder のインストールについては、Cent OS の場合と同じです。 :ref:`そちら<basic>` を参照してください。
-
