@@ -215,8 +215,8 @@ stdout_callback:
   name_in_ansible_cfg: stdout_callback
   description: "formatting ansible-playbook output"
   default: yaml
-callback_whitelist:
-  name_in_ansible_cfg: callback_whitelist
+callback_enabled:
+  name_in_ansible_cfg: callback_enabled
   description: "white list for callback plugin"
   default: yaml
 bin_ansible_callbacks:

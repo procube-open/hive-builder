@@ -71,7 +71,7 @@ services:
         fstype: xfs
         size: 500M
     labels:
-      published_fqdn: pdnsadmin.pdns.sdcaas.com
+      published_fqdn: pdnsadmin.pdns.example.com
     monitor_error:
       - Error
       - Exception
