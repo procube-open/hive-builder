@@ -403,7 +403,7 @@ VirtualBox や iDRAC で OS を最初からインストールする際に
 このインストール媒体をセカンダリの光学ドライブとしてマウントして利用できます。
 
 kickstart プロバイダを利用するには motherマシンは linux でなければなりません。
-また、現在のバージョンではサーバは UEFI ブート可能なものである必要があります。
+また、サーバは UEFI ブート可能なものである必要があります。
 
 kickstart プロバイダを利用する場合は、ステージオブジェクトに kickstart_config 属性に
 サーバのインストールパラメータを指定してください。 kickstart_config 属性には
@@ -425,16 +425,56 @@ kickstart プロバイダを利用する場合は、ステージオブジェク�
       -  /dev/sda
       - 必須
       - インストール媒体の出力先（媒体が挿されているデバイス名かISOイメージのファイル名）
-    * - media_usb
-      - - True
-        - False
-      - False
-      - インストール媒体がUSBであるかいなか
+    * - target
+      - /dev/disks/by-path/pcie-pci-0000:65:00.0-scsi-0:2:0:0
+      - sda
+      - インストール先のディスク
     * - networks
-      - 未執筆
+      - 後述
       - 必須
       - ネットワーク定義オブジェクトのリスト
 
+ネットワーク定義オブジェクトには以下の属性を指定できます。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - interface
+      - eth0
+      - 必須
+      - 設定対象のネットワークインタフェース名
+    * - gateway
+      - 192.168.1.1
+      - なし
+      - デフォルトゲートウェイ
+    * - nameservers
+      - ["192.168.1.1", "192.168.1.2"]
+      - なし
+      - DNSリゾルバ
+    * - ips
+      - ["192.168.1.21", "192.168.1.22"]
+      - なし
+      - IPアドレスのリスト（hive0, hive1 .. の順で割り当てられる）
+    * - netmask
+      - "255.255.255.0"
+      - なし
+      - netmask （ips を指定したときのみ使用される）
+    * - vlanid
+      - 1001
+      - なし
+      - VLAN ID
+    * - bonding_interfaces
+      - ["eth0", "eth1"]
+      - なし
+      - ボンディングを作成する場合のスレーブインタフェースのリスト
+
+bonding_interfaces を指定すると、ボンディングしたインタフェースが追加されます。
+ボンディングのオプションは miimon=100,mode=802.3ad,updelay=600 となります。
 
 以下にkickstart_configの例を示します。
 
@@ -443,7 +483,7 @@ kickstart プロバイダを利用する場合は、ステージオブジェク�
     kickstart_config:
       iso_src: /var/lib/isos/CentOS-7-x86_64-Minimal-2003.iso
       iso_dest: /dev/sda
-      media_usb: True
+      target: "/dev/disks/by-path/pcie-pci-0000:65:00.0-scsi-0:2:0:0"
       networks:
       - interface: bond0
         bonding_interfaces:
@@ -454,28 +494,6 @@ kickstart プロバイダを利用する場合は、ステージオブジェク�
         - 192.168.200.21
         - 192.168.200.22
         netmask: 255.255.255.0
-      - interface: bond0
-        vlanid: 2
-      - interface: bond0
-        vlanid: 4
-      - interface: bond0
-        vlanid: 1000
-      - interface: bond0
-        vlanid: 1001
-      - interface: bond0
-        vlanid: 1002
-        ips:
-        - 192.168.203.20
-        - 192.168.203.21
-        - 192.168.203.22
-        netmask: 255.255.255.0
-        gateway: 192.168.203.1
-        nameservers:
-        - 192.168.203.1
-      - interface: bond0
-        vlanid: 1003
-      - interface: bond0
-        vlanid: 1004
 
 prepared プロバイダ
 ^^^^^^^^^^^^^^^^^^^

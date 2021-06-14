@@ -1,18 +1,20 @@
-#version=RHEL7
+#version=RHEL8
 # System authorization information
 auth --enableshadow --passalgo=sha512
 # Use text install
 text
-repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
+# repo --name="BaseOS" --baseurl=file:///run/install/repo/BaseOS
+# repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
 # Use CDROM installation media
-cdrom
+# cdrom
 # Run the Setup Agent on first boot
 firstboot --enable
 ignoredisk --only-use={{ hive_ks_target }}
 # Keyboard layouts
 keyboard --vckeymap=jp --xlayouts='jp'
 # System language
-lang ja_JP.UTF-8
+# lang ja_JP.UTF-8
+lang C
 
 # Network information
 # CAUTION: All static networking configuration information must be specified on one line; you cannot wrap lines using a backslash, for example.
@@ -49,7 +51,7 @@ bootloader --append=" crashkernel=auto" --location=mbr --boot-drive={{ hive_ks_t
 clearpart --all --initlabel --drives={{ hive_ks_target }}
 # Disk partitioning information
 part /boot/efi --fstype=efi --ondisk={{ hive_ks_target }} --size=200
-part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_memory_size | default('1024') }}
+part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_memory_size * 1024 | default('10240') }}
 part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_disk_size * 1024 | default('10240') }}
 
 %packages

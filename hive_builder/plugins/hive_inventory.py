@@ -118,9 +118,6 @@ DOCUMENTATION = r'''
               description: iso image source file or device, availble on kickstart provider
             iso_dest:
               description: iso image destination file or device, availble on kickstart provider
-            media_usb:
-              description: device is a usb rather than cd-rom
-              default: False
             networks:
               description: interace definition for tagged vlans, availble on kickstart provider
               type: list
@@ -223,7 +220,7 @@ class Stage:
       if 'region' in self.stage:
         raise AnsibleParserError('region cannot be specified when provider is vagrant')
     else:
-      if 'memory_size' in self.stage:
+      if self.provider not in ['kickstart', 'prepared'] and 'memory_size' in self.stage:
         raise AnsibleParserError('memory_size cannot be specified when provider is IaaS')
       if 'repository_memory_size' in self.stage:
         raise AnsibleParserError('repository_memory_size cannot be specified when provider is IaaS')
