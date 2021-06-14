@@ -5,15 +5,18 @@
   changed_when: false
   check_mode: False
 
-- name: "Resolve subnet option"
-  set_fact:
-    subnet_v4: "{{ (hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string)) if hive_internal_cidr is defined else omit}}"
-    subnet_v6: "{{ (hive_internal_cidr_v6 | ipaddr((hive_internal_cidr_v6 | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr_v6 | ipaddr('prefix')) + 3) | string)) if hive_internal_cidr_v6 is defined else omit}}"
-
-- name: "Resolve subnet option"
-  set_fact:
+- set_fact:
+    subnet_v4: "{{ (hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string))}}"
+  when: hive_internal_cidr is defined
+- set_fact:
+    subnet_v6: "{{ (hive_internal_cidr_v6 | ipaddr((hive_internal_cidr_v6 | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' + (((hive_internal_cidr_v6 | ipaddr('prefix')) + 3) | string))}}"
+  when: hive_internal_cidr_v6 is defined
+- set_fact:
     subnet_opts_v4: "{{'--subnet ' + subnet_v4 if hive_internal_cidr is defined else omit}}"
+  when: hive_internal_cidr is defined
+- set_fact:
     subnet_opts_v6: "{{'--ipv6 --subnet ' + subnet_v6 if hive_internal_cidr_v6 is defined else omit}}"
+  when: hive_internal_cidr_v6 is defined
 
 - name: debug
   debug:

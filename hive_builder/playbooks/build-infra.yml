@@ -20,13 +20,14 @@
 - name: wait for connectable
   gather_facts: False
   hosts: servers
-  vars:
-    ansible_host: "{%if hive_root_password is defined %}{{ hive_private_ip }}{% else %}{{ omit }}{% endif %}"
-    ansible_user: "{%if hive_root_password is defined %}root{% else %}{{ omit }}{% endif %}"
-    ansible_ssh_pass: "{%if hive_root_password is defined %}{{ hive_root_password }}{% else %}{{ omit }}{% endif %}"
-    ansible_ssh_common_args: "{%if hive_root_password is defined %}-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null{% else %}{{ omit }}{% endif %}"
 
   tasks:
+  - set_fact:
+      ansible_host: "{{ hive_private_ip }}"
+      ansible_user: "root"
+      ansible_ssh_pass: "{{ hive_root_password }}"
+      ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    when: hive_root_password is defined
   - wait_for_connection:
     when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false)) and (hive_provider != 'kickstart')
   - name: add admin group

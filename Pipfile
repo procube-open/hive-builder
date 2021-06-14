@@ -13,7 +13,7 @@ sphinx-argparse = "*"
 pep440 = "*"
 
 [packages]
-"ansible[azure]" = "<2.10"
+ansible-core = "*"
 configparser = "*"
 lockfile = "*"
 python-vagrant = "*"
@@ -23,9 +23,10 @@ boto = "*"
 boto3 = "*"
 netaddr = "*"
 Pillow = ">=8.1.1"
+hive-builder = {path = "."}
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"
 
 [scripts]
 deploy = "twine upload dist/*"

@@ -18,6 +18,15 @@
     src: "{{ hive_temp_dir }}/iso"
     dest: "{{ hive_context_dir }}/"
   when: hive_kickstart_config.iso_src is defined and ansible_distribution != 'MacOSX'
+- name: create directory
+  file:
+    path: "{{ hive_context_dir }}/{{ item }}"
+    state: directory
+    mode: 0755
+  loop:
+  - iso
+  - iso/isolinux
+  - iso/EFI/BOOT
 - name: unmount source iso image
   become: True
   mount:
@@ -41,9 +50,9 @@
     insertbefore: label linux
     block: |
       label kickstart
-        menu label ^Kickstart CentOS 7 for {{ ks_host }}
+        menu label ^Kickstart HiveInstaller for {{ ks_host }}
         kernel vmlinuz
-        append initrd=initrd.img inst.stage2=hd:LABEL=CentOS\x207\x20x86_64 inst.ks={{ hive_ks_media }}:/{{ ks_host.split('.')[0] }}.ks net.ifnames=0
+        append initrd=initrd.img inst.stage2=hd:LABEL=HiveInstaller inst.repo={{ hive_ks_media }}:/ inst.ks={{ hive_ks_media }}:/{{ ks_host.split('.')[0] }}.ks net.ifnames=0
     marker: "# {mark} ANSIBLE MANAGED BLOCK for {{ ks_host }}"
   loop: "{{ groups['servers'] | intersect(groups[hive_stage] )}}"
   loop_control:
@@ -54,8 +63,8 @@
     path: "{{ hive_context_dir }}/iso/EFI/BOOT/grub.cfg"
     insertbefore: "menuentry 'Test this media.*"
     block: |
-      menuentry 'Install kickstart CentOS 7 for {{ ks_host }}' --class fedora --class gnu-linux --class gnu --class os {
-        linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=CentOS\x207\x20x86_64 inst.ks={{ hive_ks_media }}:/{{ ks_host.split('.')[0] }}.ks net.ifnames=0
+      menuentry 'Install kickstart HiveInstaller for {{ ks_host }}' --class fedora --class gnu-linux --class gnu --class os {
+        linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=HiveInstaller inst.repo={{ hive_ks_media }}:/ inst.ks={{ hive_ks_media }}:/{{ ks_host.split('.')[0] }}.ks
         initrdefi /images/pxeboot/initrd.img
       }
     marker: "# {mark} ANSIBLE MANAGED BLOCK for {{ ks_host }}"
@@ -77,7 +86,7 @@
     -output {{ hive_kickstart_config.iso_dest }} \
     -eltorito-boot isolinux/isolinux.bin \
     -eltorito-catalog isolinux/boot.cat \
-    -volid 'CentOS 7 x86_64' \
+    -volid 'HiveInstaller' \
     -no-emul-boot -boot-load-size 4 -boot-info-table \
     -eltorito-alt-boot -e images/efiboot.img \
     -no-emul-boot -isohybrid-gpt-basdat ./
@@ -104,4 +113,3 @@
   loop: "{{ groups['servers'] | intersect(groups[hive_stage] )}}"
   loop_control:
     loop_var: setup_host
-
