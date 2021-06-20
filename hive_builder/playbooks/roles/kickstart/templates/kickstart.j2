@@ -36,7 +36,7 @@ lang C
     {%- set options = options + ' --vlanid ' + (network.vlanid | string)-%}
   {%- endif -%}
   {%- if network.bonding_interfaces is defined -%}
-    {%- set options = options + ' --bondslaves=' + (network.bonding_interfaces | join(',')) + ' --bondopts=miimon=100,mode=802.3ad,updelay=600' -%}
+    {%- set options = options + ' --bondslaves=' + (network.bonding_interfaces | join(',')) + ' --bondopts=miimon=100,mode=802.3ad,updelay=600,xmit_hash_policy=2' -%}
   {%- endif -%}
 network --bootproto=static --device={{ network.interface }} --noipv6{{ options }}
 {% endfor %}
@@ -50,9 +50,12 @@ bootloader --append=" crashkernel=auto" --location=mbr --boot-drive={{ hive_ks_t
 # Partition clearing information
 clearpart --all --initlabel --drives={{ hive_ks_target }}
 # Disk partitioning information
+# unit of --size option is MiB
+# unit of memory_size attribute is MiB
+# unit of disk_size attribute is GB, not GiB
 part /boot/efi --fstype=efi --ondisk={{ hive_ks_target }} --size=200
-part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_memory_size * 1024 | default('10240') }}
-part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ hostvars[ks_host].hive_disk_size * 1024 | default('10240') }}
+part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ (hostvars[ks_host].hive_memory_size | default('10240')) }}
+part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ ((hostvars[ks_host].hive_disk_size | default('100'))  * 1000 / 1024 * 1000 / 1024 * 1000) | int }}
 
 %packages
 @core
