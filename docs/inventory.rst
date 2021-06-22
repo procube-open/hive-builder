@@ -297,6 +297,76 @@ aws プロバイダを使用する場合は、以下のコマンドで hive の�
   hive set aws_access_key_id アクセスキーID
   hive set aws_secret_access_key アクセスキー
 
+aws プロバイダでは hive_ec2_group_rules 変数にルールオブジェクトのリストを指定することで、
+セキュリティグループのインバウンドルールに独自のものを設定できます。
+（デフォルトでは、サービスの ports 属性に従ってインバウンドルールが設定されます。
+ただし、 10000 以上の番号は外部に公開されません。）
+
+ルールオブジェクトの属性は以下の通り。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - group_name
+      - default
+      -
+      - アクセス元のセキュリティグループ名。default は自グループを意味する。
+    * - proto
+      - tcp,udp, icmp, icmpv6, all
+      - 必須
+      - アクセスプロトコル。all はすべてのプロトコルを許可することを意味する。
+    * - cidr_ip
+      - 0.0.0.0/0
+      -
+      - アクセスを許可するIPアドレスの CIDR表記
+    * - from_port
+      - 22
+      - -1
+      - アクセスを許可するポート番号の最小値。-1 はすべてのポートを許可することを意味する。
+    * - to_port
+      - 22
+      - -1
+      - アクセスを許可するポート番号の最大値。-1 はすべてのポートを許可することを意味する。
+
+以下に設定例を示します。
+
+::
+
+  hive_ec2_group_rules:
+  - group_name: default
+    proto: all
+  - cidr_ip: 8.8.8.8/32
+    proto: tcp
+    to_port: '22'
+    from_port: '22'
+  - cidr_ip: 0.0.0.0/0
+    proto: tcp
+    from_port: '53'
+    to_port: '53'
+  - cidr_ip: 0.0.0.0/0
+    proto: tcp
+    from_port: '80'
+    to_port: '80'
+  - cidr_ip: 0.0.0.0/0
+    proto: tcp
+    from_port: '443'
+    to_port: '443'
+  - cidr_ip: 0.0.0.0/0
+    proto: tcp
+    from_port: '53'
+    to_port: '53'
+
+この例では、以下の設定になっています。
+
+- セキュリティグループ内のアクセスは自由
+- 22/TCP には IPアドレス 8.8.8.8 からのみアクセス許可
+- 80/TCP, 443/TCP, 53/TCP, 53/UDP にはどこからでもアクセス許可
+
 gcp プロバイダ
 ^^^^^^^^^^^^^^^^^^^^^
 gcp プロバイダ固有の属性には以下のものがあります。

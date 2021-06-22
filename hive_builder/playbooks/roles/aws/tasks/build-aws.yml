@@ -19,15 +19,7 @@
       Project: "{{ hive_name }}"
   register: hive_safe_igw
 
-- name: build rule list tcp
-  set_fact:
-    hive_safe_inbound_rules: "{{ (hive_safe_inbound_rules |default([{'proto':'all', 'group_name': 'default'}])) + [{'proto':'tcp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
-  loop: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
-- name: build rule list udp
-  set_fact:
-    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules  + [{'proto':'udp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
-  loop: "{{ hive_published_ports_udp }}"
-
+- debug: var=hive_safe_inbound_rules
 - name: set for published port and name tag to default security group for VPC
   ec2_group:
     state: present
