@@ -71,7 +71,7 @@ services:
         fstype: xfs
         size: 500M
     labels:
-      published_fqdn: pdnsadmin.pdns.example.com
+      published_fqdn: "pdnsadmin.pdns.{{ domain }}"
     monitor_error:
       - Error
       - Exception
