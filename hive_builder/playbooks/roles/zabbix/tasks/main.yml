@@ -49,7 +49,7 @@
         - Hives
         - Repository server
   - name: Configure macros on the Linux by Zabbix agent
-    zabbix5_template:
+    zabbix_template:
       server_url: http://{{ inventory_hostname }}:10052
       login_user: admin
       login_password: zabbix
@@ -69,7 +69,7 @@
   # 2. upload by ansible
   # 3. download and replace template XML(avoid error caused by difference of order of elements)
   - name: upload templates
-    zabbix5_template:
+    zabbix_template:
       server_url: http://{{ inventory_hostname }}:10052
       login_user: admin
       login_password: zabbix
