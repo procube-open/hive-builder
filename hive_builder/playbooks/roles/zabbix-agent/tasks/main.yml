@@ -55,6 +55,7 @@
       - wheel
       - docker
       - uptime
+      - six
     virtualenv: /var/lib/zabbix/docker
     state: present
   args:
