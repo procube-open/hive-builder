@@ -1,0 +1,55 @@
+---
+- name: check volume group exists
+  command: "vgdisplay {{ disk.vgname }}"
+  failed_when: False
+  register: vgdisplay_result
+  check_mode: False
+  changed_when: False
+
+- debug: var=vgdisplay_result
+- name: check devices
+  parted:
+    device: "{{ item }}"
+    unit: s
+  register: hive_safe_devices
+  loop: "{{ disk.device_order }}"
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+  failed_when: False
+- set_fact:
+    hive_safe_mirrored_device: "{{ hive_safe_devices.results | selectattr('partitions','defined') |first }}"
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+# from https://askubuntu.com/questions/201164/proper-alignment-of-partitions-on-an-advanced-format-hdd-using-parted
+# Parted is just being overly conservative. The usual practice these days is to align partitions
+# on 1MiB (2048-sector) boundaries because this works on Advanced Format disks, on certain type
+# of RAID setups that require alignment, and on most SSDs. For an Advanced Format disk, so long
+# as the alignment is on a multiple of 8, you're fine, and 2048 is a multiple of 8. The lost
+# disk space is puny -- 0.0000336% of your total disk space, if I did the math right and didn't
+# mistype anything. So don't worry about it; just use the 1MiB alignment.
+- name: create partition for drbd resource pool
+  parted:
+    label: "{{ hive_partition_label | default(omit)}}"
+    device: "{{ hive_safe_mirrored_device.disk.dev }}"
+    number: "{{ hive_safe_mirrored_device.partitions | length + 1 }}"
+    part_end: "{{ ((((hive_safe_mirrored_device.disk.size | int) - 34) // 2048) | string) + 'MiB' }}"
+    part_start: "{{ '1MiB' if (hive_safe_mirrored_device.partitions | length) == 0 else (((((hive_safe_mirrored_device.partitions | last).end | int) // 2048 ) + 1) | string) + 'MiB' }}"
+    flags: [ lvm ]
+    state: present
+    unit: MiB
+  register: hive_safe_parted
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+- name: create volume group
+  lvg:
+    vg: "{{ disk.vgname }}"
+    pvs: "{{ hive_safe_mirrored_device.disk.dev }}{% if hive_safe_mirrored_device.disk.dev is match('/dev/nvme*') %}p{% endif %}{{ hive_safe_mirrored_device.partitions | length + 1 }}"
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+- name: create a thin pool
+  lvol:
+    vg: "{{ disk.vgname }}"
+    opts: "--chunksize 1024K --zero n"
+    thinpool: "{{ disk.poolname }}"
+    # lvcreate calculate metadata size as ((Pool_LV_size / Pool_LV_chunk_size * 64) // 4096M + 1) * 4096M
+    # lvcreate calculate pool metadata spare size as same as metadata size
+    # When Pool_LV_chunk_size = 1024K and Pool_LV_extent_size=16M, Pool_LV_size = (VG_size * 8192 // 8193) // 16M * 16M
+    # if VG_size is not enough then cause error: lvcreate: metadata/pv_map.c:198: consume_pv_area: Assertion `to_go <= pva->count' failed.
+    size: "{{ (((hive_safe_parted.partitions | last).size | int) - 8) * 8192 // 8193 // 16 * 16 }}M"
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0

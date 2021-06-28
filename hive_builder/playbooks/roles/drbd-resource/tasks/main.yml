@@ -12,7 +12,7 @@
 
 - name: stop drbd resource service
   shell: "systemctl stop --job-mode=ignore-dependencies drbd-resource@{{ hive_safe_volume.name }}"
-  when: hive_safe_drbd_with_disk and hive_safe_destroy and not hive_safe_drbd_service_not_exists
+  when: hive_safe_destroy and not hive_safe_drbd_service_not_exists
 
 - name: put resource definition file
   template:
@@ -21,7 +21,7 @@
   when: not hive_safe_destroy
 
 - name: check if logical volume exists on LVM
-  shell: "lvdisplay /dev/drbdvg/{{ hive_safe_volume.name }}"
+  shell: "lvdisplay /dev/{{ hive_safe_mirrored_disk_device.vgname }}/{{ hive_safe_volume.name }}"
   changed_when: False
   check_mode: False
   failed_when: hive_safe_lvdisplay.rc != 5 and hive_safe_lvdisplay.rc != 0
@@ -29,9 +29,9 @@
   when: hive_safe_drbd_with_disk
 - name: create logical volume on LVM
   lvol:
-    vg: drbdvg
+    vg: "{{ hive_safe_mirrored_disk_device.vgname }}"
     lv: "{{hive_safe_volume.name}}"
-    thinpool: drbdpool
+    thinpool: "{{ hive_safe_mirrored_disk_device.poolname }}"
     size: "{{ hive_safe_volume.drbd.size }}"
     state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     force: True

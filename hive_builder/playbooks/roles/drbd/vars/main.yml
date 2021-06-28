@@ -1,0 +1,13 @@
+hive_default_mirrored_disk_device:
+  device_order:
+    - /dev/sdc
+    - /dev/sdb
+    - /dev/vdc
+    - /dev/vdb
+    - /dev/xvdb
+    - /dev/nvme1n1
+    - /dev/sda
+  vgname: drbdvg
+  poolname: drbdpool
+
+hive_safe_mirrored_disk_devices: "{{ hive_mirrored_disk_devices | default([hive_default_mirrored_disk_device]) }}"
