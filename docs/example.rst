@@ -166,6 +166,28 @@ DNS レコードの登録
 ここで 10.1.1.4, 10.1.2.4, 10.1.3.4 の部分は EC2 インスタンスに関連付けられたElastic IP で置き換えます。
 Elastic IP は AWSコンソールか .hive/staging/ssh_config のファイル内の Host ディレクティブの値を見ることで調べることができます。
 
+認証情報の入力
+-------------------------
+google domainを用いてDNS登録をした場合、inventory/group_vars/all.yml内にddclient_cred変数を書き加えることで登録することができます。
+例としては
+
+::
+
+ ddclient_cred:
+  s-hive0.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive1.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive2.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive3.pdns:
+    name:
+    password:
+
+レポジトリサーバーを設定している場合はname,passwordは空欄で書いてください。
 構築
 =========================
 以下のコマンドで構築してください。
