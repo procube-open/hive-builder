@@ -4,6 +4,7 @@
     name:
       - docker
       - jinja2
+      - six
     state: present
 - name: install configure
   copy: src=proxy-configure dest=/usr/sbin mode=0775
