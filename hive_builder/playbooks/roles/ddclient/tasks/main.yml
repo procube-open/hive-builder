@@ -1,0 +1,25 @@
+---
+- name: install epel-release
+  yum:
+    name: epel-release
+  become: True
+
+- name: install ddclient
+  yum:
+    name: ddclient
+    enablerepo: powertools
+
+- name: replace ddclient.conf
+  template:
+    src: templates/ddclient.conf.j2
+    dest: /etc/ddclient.conf
+  when: ddclient_cred is defined
+
+- name: start ddclient
+  systemd:
+    name: ddclient
+    state: started
+    daemon_reload: yes
+    enabled: yes
+  become: yes
+  when: ddclient_cred is defined
