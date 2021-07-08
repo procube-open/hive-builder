@@ -177,6 +177,28 @@ DNS管理画面で「詳細設定を表示」をクリックしてダイナミ�
     name:
     password:
 
+認証情報の入力
+-------------------------
+google domainを用いてDNS登録をした場合、inventory/group_vars/all.yml内にddclient_cred変数を書き加えることで登録することができます。
+例としては
+
+::
+
+ ddclient_cred:
+  s-hive0.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive1.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive2.pdns:
+    name: ユーザー名
+    password: パスワード
+  s-hive3.pdns:
+    name:
+    password:
+
+レポジトリサーバーを設定している場合はname,passwordは空欄で書いてください。
 構築
 =========================
 以下のコマンドで構築してください。
