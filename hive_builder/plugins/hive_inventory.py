@@ -97,9 +97,19 @@ DOCUMENTATION = r'''
           description: disk size of hive hosts
           type: int with unit(G,M,K)
           default: 20G
+        disk_encrypted:
+          description: disk of hive hosts is encrypted
+          type: bool
+          default: False
+        kms_key_id:
+          description: "key id for encryption (availabe when provider is aws)"
         mirrored_disk_size:
           description: disk size of hosts for drbd mirror disk, if not specified then hive does not provision mirrord disk
           type: int (megabyte)
+        mirrored_disk_encrypted:
+          description: mirrored disk is encrypted
+          type: bool
+          default: False
         repository_memory_size:
           description: "memory size of hosts(only available when provider is 'vagrant')"
           type: int with unit(G,M,K)
@@ -110,6 +120,10 @@ DOCUMENTATION = r'''
           description: disk size of hosts
           type: int with unit(G,M,K)
           default: 40G
+        repository_disk_encrypted:
+          description: disk of repository server is encrypted
+          type: bool
+          default: False
         kickstart_config:
           description: configuration for kickstart file, availble on kickstart provider
           type: dict
@@ -307,6 +321,8 @@ class Stage:
         self.inventory.set_variable(host_name, 'hive_internal_cidr', self.stage['internal_cidr'])
       if 'internal_cidr_v6' in self.stage:
         self.inventory.set_variable(host_name, 'hive_internal_cidr_v6', self.stage['internal_cidr_v6'])
+      if 'kms_key_id' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_kms_key_id', self.stage['kms_key_id'])
       if idx == number_of_hosts - 1:
         if not separate_repository:
           self.inventory.add_host(host_name, group='hives')
@@ -316,10 +332,16 @@ class Stage:
             self.inventory.set_variable(host_name, 'hive_cpus', self.stage['cpus'])
           if 'disk_size' in self.stage:
             self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['disk_size'])
+          if 'disk_encrypted' in self.stage:
+            self.inventory.set_variable(host_name, 'hive_disk_encrypted', self.stage['disk_encrypted'])
           if 'instance_type' in self.stage:
             self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['instance_type'])
           if 'mirrored_disk_size' in self.stage:
             self.inventory.set_variable(host_name, 'hive_mirrored_disk_size', self.stage['mirrored_disk_size'])
+          if 'mirrored_disk_encrypted' in self.stage:
+            if 'kms_key_id' not in self.stage:
+              raise AnsibleParserError('mirrored_disk_encrypted require kms_key_id')
+            self.inventory.set_variable(host_name, 'hive_mirrored_disk_encrypted', self.stage['mirrored_disk_encrypted'])
         self.inventory.add_host(host_name, group='repository')
         if 'repository_memory_size' in self.stage:
           self.inventory.set_variable(host_name, 'hive_memory_size', self.stage['repository_memory_size'])
@@ -327,6 +349,10 @@ class Stage:
           self.inventory.set_variable(host_name, 'hive_cpus', self.stage['repository_cpus'])
         if 'repository_disk_size' in self.stage:
           self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['repository_disk_size'])
+        if 'repository_disk_encrypted' in self.stage:
+          if 'kms_key_id' not in self.stage:
+            raise AnsibleParserError('repository_disk_encrypted require kms_key_id')
+          self.inventory.set_variable(host_name, 'hive_disk_encrypted', self.stage['repository_disk_encrypted'])
         if 'repository_instance_type' in self.stage:
           self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['repository_instance_type'])
       else:
@@ -337,10 +363,16 @@ class Stage:
           self.inventory.set_variable(host_name, 'hive_cpus', self.stage['cpus'])
         if 'disk_size' in self.stage:
           self.inventory.set_variable(host_name, 'hive_disk_size', self.stage['disk_size'])
+        if 'disk_encrypted' in self.stage:
+          if 'kms_key_id' not in self.stage:
+            raise AnsibleParserError('disk_encrypted require kms_key_id')
+          self.inventory.set_variable(host_name, 'hive_disk_encrypted', self.stage['disk_encrypted'])
         if 'instance_type' in self.stage:
           self.inventory.set_variable(host_name, 'hive_instance_type', self.stage['instance_type'])
         if 'mirrored_disk_size' in self.stage:
           self.inventory.set_variable(host_name, 'hive_mirrored_disk_size', self.stage['mirrored_disk_size'])
+        if 'mirrored_disk_encrypted' in self.stage:
+          self.inventory.set_variable(host_name, 'hive_mirrored_disk_encrypted', self.stage['mirrored_disk_encrypted'])
 
       if 'image_name' in self.stage:
         self.inventory.set_variable(host_name, 'hive_vm_image_name', self.stage['image_name'])
