@@ -18,8 +18,6 @@
       tags: ["pip-venv"]
     - role: addon
       tags: ["addon"]
-    - role: ddclient
-      tags: ["ddclient"]
     - role: internal-network
       tags: ["internal-network"]
       when: hive_internal_net_if is defined
