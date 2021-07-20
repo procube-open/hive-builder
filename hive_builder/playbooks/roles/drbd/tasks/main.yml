@@ -17,7 +17,7 @@
          else '9.0.25/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.219', 'lt')
          else '9.0.27/drbd9-rpm-amzn2'  if uname_result.stdout is version('4.14.225', 'lt')
          else '9.0.28/drbd9-rpm-amzn2_225_169.362'
-        ) if hive_provider == 'aws'
+        ) if (hive_provider == 'aws' or (hive_provider == 'prepared' and ansible_distribution == 'Amazon'))
         else '9.0.20/drbd9-rpm' if uname_result.stdout is version('3.10.0-1127', 'lt')
         else '9.0.24/drbd9-rpm' if uname_result.stdout is version('4.18.0', 'lt')
         else '9.0.25/drbd9-rpm-foros8'}}.tar.gz
@@ -28,7 +28,7 @@
     remote_src: yes
     dest: /root/
 - name: gather rpm file list
-  shell: ls -1 /root/RPMS{{ '.amzn2' if hive_provider == 'aws' else '' if uname_result.stdout is version('4.18.0', 'lt') else '.foros8' }}/*/*.rpm
+  shell: ls -1 /root/RPMS{{ '.amzn2' if (hive_provider == 'aws' or (hive_provider == 'prepared' and ansible_distribution == 'Amazon')) else '' if uname_result.stdout is version('4.18.0', 'lt') else '.foros8' }}/*/*.rpm
   check_mode: False
   changed_when: False
   register: hive_safe_rpms
