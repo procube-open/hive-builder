@@ -93,6 +93,10 @@ DOCUMENTATION = r'''
           description: "the source image of the hive host(availabe when provider is a IaaS)"
         region:
           description: "the region where hive hosts are located (availabe when provider is a IaaS)"
+        prepared_resource_group:
+          description: "do not create/destory resource group (available when provider is azure)"
+        not_support_az:
+          description: "do not distributes vm to Availability Zone (available when provider is azure)"
         disk_size:
           description: disk size of hive hosts
           type: int with unit(G,M,K)
@@ -234,6 +238,10 @@ class Stage:
       if 'region' in self.stage:
         raise AnsibleParserError('region cannot be specified when provider is vagrant')
     else:
+      if 'prepared_resource_group' in self.stage and self.provider != 'azure':
+        raise AnsibleParserError('prepared_resource_group is only available when provider is "azure"')
+      if 'not_support_az' in self.stage and self.provider != 'azure':
+        raise AnsibleParserError('not_support_az is only available when provider is "azure"')
       if self.provider not in ['kickstart', 'prepared'] and 'memory_size' in self.stage:
         raise AnsibleParserError('memory_size cannot be specified when provider is IaaS')
       if 'repository_memory_size' in self.stage:
@@ -255,6 +263,10 @@ class Stage:
     self.inventory.add_host(mother_name, group='mother')
     self.inventory.add_host(mother_name, group=self.stage_name)
     self.inventory.set_variable(mother_name, 'hive_cidr', self.stage['cidr'])
+    if 'prepared_resource_group' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_prepared_resource_group', self.stage['prepared_resource_group'])
+    if 'not_support_az' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_not_support_az', self.stage['not_support_az'])
     if 'region' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_region', self.stage['region'])
     if 'bridge' in self.stage:

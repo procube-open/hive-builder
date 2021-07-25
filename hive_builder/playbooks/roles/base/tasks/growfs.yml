@@ -1,0 +1,9 @@
+---
+- name: install growpart
+  yum:
+    name: cloud-utils-growpart
+    state: present
+- name: grow partition
+  shell: "growpart /dev/sda 2 && xfs_growfs / >& /root/growpart.log"
+  args:
+    creates: /root/growpart.log

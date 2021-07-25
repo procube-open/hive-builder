@@ -5,7 +5,7 @@ hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
 hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
 # sku for latest version is 8.0 2020-07-24 08:28:00
 # in https://azuremarketplace.microsoft.com/en-us/marketplace/apps/openlogic.centos-lvm?tab=PlansAndPrice
-hive_safe_image:
+hive_safe_default_azure_image:
   offer: CentOS
   publisher: OpenLogic
   sku: '8.0'

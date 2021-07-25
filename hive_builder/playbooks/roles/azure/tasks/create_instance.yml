@@ -1,6 +1,8 @@
 ---
 - set_fact:
     hive_safe_name: "{{ azure_host.split('.')[0] }}"
+    hive_safe_zones:
+    - "{{ hostvars[azure_host].hive_available_zone }}"
 
 - name: create global ip
   azure_rm_publicipaddress:
@@ -62,9 +64,9 @@
     #     Error creating or updating virtual machine hive0 - Azure Error: BadRequest
     #     Message: Virtual Machines deployed to an Availability Zone must use managed disks.
     managed_disk_type: "{{ hive_safe_managed_disk_type }}"
-    image: "{{ hive_safe_image }}"
-    zones:
-    - "{{ hostvars[azure_host].hive_available_zone }}"
+    os_disk_size_gb: "{{ hostvars[azure_host].hive_disk_size | default (omit) }}"
+    image: "{{ hive_vm_image_name | default(hive_safe_default_azure_image) }}"
+    zones: "{{ omit if (hive_not_support_az | default(False)) else hive_safe_zones }}"
   register: vm
 - debug:
     var: vm
@@ -76,5 +78,5 @@
     disk_size_gb: "{{ hostvars[azure_host].hive_mirrored_disk_size }}"
     storage_account_type: "{{ hive_safe_managed_disk_type }}"
     managed_by: "{{ hive_safe_name }}"
-    zone: "{{ hostvars[azure_host].hive_available_zone }}"
+    zone: "{{ omit if (hive_not_support_az | default(False)) else hostvars[azure_host].hive_available_zone }}"
   when: hostvars[azure_host].hive_mirrored_disk_size is defined and not (hostvars[azure_host].hive_no_mirrored_device | default(False))

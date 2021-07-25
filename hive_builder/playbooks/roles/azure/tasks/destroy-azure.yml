@@ -30,7 +30,7 @@
   loop: "{{ hive_subnets }}"
   register: subnets_facts
 
-- name: construct VPC
+- name: Delete VPC
   azure_rm_virtualnetwork:
     resource_group: "{{ hive_safe_azure_resourcegroup }}"
     name: "{{ hive_safe_vpc_name }}"
@@ -43,4 +43,5 @@
     name: "{{ hive_safe_azure_resourcegroup }}"
     location: "{{ hive_region }}"
     state: absent
-    force_delete_nonempty: yes 
+    force_delete_nonempty: yes
+  when: not (hive_prepared_resource_group | default(False))

@@ -21,6 +21,13 @@
     insertbefore: BOF
     line: "/var/log/services/*.log"
 
+- name: "set logrotate for services log files"
+  become: True
+  lineinfile:
+    dest: /etc/logrotate.d/syslog
+    regexp: '^    create 064[04] root zabbix'
+    line: "    create 0644 root zabbix"
+
 - name: create ignore directory
   become: True
   file:

@@ -75,7 +75,6 @@ hive-builder のインストール
 
   pip install hive_builder
 
-
 パラメータを設定
 =========================
 hive_email 変数にメールアドレス、domain 変数にドメイン名を設定して、 inventory/group_vars/all.yml に保存してください。
@@ -93,6 +92,14 @@ hive_email 変数にメールアドレス、domain 変数にドメイン名を�
 ::
 
   hive set stage staging
+
+collection と role のインストール
+===============================
+仮想環境が activate されている状態で以下のコマンドで collection と role をインストールしてください。
+
+hive install-collection
+ansible-galaxy role install -p .hive/staging/roles powerdns.pdns
+
 
 AWS の設定
 =========================

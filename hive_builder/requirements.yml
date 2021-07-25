@@ -1,6 +1,4 @@
 ---
-roles:
- - powerdns.pdns
 collections:
  - ansible.posix
  - ansible.netcommon
