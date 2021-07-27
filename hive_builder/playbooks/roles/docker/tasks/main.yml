@@ -6,7 +6,7 @@
     owner: root
     group: root
     mode: 0644
-  when: hive_provider != 'aws'
+  when: ansible_distribution != 'Amazon'
 
 - name: install docker package
   yum:
@@ -39,14 +39,14 @@
       # - libseccomp-2.4.*
       - docker-ce
     state: present
-  when: hive_provider != 'aws'
+  when: ansible_distribution != 'Amazon'
   # AWS linux provides docker ce in amazon extra repos
 - name: install docker package
   yum:
     name: docker
     state: present
     enablerepo: amzn2extra-docker
-  when: hive_provider == 'aws'
+  when: ansible_distribution == 'Amazon'
 - name: add docker group
   group:
     name: docker

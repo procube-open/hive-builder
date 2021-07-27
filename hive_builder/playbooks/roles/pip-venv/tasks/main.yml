@@ -12,7 +12,7 @@
       - python{{ hive_safe_python_revision }}-devel
       - python{{ hive_safe_python_revision }}-pip
       - python{{ hive_safe_python_revision }}-setuptools
-      - "{{ 'python-virtualenv' if hive_provider == 'aws' else 'virtualenv' }}"
+      - "{{ 'python-virtualenv' if ansible_distribution == 'Amazon' else 'virtualenv' }}"
 - name: upgrade pip
   become: False
   pip:
