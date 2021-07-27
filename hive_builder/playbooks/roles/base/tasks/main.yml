@@ -15,12 +15,11 @@
   changed_when: False
 - name: update kernel for drbd
   yum:
-    name: "kernel-{{ '4.14.225-169.362.amzn2' if (hive_provider == 'aws' or (hive_provider == 'prepared' and ansible_distribution == 'Amazon')) else '4.18.0-193.el8' }}"
+    name: "kernel-{{ '4.14.225-169.362.amzn2' if ansible_distribution == 'Amazon' else '4.18.0-193.el8' }}"
     disable_excludes: main
     state: latest
-  when: (hive_provider == 'prepared' and ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.225-169', 'lt')) or 
-        (hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')) or
-        (hive_provider == 'aws' and uname_result.stdout is version('4.14.225-169', 'lt'))
+  when: (ansible_distribution != 'Amazon' and uname_result.stdout is version('4.18.0-193', 'lt')) or
+        (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.225-169', 'lt'))
   notify: require reboot
 - name: install packages
   yum:
@@ -36,7 +35,7 @@
       - lsof
       - chrony
       - conntrack-tools
-      - "{{ 'libselinux-python' if (hive_provider == 'aws' or (hive_provider == 'prepared' and ansible_distribution == 'Amazon')) else 'python3-libselinux' }}"
+      - "{{ 'libselinux-python' if ansible_distribution == 'Amazon' else 'python3-libselinux' }}"
 - name: install selinux packages
   yum:
     state: present
