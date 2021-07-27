@@ -13,6 +13,7 @@ hive-builder ドキュメントページへようこそ
     develop.rst
     command.rst
     inventory.rst
+    aws.rst
     phases.rst
     swarmextender.rst
     migration.rst

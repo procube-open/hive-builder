@@ -2,17 +2,34 @@
 - set_fact:
     hive_safe_name: "{{ aws_host.split('.')[0] }}"
 - set_fact:
-    hive_safe_disks: []
-- set_fact:
     # the device name must match for default device name avoid error:
     # botocore.exceptions.ClientError: An error occurred (MissingParameter)
     # when calling the RunInstances operation: The request must contain the parameter size or snapshotId
     # Amazon Linux: /dev/xvda
     # Centos: /dev/sda1
-    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/xvda', 'ebs': {'volume_size': hostvars[aws_host].hive_disk_size | default(omit), 'delete_on_termination': True} }]}}"
-- set_fact:
-    hive_safe_disks: "{{ hive_safe_disks + [{'device_name': '/dev/sdb', 'ebs': {'volume_size': hostvars[aws_host].hive_mirrored_disk_size, 'delete_on_termination': True} }]}}"
-  when: hostvars[aws_host].hive_mirrored_disk_size is defined and not (hostvars[aws_host].hive_no_mirrored_device | default(False))
+    hive_safe_disks: >-
+      {%- set disks = [{
+        'device_name': '/dev/xvda',
+        'ebs': {
+          'volume_size': hostvars[aws_host].hive_disk_size | default(omit),
+          'delete_on_termination': True,
+          'encrypted': hostvars[aws_host].hive_disk_encrypted | default(False),
+          'kms_key_id': (hostvars[aws_host].hive_kms_key_id | default(omit)) if (hostvars[aws_host].hive_disk_encrypted | default(False)) else omit
+         }
+      }] -%}
+      {%- if hostvars[aws_host].hive_mirrored_disk_size is defined and not (hostvars[aws_host].hive_no_mirrored_device | default(False)) -%}
+        {%- set _ = disks.append({
+          'device_name': '/dev/sdb',
+          'ebs': {
+            'volume_size': hostvars[aws_host].hive_mirrored_disk_size,
+            'delete_on_termination': True,
+            'encrypted': hostvars[aws_host].hive_mirrored_disk_encrypted | default(False),
+            'kms_key_id': (hostvars[aws_host].hive_kms_key_id | default(omit)) if (hostvars[aws_host].hive_mirrored_disk_encrypted | default(False)) else omit
+          }
+        }) -%}
+      {%- endif -%}
+      {{ disks }}
+- debug: var=hive_safe_disks
 
 - name: build ec2 instance
   ec2_instance:
