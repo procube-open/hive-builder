@@ -2,6 +2,8 @@
 # common utiility packages.
 - import_tasks: fixed-yum-url.yml
   when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
+- import_tasks: growfs.yml
+  when: hive_provider == 'azure' and hive_disk_size is defined
 - name: make yum do not update kernel* package
   lineinfile:
     path: /etc/yum.conf
@@ -15,10 +17,10 @@
   changed_when: False
 - name: update kernel for drbd
   yum:
-    name: "kernel-{{ '4.14.225-169.362.amzn2' if ansible_distribution == 'Amazon' else '4.18.0-193.el8' }}"
+    name: "kernel-{{ '4.14.225-169.362.amzn2' if ansible_distribution == 'Amazon' else '4.18.0-305.el8' }}"
     disable_excludes: main
     state: latest
-  when: (ansible_distribution != 'Amazon' and uname_result.stdout is version('4.18.0-193', 'lt')) or
+  when: (ansible_distribution != 'Amazon' and uname_result.stdout is version('4.18.0-305', 'lt')) or
         (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.225-169', 'lt'))
   notify: require reboot
 - name: install packages

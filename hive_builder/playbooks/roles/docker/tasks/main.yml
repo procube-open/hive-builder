@@ -36,7 +36,10 @@
       # - 'libseccomp-2.4.* All matches were filtered out by exclude filtering for argument: libseccomp-2.4.*'
       # msg: Failed to install some of the specified packages
       # so delete following line
-      # - libseccomp-2.4.*
+      # 2021-07-23
+      # docker-ce impcompatible for libseccomp-2.3.3-3
+      # error on docker-compose: Cannot start service zabbix-db: cannot start a stopped process: unknown
+      - libseccomp-2.5.*
       - docker-ce
     state: present
   when: ansible_distribution != 'Amazon'

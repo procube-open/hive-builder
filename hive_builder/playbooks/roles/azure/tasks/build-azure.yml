@@ -3,6 +3,7 @@
   azure_rm_resourcegroup:
     name: "{{ hive_safe_azure_resourcegroup }}"
     location: "{{ hive_region }}"
+  when: not (hive_prepared_resource_group | default(False))
 
 # Unmanaged disk needs a storage account, but Unmanaged disk does not support Availability zones
 # - name: Create a strorage account

@@ -32,6 +32,8 @@ stages:
     cidr: 192.168.0.0/24
     instance_type: Standard_D2s_v3
     region: japaneast
+    disk_size: 100
+    repository_disk_size: 150
     mirrored_disk_size: 20
     repository_instance_type: Standard_D2s_v3
   # production:

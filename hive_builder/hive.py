@@ -545,16 +545,22 @@ class execSsh(ansbileCommandBase):
       ssh_proc.send_signal(signal.SIGTERM)
       ssh_proc.wait()
 
+
 class installCollection(ansbileCommandBase):
   def __init__(self):
     super().__init__('install-collection', 'install ansible collections')
 
   def do(self, context):
     self.build_context(context)
-    args_role = ['ansible-galaxy', 'role', 'install', '-r', context.vars['install_dir'] + '/requirements.yml', '-p', context.vars['context_dir'] + '/roles']
-    args_collection = ['ansible-galaxy', 'collection', 'install', '-r', context.vars['install_dir'] + '/requirements.yml', '-p', context.vars['context_dir'] + '/collections']
-    subprocess.run(args_role)
+    # args_role = ['ansible-galaxy', 'role', 'install', '-r', context.vars['install_dir'] + '/requirements.yml', '-p', context.vars['context_dir'] + '/roles']
+    args_collection = ['ansible-galaxy', 'collection', 'install', '-r', context.vars['install_dir'] + '/requirements.yml',
+                       '-p', context.vars['context_dir'] + '/collections']
+    args_requirements_azure = ['pip', 'install', '-r', context.vars['context_dir'] +
+                               '/collections/ansible_collections/azure/azcollection/requirements-azure.txt']
+    # subprocess.run(args_role)
     subprocess.run(args_collection)
+    subprocess.run(args_requirements_azure)
+
 
 SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection()]
 
