@@ -4,6 +4,13 @@
   become: True
   tags: setup-hosts
 
+  pre_tasks:
+    # avoid error "The task includes an option with an undefined variable.
+    # The error was: 'ansible_distribution' is undefined" when use --tags option
+    - name: Gathering Facts when use tags option
+      setup:
+      tags: [ 'always' ]
+      when: ansible_facts == {}
   roles:
     - role: base
       tags: ["base"]
