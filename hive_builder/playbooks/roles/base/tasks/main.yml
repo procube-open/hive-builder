@@ -17,7 +17,7 @@
   changed_when: False
 - name: update kernel for drbd
   yum:
-    name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else '4.18.0-305.el8' }}"
+    name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else '4.18.0-305*.el8' }}"
     disable_excludes: main
     state: latest
   when: (ansible_distribution != 'Amazon' and uname_result.stdout is version('4.18.0-305', 'lt')) or

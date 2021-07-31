@@ -18,7 +18,7 @@ services:
       default:
         ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}"
   zabbix-web:
-    image: {{ hive_zabbix_web_tag | default('zabbix/zabbix-web-nginx-mysql:alpine-5.2-latest') }}
+    image: {{ hive_zabbix_web_tag | default('procube/zabbix-web-nginx-mysql:latest ') }}
     container_name: zabbix-web
     environment:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
