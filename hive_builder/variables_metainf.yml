@@ -82,7 +82,7 @@ temp_dir:
   type: directory
   default: "/var/tmp/hive"
   name_in_ansible: hive_temp_dir
-  persistent_scope: none
+  persistent_scope: stage
   command_line_option: "-W"
 local_python_path:
   description: local python command path
