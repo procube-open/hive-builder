@@ -1,0 +1,6 @@
+---
+- name: "setup ddclient"
+  import_tasks: ddclient.yml
+  when:
+    - inventory_hostname in groups['hives']
+    - ddclient_cred is defined 
