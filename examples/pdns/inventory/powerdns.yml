@@ -149,3 +149,4 @@ services:
       cleanup_days_before: 10
     available_on:
     - production
+    - staging
