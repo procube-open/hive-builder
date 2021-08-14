@@ -5,8 +5,6 @@
   register: vgdisplay_result
   check_mode: False
   changed_when: False
-
-- debug: var=vgdisplay_result
 - name: check devices
   parted:
     device: "{{ item }}"

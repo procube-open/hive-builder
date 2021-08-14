@@ -2,5 +2,6 @@
   azure_rm_virtualmachine:
     resource_group: "{{ hive_safe_azure_resourcegroup }}"
     name: "{{ item.split('.')[0] }}"
+    zones: "{{ omit if (hive_not_support_az | default(False)) else [hostvars[item].hive_available_zone] }}"
     started: False
   loop: "{{ hive_safe_hosts }}"

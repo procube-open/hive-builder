@@ -25,8 +25,8 @@
   become: True
   lineinfile:
     dest: /etc/logrotate.d/syslog
-    regexp: '^    create 064[04] root zabbix'
-    line: "    create 0644 root zabbix"
+    regexp: '^    create 0640 root zabbix'
+    line: "    create 0640 root zabbix"
 
 - name: create ignore directory
   become: True

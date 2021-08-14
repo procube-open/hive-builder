@@ -4,21 +4,23 @@
     dest: /etc/sysconfig/iptables
     insertafter: "# END HIVE-BUILDER MANAGED BLOCK setup HIVE-SERVICE chain"
     block: |
-      {%- for spec in hive_safe_iptables_sources | default(groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip')) | product(hive_safe_iptables_dports) | list -%}
-      -A HIVE-SERVICE -p {{ hive_safe_iptables_protocol }} -s {{ spec[0] }} -m conntrack --ctstate NEW -m {{ hive_safe_iptables_protocol }} --dport {{ spec[1] }} -j ACCEPT
+      {%- for source in hive_safe_iptables_sources | default(groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip')) | reverse | list -%}
+      -A HIVE-SERVICE -p {{ hive_safe_iptables_protocol }} -s {{ source }} -m multiport --dports {{ hive_safe_iptables_dports | join(',') }} -m conntrack --ctstate NEW -m comment --comment "allow {{ hive_safe_iptables_name }}" -j ACCEPT
       {% endfor %}
     marker: "# {mark} HIVE-BUILDER MANAGED BLOCK for {{ hive_safe_iptables_name }}"
   when: hive_internal_net_addr is not defined
-- name: insert allow port rule into iptables (no internal network)
+- name: insert the rule that allow ports into iptables (no internal network)
   become: True
   iptables:
     chain: HIVE-SERVICE
     protocol: "{{ hive_safe_iptables_protocol }}"
-    source: "{{ item[0] }}"
-    destination_port:  "{{ item[1] }}"
+    source: "{{ item }}"
+    destination_ports: "{{ hive_safe_iptables_dports | join(',') }}"
     ctstate: NEW
     jump: ACCEPT
-  loop: "{{  hive_safe_iptables_sources | default(groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip')) | product(hive_safe_iptables_dports) | list }}"
+    comment: "allow {{ hive_safe_iptables_name }}"
+    action: insert
+  loop: "{{  hive_safe_iptables_sources | default(groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip')) | list }}"
   when: hive_internal_net_addr is not defined
 - name: insert allow port rule into iptables config file with internal network address
   become: True
