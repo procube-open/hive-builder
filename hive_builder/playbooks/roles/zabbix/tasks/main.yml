@@ -110,7 +110,7 @@
           port: 10050
       state: present
     loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
-  - name: "set permission for /var/logmessages"
+  - name: "set permission for /var/log/messages"
     become: True
     file:
       path: /var/log/messages
@@ -119,7 +119,8 @@
       group: zabbix
   - name: "set logrotate to permission for zabbix"
     become: True
-    lineinfile:
-      dest: /etc/logrotate.d/syslog
-      insertafter: "    endscript"
-      line: "    create 0640 root zabbix"
+    user:
+      name: "{{ hive_safe_admin }}"
+      append: True
+      groups: zabbix
+    when: hive_safe_admin is defined

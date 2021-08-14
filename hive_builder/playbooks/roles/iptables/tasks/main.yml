@@ -11,6 +11,7 @@
     insertafter: -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
     block: |
       -N HIVE-SERVICE
+      -A INPUT -i docker_gwbridge -m state --state NEW -j ACCEPT
       -A INPUT -j HIVE-SERVICE
     marker: "# {mark} HIVE-BUILDER MANAGED BLOCK setup HIVE-SERVICE chain"
 - name: enable services
