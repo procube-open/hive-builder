@@ -63,6 +63,8 @@ require {
 	type zabbix_var_lib_t;
 	type vmtools_unit_file_t;
 	type nfsd_unit_file_t;
+	type mdadm_unit_file_t;
+	type lsmd_unit_file_t;
 	class system status;
 	class service status;
 	class fifo_file getattr;
@@ -165,3 +167,5 @@ allow zabbix_agent_t zabbix_var_lib_t:file { ioctl open read };
 allow zabbix_agent_t nfsd_unit_file_t:service status;
 allow zabbix_agent_t vmtools_unit_file_t:service status;
 allow zabbix_agent_t init_var_lib_t:file { ioctl open read write };
+allow zabbix_agent_t mdadm_unit_file_t:service status;
+allow zabbix_agent_t lsmd_unit_file_t:service status;

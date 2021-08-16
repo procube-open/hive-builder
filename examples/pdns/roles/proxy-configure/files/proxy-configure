@@ -16,6 +16,7 @@ TEMPLATE = Template("""\
 server {
   server_name {{ fqdn }};
   listen 80;
+  resolver 127.0.0.11 valid=10s;
 {% if cert_path  is defined %}
   listen 443 ssl;
   # Redirect setting for SSL auth
@@ -37,7 +38,8 @@ server {
   ssl_verify_client off;
 {% endif %}
   location / {
-    proxy_pass http://{{ upstream }}:{{ port }};
+    set $url "http://{{ upstream }}:{{ port }}";
+    proxy_pass $url;
     proxy_set_header Host $host;
     root   /usr/share/nginx/html;
     index  index.html index.htm;
