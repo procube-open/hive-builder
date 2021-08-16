@@ -3,4 +3,4 @@
   import_tasks: ddclient.yml
   when:
     - inventory_hostname in groups['hives']
-    - ddclient_cred is defined 
+    - ddclient_cred[ansible_host] is defined 
