@@ -149,7 +149,7 @@ DRBDボリュームのディスク残量
 
 ::
 
-    hive ssh -l ホスト名
+    hive ssh -t ホスト名
     systemctl list-units --type=service --no-pager --no-legend --state=failed --all
     logout
 
@@ -157,7 +157,7 @@ DRBDボリュームのディスク残量
 
 ::
 
-    hive ssh -l ホスト名
+    hive ssh -t ホスト名
     sudo systemctl disable --now dnf-makecache.timer getty@tty1.service
     logout
 
@@ -176,7 +176,7 @@ DRBDディスクの同期に失敗し、zabbix から "Problem: DRBD resource �
 
 ::
 
-    hive ssh -l ホスト名
+    hive ssh -t ホスト名
     sudo drbdadm status ボリューム名
     logout
 
@@ -200,7 +200,7 @@ DRBDディスクの同期に失敗し、zabbix から "Problem: DRBD resource �
 
 ::
 
-    hive ssh -l １号機
+    hive ssh -t １号機
     sudo drbdadm primary --force ボリューム名
     logout
 
@@ -208,7 +208,7 @@ DRBDディスクの同期に失敗し、zabbix から "Problem: DRBD resource �
 
 ::
 
-    hive ssh -l ホスト名
+    hive ssh -t ホスト名
     sudo drbdadm disconnect ボリューム名
     sudo drbdadm connect ボリューム名
     logout
@@ -217,7 +217,7 @@ DRBDディスクの同期に失敗し、zabbix から "Problem: DRBD resource �
 
 ::
 
-    hive ssh -l １号機
+    hive ssh -t １号機
     sudo drbdadm secondary ボリューム名
     logout
 
@@ -251,7 +251,7 @@ DRBD のステータスで片側から見るとエラーにはなっていない
 
 ::
 
-    hive ssh -l ホスト名
+    hive ssh -t ホスト名
     sudo drbdadm disconnect ボリューム名
     sudo drbdadm connect ボリューム名
     logout
@@ -278,7 +278,7 @@ DRBDのファイルシステムの破損
 
 ::
 
-    hive ssh -l １号機
+    hive ssh -t １号機
     docker service scale サービス名=0
     sudo xfs_repair $(docker volume inspect ボリューム名 --format '{{ .Options.device }}')
     docker service scale サービス名=1

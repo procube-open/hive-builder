@@ -41,18 +41,20 @@
       - lsof
       - chrony
       - conntrack-tools
+      - bash-completion
       - "{{ 'libselinux-python' if ansible_distribution == 'Amazon' else 'python3-libselinux' }}"
 - name: install selinux packages
   yum:
     state: present
     name:
-      - setroubleshoot
+      # - setroubleshoot
       - selinux-policy-devel
   when: hive_safe_selinux != 'disabled'
 - name: set selinux mode
   selinux:
     policy: targeted
     state: "{{ hive_safe_selinux }}"
+  notify: require reboot
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:

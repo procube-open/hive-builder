@@ -84,17 +84,20 @@ services:
     - target_port: 80
       published_port: 80
       protocol: tcp
-      mode: host
+      # mode: host
     - target_port: 443
       published_port: 443
       protocol: tcp
-      mode: host
+      # mode: host
     volumes:
     - source: proxy_config
       target: /etc/nginx/conf.d
       type: volume
-    mode: global
-    endpoint_mode: dnsrr
+      drbd:
+        fstype: xfs
+        size: 80M
+    # mode: global
+    # endpoint_mode: dnsrr
     placement:
       constraints:
       - node.labels.proxy_config == true
@@ -138,7 +141,6 @@ services:
       type: volume
       drbd:
         fstype: xfs
-        device_id: 3
         size: 52M
         diskless: ['s-hive1.pdns']
     - source: /var/run/docker.sock
