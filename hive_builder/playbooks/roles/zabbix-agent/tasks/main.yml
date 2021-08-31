@@ -82,7 +82,7 @@
       dest: "/var/lib/zabbix/.docker/cert.pem"
 - name: copy selinux module for zabbix-agent
   copy:
-    src: hive.te
+    src: "{{ 'hive.te.amzn' if ansible_distribution == 'Amazon' else 'hive.te' }}"
     dest: /root/hive.te
   register: result_hive_zabbix_agent_policy
   when: hive_safe_selinux != 'disabled'
@@ -98,12 +98,7 @@
     name: "{{ item }}"
     state: yes
     persistent: yes
-  loop:
-  - authlogin_nsswitch_use_ldap
-  - domain_can_mmap_files
-  - daemons_dump_core
-  - nis_enabled
-  - zabbix_run_sudo
+  loop: "{{ hive_safe_selinux_boolean_amzn if ansible_distribution == 'Amazon' else hive_safe_selinux_boolean }}"
   when: hive_safe_selinux != 'disabled'
 - name: modify zabbix_agentd config
   template: >

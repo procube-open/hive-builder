@@ -20,7 +20,7 @@
     name: ddclient
     # The repo is now powertools instead of PowerTools
     # https://bugs.centos.org/view.php?id=17920
-    enablerepo: "{{ 'PowerTools' if ansible_distribution_version is version('8.2', 'lt') else 'powertools' if ansible_distribution != 'Amazon' else omit }}"
+    enablerepo: "{{ omit if ansible_distribution == 'Amazon' else 'PowerTools' if ansible_distribution_version is version('8.2', 'lt') else 'powertools' }}"
 
 - name: replace ddclient.conf
   template:

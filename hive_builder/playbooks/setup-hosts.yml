@@ -43,16 +43,30 @@
       when: hive_mirrored_disk_size is defined
     - role: docker-client
       tags: ["docker-client"]
-    - role: follow-swarm-service
-      tags: ["follow-swarm-service"]
-      when: "'hives' in group_names"
     - role: docker-client-proxy
       tags: ["docker-client-proxy"]
       when: ansible_env.HTTP_PROXY is defined
-    - role: zabbix-agent
-      tags: ["zabbix-agent"]
     - role: reboot
       tags: ["reboot"]
+
+- name: setup hive servers
+  hosts: servers
+  become: True
+  tags: setup-hosts
+
+  pre_tasks:
+    # avoid error "The task includes an option with an undefined variable.
+    # The error was: 'ansible_distribution' is undefined" when use --tags option
+    - name: Gathering Facts when use tags option
+      setup:
+      tags: [ 'always' ]
+      when: ansible_facts == {}
+  roles:
+    - role: follow-swarm-service
+      tags: ["follow-swarm-service"]
+      when: "'hives' in group_names"
+    - role: zabbix-agent
+      tags: ["zabbix-agent"]
 
 - name: setup repository and zabbix
   hosts: repository
