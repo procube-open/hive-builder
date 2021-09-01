@@ -3,6 +3,11 @@ resource {{ hive_safe_volume.name }} {
     quorum majority;
     on-no-quorum io-error;
   }
+  disk {
+    disk-flushes;
+    md-flushes;
+    disk-timeout 100;
+  }
 {% for host in groups['hives'] | intersect(groups[hive_stage]) %}
   on {{ host }} {
     address   {{ hostvars[host].hive_private_ip }}:{{ 7788 + hive_safe_volume.drbd.device_id }};
@@ -19,7 +24,8 @@ resource {{ hive_safe_volume.name }} {
   connection-mesh {
     hosts {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }};
     net {
-        use-rle no;
+        max-buffers    16000;
+        max-epoch-size 16000;
     }
   }
 }
