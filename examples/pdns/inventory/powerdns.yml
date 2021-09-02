@@ -8,7 +8,6 @@ services:
       MYSQL_HOST: pdnsdb
       MYSQL_DNSSEC: "yes"
       MYSQL_CHECK_INTERVAL: "10"
-      PDNSCONF_DEFAULT_SOA_NAME: "{{ (groups['first_hive'] | intersect(groups[hive_stage]) | first).split('.')[0] + '.' + domain }}"
     command:
     - "--api=yes"
     - "--api-key={{db_password}}"
