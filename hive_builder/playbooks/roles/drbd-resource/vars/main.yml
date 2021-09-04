@@ -4,4 +4,4 @@ hive_default_mirrored_disk_device:
   vgname: drbdvg
   poolname: drbdpool
 hive_safe_mirrored_disk_devices: "{{ hive_mirrored_disk_devices | default([hive_default_mirrored_disk_device]) }}"
-hive_safe_mirrored_disk_device: "{{ hive_safe_mirrored_disk_devices | selectattr('poolname', 'eq', hive_safe_volume.drbd.poolname | default('drbdpool')) | first }}"
+hive_safe_mirrored_disk_device: "{{ hive_safe_mirrored_disk_devices | selectattr('vgname', 'eq', hive_safe_volume.drbd.vgname | default('drbdvg')) | first }}"

@@ -31,7 +31,7 @@
   lvol:
     vg: "{{ hive_safe_mirrored_disk_device.vgname }}"
     lv: "{{hive_safe_volume.name}}"
-    thinpool: "{{ hive_safe_mirrored_disk_device.poolname }}"
+    thinpool: "{{ hive_safe_mirrored_disk_device.poolname | default(omit) }}"
     size: "{{ hive_safe_volume.drbd.size }}"
     state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     force: True
@@ -60,6 +60,10 @@
   shell: "drbdadm adjust {{ hive_safe_volume.name }}"
   when: (not hive_safe_destroy) and ((hive_safe_adjust.stdout_lines | length) > 0)
 
+- name: wait connect
+  shell: "drbdadm wait-connect  {{ hive_safe_volume.name }}"
+  when: (not hive_safe_destroy) and (hive_safe_adjust.stdout_lines | length) > 0
+
 - name: gather if formatted or not
   shell: 'blkid | grep ''^/dev/drbd{{ hive_safe_volume.drbd.device_id }}:.* TYPE="{{ hive_safe_volume.drbd.fstype }}"'''
   changed_when: False
@@ -72,6 +76,10 @@
   shell: "drbdadm primary --force {{ hive_safe_volume.name }}"
   when: (not hive_safe_destroy) and hive_safe_drbd_service_not_exists and hive_safe_first_disk and hive_safe_formatted.rc != 0
 
+- name: wait sync before format
+  shell: "drbdadm wait-sync {{ hive_safe_volume.name }}"
+  when: (not hive_safe_destroy) and (hive_safe_adjust.stdout_lines | length) > 0
+
 - name: format drbd disk
   filesystem:
     dev: "/dev/drbd{{ hive_safe_volume.drbd.device_id }}"
@@ -79,7 +87,7 @@
     fstype: "{{ hive_safe_volume.drbd.fstype }}"
   when: (not hive_safe_destroy) and hive_safe_drbd_service_not_exists and hive_safe_first_disk and hive_safe_formatted.rc != 0
 
-- name: wait sync
+- name: wait sync before down
   shell: "drbdadm wait-sync {{ hive_safe_volume.name }}"
   when: (not hive_safe_destroy) and (hive_safe_adjust.stdout_lines | length) > 0
 
