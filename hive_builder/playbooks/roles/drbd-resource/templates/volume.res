@@ -6,7 +6,13 @@ resource {{ hive_safe_volume.name }} {
   disk {
     disk-flushes;
     md-flushes;
-    disk-timeout 100;
+    c-plan-ahead 1;
+    c-max-rate 0;
+    c-delay-target 1;
+    c-fill-target 1M;
+    rs-discard-granularity 1048576;
+    # following setting does not resolve stall problem
+    # disk-timeout 100;
   }
 {% for host in groups['hives'] | intersect(groups[hive_stage]) %}
   on {{ host }} {
@@ -26,6 +32,9 @@ resource {{ hive_safe_volume.name }} {
     net {
         max-buffers    16000;
         max-epoch-size 16000;
+        sndbuf-size 1048576;
+        # following setting cause stall on connect?
+        # tcp-cork no;
     }
   }
 }
