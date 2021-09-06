@@ -1,4 +1,5 @@
-GGER=${0##*/}
+#!/bin/bash
+LOGGER=${0##*/}
 
 function message () {
   echo "INFO: $LOGGER:" $*
@@ -50,7 +51,7 @@ if [ $# -ge $OPTIND ]; then
   usage_exit
 fi
 
-backupdir="/home/admin/backup"
+backupdir="{{ hive_home_dir }}/backup"
 mkdir -p "$backupdir"
 cd "$backupdir"
 
