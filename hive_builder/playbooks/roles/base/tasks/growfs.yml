@@ -3,7 +3,14 @@
   yum:
     name: cloud-utils-growpart
     state: present
+- name: get vgroot device
+  shell: "pvdisplay -c | awk -F : '/rootvg/{print $1}' | awk '{print $1}'"
+  register: vgroot
+  changed_when: False
+  check_mode: False
+  when: ansible_distribution == 'RedHat'
 - name: grow partition
-  shell: "growpart /dev/sda 2 && xfs_growfs / >& /root/growpart.log"
+  shell: "{{ 'pvresize ' + vgroot.stdout + ' && lvextend -l $(pvdisplay -c ' + vgroot.stdout + ' | cut -d : -f 10) rootvg/rootlv' if ansible_distribution == 'RedHat'
+     else 'growpart /dev/sda 2' }} && xfs_growfs / >& /root/growpart.log"
   args:
     creates: /root/growpart.log

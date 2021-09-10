@@ -57,3 +57,4 @@
   lineinfile:
     path: "{{ hive_home_dir }}/.bashrc"
     line: ". /usr/share/bash-completion/docker"
+  when: ansible_distribution == 'Amazon'
