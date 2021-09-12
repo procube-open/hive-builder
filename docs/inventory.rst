@@ -24,7 +24,7 @@ IaaS 上にサイトを構築する場合、コンテナ収容サーバは3つ�
 
 hive 定義のフォーマット
 ---------------------------
-hive 定義のフォーマットは以下の通り。
+以下の形式を持つ Yaml ファイルを inventory ディレクトリの下に置くことで hive を定義できます。
 
 ============  ==============  ============  ================================================
 パラメータ    選択肢/例       デフォルト    意味
@@ -631,6 +631,15 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
 - /dev/nvme1n1
 - /dev/sda
 
+複製同期デバイスですでにパーティションを割り当てている場合でも、その残領域に複製同期ディスクを割り当てることができます。
+その場合、事前にパーティションテーブルのタイプを parted -l コマンドなどで調べてください。パーティションテーブルのタイプが
+gpt である場合は以下の変数を inventory/group_vars/all.yml などで設定してください。パーティションテーブルのタイプがmsdos で
+ある場合は省略可能です。
+
+::
+
+    hive_partition_label: gpt
+
 また、場合によって、複製同期用デバイスを持たないホストを作成したい場合もあります。その場合、ホストの hive_no_mirrored_device 変数に True を設定することで、当該ホストの複製同期用デバイスが無いものとして扱われます。
 たとえば、inventory/host_vars/hive2.pdns.yml に以下のように指定すると hive2.pdns には複製同期用のデバイスは無いものとして扱われます。
 
@@ -648,6 +657,19 @@ hiveでは、デフォルトで複製同期用のデバイスを使用し、そ�
 
 サービス定義
 ====================
+以下の形式を持つ Yaml ファイルを inventory ディレクトリの下に置くことでサービスを定義できます。
+
+============  ==============  ============  ================================================
+パラメータ    選択肢/例       デフォルト    意味
+============  ==============  ============  ================================================
+plugin        hive_services   必須          このファイルがhive定義で有ることを示す
+services      { ... }         必須          サービス定義の辞書オブジェクト
+============  ==============  ============  ================================================
+
+services 属性にサービスごとにサービス名をキーとしてサービス定義を記述してください。
+サービス名はホスト名として認識させたい場合があるので、ハイフン以外の記号は使用しないでください。
+また、 hive- で始まるサービス名は予約されていますので、使用しないでください。
+
 サービス定義には、サービスをどのように構築するかが書かれます。以下の属性を記述できます。
 
 ..  list-table::
@@ -1065,4 +1087,89 @@ role で以下のように参照することができます。
 
     pdns_port: "{{ hostvars['powerdns'].hive_ports | selectattr('target_port', 'eq', 8081) | map(attribute='published_port') | first }}"
 
-(サービス定義のbackup_scripts, volumes 属性の詳細については未執筆)
+backup_scripts 属性
+-----------------------------
+backup_scripts 属性には、バックアップの採取方法、リストア方法、日次バッチを記述できます。
+この属性を指定することで、volumes で永続化したデータのバックアップを採取したり、障害発生時にリストアすることができます。
+バックアップとリストアの運用方法については  :doc:`backup` を参照してください。
+
+バックアップ定義
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backup_scripts 属性はバックアップ定義の配列です。
+複数指定することで一つのコンテナから複数種類のバックアップを採取できます。
+バックアップ定義には以下の属性が指定できます。
+
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - name
+      - pdnsdb
+      - 必須
+      - バックアップ定義の名称
+    * - directory
+      - /etc/letsencrypt
+      - ""
+      - コンテナ内の指定されたディレクトリのバックアップを採取する
+    * - backup_command
+      - "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
+      - ""
+      - バックアップを採取するコマンド。コンテナ内にバックアップファイルを出力するコマンドを指定する。
+    * - backup_file
+      - /root/today.sql
+      - ""
+      - backup_command 属性で指定したコマンドが出力するバックアップファイルのパス
+    * - restore_command
+      - "echo source /root/today.sql | mysql -B -u powerdns -p{{db_password}} -D powerdns"
+      - ""
+      - リストアするコマンド。コンテナ内にバックアップファイルからリストアするコマンドを指定する。
+    * - restore_file
+      - /root/today.sql
+      - ""
+      - restore_command 属性で指定したコマンドが読み込むバックアップファイルのパス
+    * - ext
+      - "sql"
+      - ""
+      - バックアップファイルをリポジトリサーバに移動する際のファイル名につける拡張子。
+    * - cleanup_days_before
+      - 10
+      - ""
+      - 指定された日数を超えて古いバックアップファイルを日次で削除する
+    * - batch_script
+      - "mysql -u powerdns -p{{db_password}} powerdns -e 'ALTER TABLE records;'"
+      - ""
+      - 深夜日次バッチの実行時に指定されたコマンドをバックアップの採取前に実行する。
+
+ここで directory 属性とコマンドでバックアップを採取する属性（backup_command, backup_file, restore_command, restore_file, ext）は排他的でどちらか一方しか指定できません。
+バックアップファイルの名前は backup-{name属性の値}-{採取日時}.{ext属性の値} になります。
+directory でバックアップを採取する場合は拡張子は tar.gz になります。
+
+ディレクトリのバックアップ例
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+例えば、以下のように指定することで、コンテナ内の /etc/letsencrypt のバックアップを採取できます。
+
+::
+
+    backup_scripts:
+    - name: certificates
+      directory: /etc/letsencrypt
+      cleanup_days_before: 10
+
+MySQL のバックアップ例
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+例えば、以下のように指定することで、MySQLのデータベースのバックアップを採取できます。
+
+::
+
+    - name: pdnsdb
+      backup_command: "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
+      restore_command: "echo source /root/today.sql | mysql -B -u powerdns -p{{db_password}} -D powerdns"
+      backup_file: /root/today.sql
+      restore_file: /root/today.sql
+      ext: sql
+      cleanup_days_before: 10

@@ -18,6 +18,7 @@ hive-builder ドキュメントページへようこそ
     swarmextender.rst
     migration.rst
     zabbix.rst
+    backup.rst
     repair.rst
     faq.rst
 

@@ -159,28 +159,7 @@ DNS管理画面で「詳細設定を表示」をクリックしてダイナミ�
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 「カスタムレコード」の「^」をクリックして詳細を開き各レコードごとの「認証方法を表示」をクリックし、表示された画面で「表示」をクリックして、
 認証情報を取得してください。
-取得した人相情報を inventory/group_vars/all.yml内に以下のように ddclient_cred変数を書き加えてください。
-
-::
-
- ddclient_cred:
-  s-hive0.pdns:
-    name: ユーザー名
-    password: パスワード
-  s-hive1.pdns:
-    name: ユーザー名
-    password: パスワード
-  s-hive2.pdns:
-    name: ユーザー名
-    password: パスワード
-  s-hive3.pdns:
-    name:
-    password:
-
-認証情報の入力
--------------------------
-google domainを用いてDNS登録をした場合、inventory/group_vars/all.yml内にddclient_cred変数を書き加えることで登録することができます。
-例としては
+取得した認証情報を inventory/group_vars/all.yml内に以下のように ddclient_cred変数を書き加えてください。
 
 ::
 
@@ -199,6 +178,7 @@ google domainを用いてDNS登録をした場合、inventory/group_vars/all.yml
     password:
 
 レポジトリサーバーを設定している場合はname,passwordは空欄で書いてください。
+
 構築
 =========================
 以下のコマンドで構築してください。
