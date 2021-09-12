@@ -74,3 +74,18 @@ NO_PROXY には、リポジトリサーバのサーバ名と localhost, 127.0.0.
 ステージプリフィックス + "hive" + サーバ台数から1を引いた数字 + "." + hive名
 
 ステージプリフィックスは private 環境では "p-"、 staging 環境では "s-"、 production 環境では "" となります。
+
+サービス内のプロセスへの環境変数の引き継ぎ
+=============================================
+サービス内から REST API 呼び出したり yum, npm, pip などのリポジトリへアクセスしたりする場合は
+サービス内のプロキシ関係の環境変数が適切に設定されている必要があります。
+各サービス内のプロキシ関係の環境変数は、hive deploy-services 時にについてリポジトリサーバの値が引き継がれます。
+リポジトリサーバの/etc/environment でサービス内に必要な値も設定してください。特にサービス間の REST API アクセスなどについては
+サービス名を no_proxy に設定しておく必要がありますので、注意してください。例えば、examples/pdnsのように pdnsadmin サービスから
+powerdns サービスの REST API を http://powerdns:8081/ のようなURLで呼び出す場合、no_proxy には以下のように powerdns を追加する必要があります。
+
+::
+
+
+    NO_PROXY=poerdns,p-hive0.pdns,localhost,127.0.0.1
+    no_proxy=poerdns,p-hive0.pdns,localhost,127.0.0.1

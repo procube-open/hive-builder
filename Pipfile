@@ -24,6 +24,7 @@ boto3 = "*"
 netaddr = "*"
 Pillow = ">=8.1.1"
 hive-builder = {path = "."}
+sphinx-rtd-theme = "*"
 
 [requires]
 python_version = "3.9"
