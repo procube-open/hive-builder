@@ -1,3 +1,4 @@
+funcparserlib == 0.3.6
 sphinxcontrib-blockdiag
 sphinx-argparse
 sphinx-rtd-theme
