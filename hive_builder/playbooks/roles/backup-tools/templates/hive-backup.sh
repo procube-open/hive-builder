@@ -62,7 +62,7 @@ for service in $targets; do
       # for backup hive-zabbix
       backup_file="backup-hive-zabbix-$(date +%Y%m%d%H%M%S).sql.gz"
       message "START backup hive-zabbix into $backup_file":
-      if (cd /home/admin/zabbix/;docker-compose exec -T zabbix-db sh -c 'mysqldump -u zabbix -pzabbix zabbix | gzip') > "$backup_file"; then
+      if (cd {{ hive_home_dir }}/zabbix/;docker-compose exec -T zabbix-db sh -c 'mysqldump -u zabbix -pzabbix zabbix | gzip') > "$backup_file"; then
         message "END backup for hive-zabbix into $backup_file"
         message "LINK backup-hive-zabbix-latest.sql.gz to $backup_file"
         rm -f "backup-hive-zabbix-latest.sql.gz"
@@ -80,8 +80,8 @@ for service in $targets; do
       backup_file="backup-hive-zabbix-latest.sql.gz"
       if [ -r $backup_file ]; then
         message "START restore for hive-zabbix from $backup_file"
-        cp "$backup_file" /home/admin/zabbix/"$backup_file";
-        cd /home/admin/zabbix;
+        cp "$backup_file" {{ hive_home_dir }}/zabbix/"$backup_file";
+        cd {{ hive_home_dir }}/zabbix;
         docker cp "$backup_file" $(docker-compose ps -q zabbix-db):/root/today.sql.gz
         if docker-compose exec -T zabbix-db sh -c 'zcat /root/today.sql.gz | mysql -B -u zabbix -pzabbix -D zabbix'; then
           message "END restore for hive-zabbix"
@@ -101,7 +101,7 @@ for service in $targets; do
       # for backup hive-registry
       backup_file="backup-hive-registry-$(date +%Y%m%d%H%M%S).tar.gz"
       message "START backup hive-registry into $backup_file":
-      if (cd /home/admin/registry/;docker-compose exec -T registry_server sh -c 'cd /var/lib/registry; tar czf - $(find . -maxdepth 1 -not -name .)') > "$backup_file"; then
+      if (cd {{ hive_home_dir }}/registry/;docker-compose exec -T registry_server sh -c 'cd /var/lib/registry; tar czf - $(find . -maxdepth 1 -not -name .)') > "$backup_file"; then
         message "END backup for hive-registry into $backup_file"
         message "LINK backup-hive-registry-latest.tar.gz to $backup_file"
         rm -f "backup-hive-registry-latest.tar.gz"
@@ -119,8 +119,8 @@ for service in $targets; do
       backup_file="backup-hive-registry-latest.tar.gz"
       if [ -r $backup_file ]; then
         message "START restore for hive-registry from $backup_file"
-        cp "$backup_file" /home/admin/registry/"$backup_file";
-        cd /home/admin/registry;
+        cp "$backup_file" {{ hive_home_dir }}/registry/"$backup_file";
+        cd {{ hive_home_dir }}/registry;
         docker cp "$backup_file" $(docker-compose ps -q registry_server):/root/today.tar.gz
         if docker-compose exec -T registry_server sh -c 'cd /var/lib/registry; rm -rf $(find . -maxdepth 1 -not -name .); tar xzf /root/today.tar.gz'; then
           message "END restore for hive-registry"
