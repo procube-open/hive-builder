@@ -1,7 +1,3 @@
 sphinxcontrib-blockdiag
 sphinx-argparse
-pyyaml
-ansible
-configparser
-lockfile
-backtrace
+sphinx-rtd-theme
