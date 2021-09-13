@@ -22,7 +22,7 @@ formats:
 #         cwd: /tmp/pip-install-k81oyf52/funcparserlib_85e3a866c2cd445f87585df02278a1f0/
 #    Complete output (1 lines):
 #    error in funcparserlib setup command: use_2to3 is invalid.
-    ----------------------------------------
+#    ----------------------------------------
 python:
    version: "3.7"
    install:
