@@ -1,4 +1,3 @@
 sphinxcontrib-blockdiag
 sphinx-argparse
-sphinx-rtd-theme
 pyyaml

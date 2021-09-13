@@ -1,1 +1,4 @@
 setuptools<58
+# default sphinx-rtd-them<0.5 cause list-style=none for <li> element
+# so upgrade it
+sphinx-rtd-theme==0.5.2

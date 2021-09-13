@@ -14,6 +14,15 @@ formats:
    - pdf
 
 # Optionally set the version of Python and requirements required to build your docs
+# setuptools >= 58 cause following error, so we downgrade it before install sphinxcontrib-blockdiag
+# Collecting funcparserlib
+#  Downloading funcparserlib-0.3.6.tar.gz (30 kB)
+#    ERROR: Command errored out with exit status 1:
+#     command: /home/docs/checkouts/readthedocs.org/user_builds/hive-builder/envs/latest/bin/python -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-install-k81oyf52/funcparserlib_85e3a866c2cd445f87585df02278a1f0/setup.py'"'"'; __file__='"'"'/tmp/pip-install-k81oyf52/funcparserlib_85e3a866c2cd445f87585df02278a1f0/setup.py'"'"';f = getattr(tokenize, '"'"'open'"'"', open)(__file__) if os.path.exists(__file__) else io.StringIO('"'"'from setuptools import setup; setup()'"'"');code = f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' egg_info --egg-base /tmp/pip-pip-egg-info-8fyo0jf_
+#         cwd: /tmp/pip-install-k81oyf52/funcparserlib_85e3a866c2cd445f87585df02278a1f0/
+#    Complete output (1 lines):
+#    error in funcparserlib setup command: use_2to3 is invalid.
+    ----------------------------------------
 python:
    version: "3.7"
    install:
