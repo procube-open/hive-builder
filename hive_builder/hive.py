@@ -19,6 +19,7 @@ import signal
 import time
 import pathlib
 import json
+import warnings
 
 
 def get_python_path():
@@ -561,8 +562,82 @@ class installCollection(ansbileCommandBase):
     subprocess.run(args_collection)
     subprocess.run(args_requirements_azure)
 
+class listHosts(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('list-hosts', 'return hive hosts list')
 
-SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection()]
+  def do(self, context):
+    self.build_context(context)
+    warnings.filterwarnings('ignore')
+    persistents_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/.hive/persistents.yml', 'r'))
+    hive_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/inventory/hive.yml', 'r'))
+    name = hive_yml['name']
+    stage_name = persistents_yml['stage']['global']
+    stage_prefix = 'p-' if stage_name == 'private' else 's-' if stage_name == 'staging' else ''
+    stage = hive_yml['stages'][stage_name]
+    separate_repository = stage.get('separate_repository', True)
+    number_of_hosts = stage.get('number_of_hosts', 4 if separate_repository else 3)
+    if 'ip_address_list' in stage:
+      number_of_hosts = len(stage.get('ip_address_list'))
+    hosts_list = []
+    for idx in range(number_of_hosts):
+      hosts_list.append(f'{stage_prefix}hive{idx}.{name}')
+    print(" ".join(hosts_list))
+    
+class listServices(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('list-services', 'return services list')
+
+  def do(self, context):
+    self.build_context(context)
+    warnings.filterwarnings('ignore')
+    powerdns_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/inventory/powerdns.yml', 'r'))
+    services_list = powerdns_yml['services'].keys()
+    print(" ".join(services_list))
+
+class listVolumes(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('list-volumes', 'return volumes list')
+
+  def do(self, context):
+    self.build_context(context)
+    warnings.filterwarnings('ignore')
+    powerdns_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/inventory/powerdns.yml', 'r'))
+    volumes_list = []
+    for service in powerdns_yml['services'].values():
+      volumes = service.get('volumes')
+      if volumes != None:
+        volume_name = volumes[0].get('source')
+        volumes_list.append(volume_name)
+    print(" ".join(volumes_list))
+
+class getInstalldir(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('get-install-dir', 'return install dir')
+
+  def do(self, context):
+    self.build_context(context)
+    print(context.vars["install_dir"])
+
+class setupBashCompletion(ansbileCommandBase):
+  def __init__(self):
+    super().__init__('setup-bash-completion', 'setup hive command bash completion')
+
+  def do(self, context):
+    self.build_context(context)
+    virtual_env = os.getenv('VIRTUAL_ENV')
+    print(os.getenv('HIVE_VIRTUAL_ENV_INIT'))
+    if (virtual_env != None
+        and os.getenv('HIVE_VIRTUAL_ENV_INIT') == None
+        and os.access(f'{virtual_env}/bin/activate', os.W_OK) == True):
+      f = open(f'{virtual_env}/bin/activate', 'a')
+      script = ['\nsource "$(hive get-install-dir)/hive-completion.sh"\n',
+                 'HIVE_VIRTUAL_ENV_INIT=1\n'
+                 'export HIVE_VIRTUAL_ENV_INIT']
+      f.writelines(script)
+      f.close
+
+SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection(), listHosts(), listServices(), listVolumes(), getInstalldir(), setupBashCompletion()]
 
 
 def get_parser():
