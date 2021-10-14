@@ -2,8 +2,12 @@
 _hive(){
 local cur=${COMP_WORDS[COMP_CWORD]}
 local prev=${COMP_WORDS[COMP_CWORD-1]}
-local pprev=${COMP_WORDS[COMP_CWORD-2]}
-    subc="build-infra setup-hosts build-images build-volumes build-networks deploy-services initialize-services all inventory init set ssh install-collection list-hosts list-services list-volumes get-install-dir setup-bash-completion"
+  if [ ${COMP_CWORD} -ge 2 ]; then
+    local pprev=${COMP_WORDS[COMP_CWORD-2]}
+  else
+    local pprev=${COMP_WORDS[0]}
+  fi
+  subc="build-infra setup-hosts build-images build-volumes build-networks deploy-services initialize-services all inventory init set ssh install-collection list-hosts list-services list-volumes get-install-dir setup-bash-completion"
   if [ "${prev}" = "hive" ]; then
     COMPREPLY=( $(compgen -W "${subc}" -- "${cur}") )
   elif [ "${pprev}" = "ssh" -a "${prev}" = "-t" ]; then

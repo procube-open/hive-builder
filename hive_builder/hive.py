@@ -20,7 +20,7 @@ import time
 import pathlib
 import json
 import warnings
-
+import glob
 
 def get_python_path():
   for path in os.getenv("PATH").split(os.path.pathsep):
@@ -591,8 +591,12 @@ class listServices(ansbileCommandBase):
   def do(self, context):
     self.build_context(context)
     warnings.filterwarnings('ignore')
-    powerdns_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/inventory/powerdns.yml', 'r'))
-    services_list = powerdns_yml['services'].keys()
+    yaml_files = glob.glob(f'{context.vars["root_dir"]}/inventory/*.yml')
+    services_list = []
+    for yml in yaml_files:
+      loaded_yml = yaml.safe_load(open(yml, 'r'))
+      if loaded_yml.get('plugin') == 'hive_services':
+        services_list.extend(list(loaded_yml['services'].keys()))
     print(" ".join(services_list))
 
 class listVolumes(ansbileCommandBase):
@@ -602,13 +606,16 @@ class listVolumes(ansbileCommandBase):
   def do(self, context):
     self.build_context(context)
     warnings.filterwarnings('ignore')
-    powerdns_yml = yaml.safe_load(open(f'{context.vars["root_dir"]}/inventory/powerdns.yml', 'r'))
+    yaml_files = glob.glob(f'{context.vars["root_dir"]}/inventory/*.yml')
     volumes_list = []
-    for service in powerdns_yml['services'].values():
-      volumes = service.get('volumes')
-      if volumes != None:
-        volume_name = volumes[0].get('source')
-        volumes_list.append(volume_name)
+    for yml in yaml_files:
+      loaded_yml = yaml.safe_load(open(yml, 'r'))
+      if loaded_yml.get('plugin') == 'hive_services':
+        for service in loaded_yml['services'].values():
+          volumes = service.get('volumes')
+          if volumes != None:
+            volume_name = volumes[0].get('source')
+            volumes_list.append(volume_name)
     print(" ".join(volumes_list))
 
 class getInstalldir(ansbileCommandBase):
@@ -626,16 +633,21 @@ class setupBashCompletion(ansbileCommandBase):
   def do(self, context):
     self.build_context(context)
     virtual_env = os.getenv('VIRTUAL_ENV')
-    print(os.getenv('HIVE_VIRTUAL_ENV_INIT'))
-    if (virtual_env != None
-        and os.getenv('HIVE_VIRTUAL_ENV_INIT') == None
-        and os.access(f'{virtual_env}/bin/activate', os.W_OK) == True):
-      f = open(f'{virtual_env}/bin/activate', 'a')
-      script = ['\nsource "$(hive get-install-dir)/hive-completion.sh"\n',
-                 'HIVE_VIRTUAL_ENV_INIT=1\n'
-                 'export HIVE_VIRTUAL_ENV_INIT']
-      f.writelines(script)
-      f.close
+    if (virtual_env == None):
+        print('This command should be executed with the python virtual environment activated.')
+        return
+    if(os.access(f'{virtual_env}/bin/activate', os.W_OK) != True):
+        print(f'Unable to write to {virtual_env}/bin/activate.')
+        return
+    if(os.getenv('HIVE_VIRTUAL_ENV_INIT') != None):
+        print('The bash completion for the hive command is already set.')
+        return
+    f = open(f'{virtual_env}/bin/activate', 'a')
+    script = ['\nsource "$(hive get-install-dir)/hive-completion.sh"\n',
+              'HIVE_VIRTUAL_ENV_INIT=1\n'
+              'export HIVE_VIRTUAL_ENV_INIT']
+    f.writelines(script)
+    f.close
 
 SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection(), listHosts(), listServices(), listVolumes(), getInstalldir(), setupBashCompletion()]
 
