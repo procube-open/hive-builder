@@ -62,7 +62,7 @@ for service in $targets; do
       # for backup hive-zabbix
       backup_file="backup-hive-zabbix-$(date +%Y%m%d%H%M%S).sql.gz"
       message "START backup hive-zabbix into $backup_file":
-      if (cd {{ hive_home_dir }}/zabbix/;docker-compose exec -T zabbix-db sh -c 'mysqldump -u zabbix -pzabbix zabbix | gzip') > "$backup_file"; then
+      if (cd {{ hive_home_dir }}/zabbix/;docker-compose exec -T zabbix-db sh -c 'mysqldump -u zabbix -pzabbix zabbix --single-transaction | gzip') > "$backup_file"; then
         message "END backup for hive-zabbix into $backup_file"
         message "LINK backup-hive-zabbix-latest.sql.gz to $backup_file"
         rm -f "backup-hive-zabbix-latest.sql.gz"
