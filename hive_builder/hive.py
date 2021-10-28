@@ -22,6 +22,7 @@ import json
 import warnings
 import glob
 
+
 def get_python_path():
   for path in os.getenv("PATH").split(os.path.pathsep):
     full_path = os.path.join(path, 'python')
@@ -562,6 +563,7 @@ class installCollection(ansbileCommandBase):
     subprocess.run(args_collection)
     subprocess.run(args_requirements_azure)
 
+
 class listHosts(ansbileCommandBase):
   def __init__(self):
     super().__init__('list-hosts', 'return hive hosts list')
@@ -583,7 +585,8 @@ class listHosts(ansbileCommandBase):
     for idx in range(number_of_hosts):
       hosts_list.append(f'{stage_prefix}hive{idx}.{name}')
     print(" ".join(hosts_list))
-    
+
+
 class listServices(ansbileCommandBase):
   def __init__(self):
     super().__init__('list-services', 'return services list')
@@ -599,6 +602,7 @@ class listServices(ansbileCommandBase):
         services_list.extend(list(loaded_yml['services'].keys()))
     print(" ".join(services_list))
 
+
 class listVolumes(ansbileCommandBase):
   def __init__(self):
     super().__init__('list-volumes', 'return volumes list')
@@ -613,10 +617,11 @@ class listVolumes(ansbileCommandBase):
       if loaded_yml.get('plugin') == 'hive_services':
         for service in loaded_yml['services'].values():
           volumes = service.get('volumes')
-          if volumes != None:
+          if volumes is not None:
             volume_name = volumes[0].get('source')
             volumes_list.append(volume_name)
     print(" ".join(volumes_list))
+
 
 class getInstalldir(ansbileCommandBase):
   def __init__(self):
@@ -626,6 +631,7 @@ class getInstalldir(ansbileCommandBase):
     self.build_context(context)
     print(context.vars["install_dir"])
 
+
 class setupBashCompletion(ansbileCommandBase):
   def __init__(self):
     super().__init__('setup-bash-completion', 'setup hive command bash completion')
@@ -633,13 +639,13 @@ class setupBashCompletion(ansbileCommandBase):
   def do(self, context):
     self.build_context(context)
     virtual_env = os.getenv('VIRTUAL_ENV')
-    if (virtual_env == None):
+    if (virtual_env is None):
         print('This command should be executed with the python virtual environment activated.')
         return
-    if(os.access(f'{virtual_env}/bin/activate', os.W_OK) != True):
+    if(os.access(f'{virtual_env}/bin/activate', os.W_OK) is not True):
         print(f'Unable to write to {virtual_env}/bin/activate.')
         return
-    if(os.getenv('HIVE_VIRTUAL_ENV_INIT') != None):
+    if(os.getenv('HIVE_VIRTUAL_ENV_INIT') is not None):
         print('The bash completion for the hive command is already set.')
         return
     f = open(f'{virtual_env}/bin/activate', 'a')
@@ -649,7 +655,9 @@ class setupBashCompletion(ansbileCommandBase):
     f.writelines(script)
     f.close
 
-SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection(), listHosts(), listServices(), listVolumes(), getInstalldir(), setupBashCompletion()]
+
+SUBCOMMANDS = PHASE_LIST + [allPhase(), inventoryList(), initializeEnvironment(), setPersistent(), execSsh(), installCollection(), listHosts(), listServices(),
+                            listVolumes(), getInstalldir(), setupBashCompletion()]
 
 
 def get_parser():
