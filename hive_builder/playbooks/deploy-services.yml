@@ -12,14 +12,16 @@
       registry: "{{ hive_registry }}"
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
-      email: "{{ hive_safe_email }}"
+#     email attribute of docker_login has been removed in community.docker 2.0.0.
+#     cause error: Unsupported parameters for (docker_login) module: email. 
+#      email: "{{ hive_safe_email }}"
     when: not (hive_destroy  | default(false))
   - name: login to external repository
     docker_login:
       registry: "{{ item.repository | default(omit) }}"
       username: "{{ item.login_user }}"
       password: "{{ item.password }}"
-      email: "{{ item.email | default(omit) }}"
+#      email: "{{ item.email | default(omit) }}"
     loop: "{{ hive_ext_repositories }}"
     when: hive_ext_repositories is defined and not (hive_destroy  | default(false))
     no_log: True
