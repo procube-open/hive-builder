@@ -233,6 +233,17 @@ collections_path:
   type: directory
   name_in_ansible_cfg: collections_path
   default: "{context_dir}/collections"
+no_format:
+  description: if true, hive_safe_drbd_with_disk set false
+  name_in_ansible: hive_no_format
+  type: boolean
+  default: false
+first_hive:
+  description: first hive
+  name_in_environment: HIVE_FIRST_HIVE
+  persistent_scope: stage
+  type: int
+  default: 0
 forks:
   description: max concurrent execution of ansible play
   name_in_ansible_cfg: forks
