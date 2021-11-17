@@ -184,7 +184,10 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 :原因1: VMWare の NSX機能やネットワーク機器のVXLAN機能が動作していることが原因で swarm のオーバレイネットワークの通信に必要な 4789/udp のパケットが到達できない。
         https://stackoverflow.com/questions/43933143/docker-swarm-overlay-network-is-not-working-for-containers-in-different-hosts
 :原因2: ホストに複数のネットワークインタフェースがある場合に swarm のオーバレイネットワークの通信に利用するIPアドレスが間違っている
-:対応方法: 以下の手順でdocker swarm のオーバレイネットワークが使用するポート番号やIPアドレスを変更してください。
+:原因3: ネットワークカードに offload したチェックサム照合機能がパケットをチェックサム不整合で破棄している。VMWare の仮想NICはこれに該当する。
+        https://stackoverflow.com/questions/66251422/docker-swarm-overlay-network-icmp-works-but-not-anything-else
+:対応方法: 原因1, 原因2 の場合は、以下の手順でdocker swarm のオーバレイネットワークが使用するポート番号やIPアドレスを変更してください。
+           原因3 の場合は各ホストで ethtool -K <interface> tx off コマンドを実行してネットワークカードへの offload を無効化してください。
 
 1. 全サービスを削除
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
