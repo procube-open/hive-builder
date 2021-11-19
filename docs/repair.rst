@@ -301,19 +301,14 @@ DRBDのファイルシステムの破損
     docker node rm sn3njpuc7dnevr8c6b8zqv1c7
     logout
 
-変数のno_formatにtrue、first_hiveに生きているhiveの数字を設定した後、build-infraフェーズからhive all を実行してください。
+変数のno_formatにtrue、first_hiveに生きているhiveの数字を設定した後、フェーズとして build-infra setup-hosts build-volumes の順に実行してください。
 
 ::
 
     hive set no_format true
     hive set first_hive 1
-    hive all -S build-infra
+    hive build-infra
+    hive setup-hosts
+    hive build-volumes
 
-initialize-services フェーズで以下のようなエラー文が表示される場合がありますが、ここまで通れば再構成は完了しています。
-
-::
-
-    TASK [powerdns-init : add zone] *****************************************************************************************************************
-    fatal: [powerdns]: FAILED! => changed=false 
-    msg: 'Error: Expecting value: line 1 column 1 (char 0)'
 
