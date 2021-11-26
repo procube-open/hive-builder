@@ -21,6 +21,7 @@ hive-builder ドキュメントページへようこそ
     backup.rst
     repair.rst
     faq.rst
+    bashcompletion.rst
 
 ..
   Indices and tables

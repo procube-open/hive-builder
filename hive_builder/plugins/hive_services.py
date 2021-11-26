@@ -200,7 +200,7 @@ class Service:
                   volume['drbd']['device_id'] = device_id_map[volume['source']]
               else:
                 # assign new device id
-                for device_id in range(1, 128):
+                for device_id in range(1, 256):
                   if device_id not in device_id_map.values():
                     volume['drbd']['device_id'] = device_id
                     break
