@@ -57,3 +57,111 @@ hive3.pdns:5000/image_pdnsrecursor:latest を hive3.pdns:5000/image_pdnsrecursor
   hive3.pdns:5000/image_pdnsrecursor@sha256:cdf0f7d5ac067a3df4b5e08047e7240d57cc49fff55742e66be5a816cce968c2
 
 のように指定することができます。
+
+タグマッピングの運用
+=========================
+
+hive-builder のソースコードを git で版管理を行っている場合でも、タグマッピングを利用して開発の最新版の環境と動作が確認されている安定版を切り分けることができます。
+ここではその運用方法について提案します。タグマッピングの利用方法として、開発フェーズと運用フェーズに分けることを提案します。
+
+開発フェーズ
+-------------------------
+開発フェーズでは、デフォルトでは開発されているものの最新版がダウンロードされるようにソースコード上の
+サービス定義の image.from 属性や image 属性には、latest など常に最新版を指し示すタグを指定しておきます。
+このコードを git に登録しておくことにより、 git pull から構築したものからビルドするとすべてのコンテナについて最新版がダウンロードされます。
+一方で、結合テスト環境やデモ環境のように安定稼働が重視される環境では、タグマッピング機能でコンテナイメージのバージョンを固定できます。
+稼働確認が取れた時点ですべてのコンテナイメージのバージョンをタグマッピングで固定することを推奨します。
+つまり、latest など常に最新版を指し示すタグに対して稼働確認が取れたバージョンへのタグへのマッピングを指定して tag-mapping.json を作成してください。
+以降イメージをバージョンアップする場合は tag-mapping.json を編集してバージョンアップの対象となるタグのマッピング先を修正してください。
+
+例：
+powerdns のコンテナのバージョンを検証環境のテスト中は 4.5.1-1 に固定しておきたい場合、
+
+inventory/powerdns.yml:
+
+::
+
+   plugin: hive_services
+   services:
+    powerdns:
+     image: procube/powerdns:latest
+  ...
+
+.hive/staging/tag-mapping.json
+
+::
+
+  {
+    "procube/powerdns:latest": "procube/powerdns:4.5.1-1"
+  }
+
+
+運用フェーズ
+-------------------------
+運用フェーズでは、デフォルトでは安定稼働が確認されたものがダウンロードされるようにソースコード上の
+サービス定義の image.from 属性や image 属性には、安定稼働が確認されたバージョンのイメージのタグを指定しておきます。
+このコードを git に登録しておくことにより、 git pull から構築したものからビルドするとすべてのコンテナについて安定版がダウンロードされます。
+一方で、ステージング環境のように新しいバージョンのテストが優先される環境では、タグマッピング機能でコンテナイメージの最新版がダウンロードされるように設定できます。
+つまり、安定版をを指し示すタグに対してlatest など常に最新版へのタグへのマッピングを指定して tag-mapping.json を作成してください。
+
+例：
+powerdns のコンテナのバージョンを運用中の環境では 4.5.1-1 を使用しているが、テスト環境でコンテナを最新にバージョンアップしてテストする場合、
+
+inventory/powerdns.yml:
+
+::
+
+   plugin: hive_services
+   services:
+    powerdns:
+     image: procube/powerdns:4.5.1-1
+  ...
+
+.hive/staging/tag-mapping.json
+
+::
+
+  {
+    "procube/powerdns:4.5.1-1": "procube/powerdns:latest"
+  }
+
+
+本番環境での切り戻し
+-------------------------
+本番環境でコンテナをビルドしてバージョンアップした後、問題が発生する場合にタグマッピングを利用して切り戻すことが可能です。
+
+::
+
+  docker images
+
+で、切り戻し対象のイメージを特定し、
+
+::
+
+  docker inspect --format='{{index .RepoDigests 0}}' イメージID
+
+でタグを取得し、これを tag-mapping.json に指定してからサービスをデプロイすることで切り戻しできます。
+たとえば、タグが hive3.pdns:5000/image_pdnsrecursor@sha256:cdf0f7d5ac067a3df4b5e08047e7240d57cc49fff55742e66be5a816cce968c2 である場合、
+tag-mapping.json を
+
+::
+
+  {
+    "hive3.pdns:5000/image_pdnsrecursor:latest": "hive3.pdns:5000/image_pdnsrecursor@sha256:cdf0f7d5ac067a3df4b5e08047e7240d57cc49fff55742e66be5a816cce968c2"
+  }
+
+のように指定し、
+
+::
+
+  hive deploy-services -l pdnsrecursor
+
+を実行することで切り戻しを実行できます。
+
+ソフトウェアパッケージのバージョン管理について
+==================================================
+
+タグマッピングではコンテナイメージのバージョンを管理できますが、
+build-images フェーズで yum, pipy, npmjs などのパブリックリポジトリからダウンロードされるソフトウェアは管理できません。
+プロジェクトごとに ansilbe コードの中で対応する必要があることにご注意ください。
+
