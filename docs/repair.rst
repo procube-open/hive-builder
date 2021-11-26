@@ -283,3 +283,32 @@ DRBDのファイルシステムの破損
     sudo xfs_repair $(docker volume inspect ボリューム名 --format '{{ .Options.device }}')
     docker service scale サービス名=1
     logout
+
+サーバーが一台破損した場合
+=================================
+サーバーが一台完全に破損し、インスタンス一覧にも表示されない場合があります。この場合は、まず hive ssh で残っているサーバーに接続し hive node ls でswarmクラスタでSTATUSの部分がDownとなっているコンテナがあることを確認してください。その後DownしているコンテナのIDをコピーしてremoveしてください。
+例えば、s-hive0が破損しており、かつs-hive1が残っている場合以下のコマンドを実行してください。
+
+::
+
+    hive ssh -t s-hive1.pdns
+    docker node ls
+    ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+    sn3njpuc7dnevr8c6b8zqv1c7     s-hive0    Down      Active         Unreachable      20.10.10
+    kcvmtp7dhq7513v0zihgw5cgl *   s-hive1    Ready     Active         Reachable        20.10.10
+    8yzfk4x1bi5dr6kg03s67fodn     s-hive2    Ready     Active         Leader           20.10.10
+    docker node demote sn3njpuc7dnevr8c6b8zqv1c7
+    docker node rm sn3njpuc7dnevr8c6b8zqv1c7
+    logout
+
+変数のno_formatにtrue、first_hiveに生きているhiveの数字を設定した後、フェーズとして build-infra setup-hosts build-volumes の順に実行してください。
+
+::
+
+    hive set no_format true
+    hive set first_hive 1
+    hive build-infra
+    hive setup-hosts
+    hive build-volumes
+
+
