@@ -344,7 +344,7 @@ class ansbileCommandBase(commandHandlerBase):
       environment_vars = self.collect_environment_vars(
           context.vars, context.variables_metainf, ansible_cfg_file_path)
       for k, v in environment_vars.items():
-        os.environ[k] = v
+        os.environ[k] = str(v)
       context.logger.debug(f'environment variables: {os.environ}')
 
   def setup_parser(self, subparsers, variables_metainf):
