@@ -2,6 +2,7 @@
 module hive 1.0;
 
 require {
+	type var_log_t;
 	type rpcd_unit_file_t;
 	type auditd_log_t;
 	type mdadm_unit_file_t;
@@ -12,10 +13,12 @@ require {
 	type chronyc_exec_t;
 	type rngd_unit_file_t;
 	type zabbix_agent_t;
+	type proc_kcore_t;
 	type dhcpc_t;
 	type sudo_exec_t;
 	type shadow_t;
 	type init_t;
+	type initctl_t;
 	type container_unit_file_t;
 	type sshd_unit_file_t;
 	type kernel_t;
@@ -28,6 +31,13 @@ require {
 	type systemd_unit_file_t;
 	type iptables_unit_file_t;
 	type devlog_t;
+	type drbd_exec_t;
+	type drbd_t;
+	type cert_t;
+	type apmd_t;
+	type rngd_t;
+	type rpm_exec_t;
+	type rpm_var_lib_t;
 	type cloud_init_unit_file_t;
 	type lvm_unit_file_t;
 	type auditd_etc_t;
@@ -37,11 +47,13 @@ require {
 	class dbus send_msg;
 	class system status;
 	class capability { audit_write dac_read_search };
-	class file { execute execute_no_trans open read };
+	class fifo_file getattr;
+	class file { execute execute_no_trans getattr open read };
 	class netlink_audit_socket { create nlmsg_relay };
-	class sock_file { create setattr unlink write };
+	class netlink_generic_socket { bind create getattr setopt };
+	class sock_file { create getattr setattr unlink write };
 	class unix_dgram_socket { connect create sendto };
-	class dir { add_name read remove_name write };
+	class dir { add_name read remove_name search write };
 }
 
 #============= chronyd_t ==============
@@ -65,6 +77,16 @@ allow init_t zabbix_agent_t:dbus send_msg;
 
 #============= systemd_logind_t ==============
 allow systemd_logind_t zabbix_agent_t:dbus send_msg;
+
+#============= apmd_t ==============
+allow apmd_t systemd_unit_file_t:service status;
+allow apmd_t var_log_t:file { open read };
+
+#============= drbd_t ==============
+allow drbd_t self:netlink_generic_socket { bind create getattr setopt };
+
+#============= rngd_t ==============
+allow rngd_t cert_t:dir search;
 
 #============= zabbix_agent_t ==============
 allow zabbix_agent_t auditd_etc_t:file { open read };
@@ -102,3 +124,11 @@ allow zabbix_agent_t system_dbusd_t:unix_stream_socket connectto;
 allow zabbix_agent_t systemd_logind_t:dbus send_msg;
 allow zabbix_agent_t systemd_systemctl_exec_t:file { execute execute_no_trans };
 allow zabbix_agent_t systemd_unit_file_t:service status;
+
+allow zabbix_agent_t devlog_t:sock_file getattr;
+allow zabbix_agent_t drbd_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t initctl_t:fifo_file getattr;
+allow zabbix_agent_t proc_kcore_t:file getattr;
+allow zabbix_agent_t rpm_exec_t:file { execute execute_no_trans };
+allow zabbix_agent_t rpm_var_lib_t:file open;
+allow zabbix_agent_t self:netlink_generic_socket { bind create getattr setopt };

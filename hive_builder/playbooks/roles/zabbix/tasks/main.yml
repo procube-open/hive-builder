@@ -48,6 +48,15 @@
       host_groups:
         - Hives
         - Repository server
+  - name: Get template links on the Linux by Zabbix agent
+    zabbix_template_info:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      template_name: "{{ hive_zabbix_template | default('Linux by Zabbix agent') }}"
+      format: json
+      omit_date: yes
+    register: linux_template_json
   - name: Configure macros on the Linux by Zabbix agent
     zabbix_template:
       server_url: http://{{ inventory_hostname }}:10052
@@ -57,6 +66,7 @@
       macros:
         - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
           value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
+      link_templates: "{{ linux_template_json.template_json.zabbix_export.templates[0].templates | map(attribute='name')}}"
       state: present
   # upload may fail if template changed with following error
   #  failed: [p-hive0.pdns] (item=hive-repository-server.xml) => changed=false
