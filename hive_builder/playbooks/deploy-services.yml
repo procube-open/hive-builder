@@ -5,15 +5,19 @@
   vars:
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | list) | list}}{% else %}{{ groups['services']  | intersect(groups[hive_stage]) | list }}{% endif %}"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+    tag_mapping_json: "{{ lookup('file',hive_context_dir + '/tag-mapping.json') | from_json }}"
 
   tasks:
+  - name: debug
+    debug:
+      msg: "{{ tag_mapping_json.keys() }}"
   - name: login to private registry
     docker_login:
       registry: "{{ hive_registry }}"
       username: "{{ hive_safe_docker_login_user }}"
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
 #     email attribute of docker_login has been removed in community.docker 2.0.0.
-#     cause error: Unsupported parameters for (docker_login) module: email. 
+#     cause error: Unsupported parameters for (docker_login) module: email.
 #      email: "{{ hive_safe_email }}"
     when: not (hive_destroy  | default(false))
   - name: login to external repository
@@ -28,15 +32,20 @@
   - name: pull docker images
     docker_image:
       name: >-
+        {% set hive_safe_autovars = {'target_image': False} %}
         {%- if hostvars[item].hive_image_name is defined -%}
           {%- if hive_stage in hostvars[hostvars[item].hive_image_name].hive_pull_on | default([]) -%}
-            {{ hostvars[hostvars[item].hive_image_name].hive_pull_from }}
+            {% set _ = hive_safe_autovars.update({'target_image': hostvars[hostvars[item].hive_image_name].hive_pull_from}) %}
           {%- else -%}
-            {{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest
+            {% set _ = hive_safe_autovars.update({'target_image': hive_registry + '/' + hostvars[item].hive_image_name + ':latest' }) %}
           {%- endif -%}
         {%- else -%}
-          {{hostvars[item].hive_image}}
+          {% set _ = hive_safe_autovars.update({'target_image': hostvars[item].hive_image}) %}
         {%- endif -%}
+        {%- if hive_safe_autovars['target_image'] in tag_mapping_json.keys() -%}
+          {% set _ = hive_safe_autovars.update({'target_image': tag_mapping_json[hive_safe_autovars['target_image']]}) %}
+        {%- endif -%}
+        {{ hive_safe_autovars['target_image'] }}
       # If you add the repository parameter, this module add an unnecessary tag like hive2.pdns:5000
       # Do not add repository: "{{ hive_registry }}"
       source: pull
@@ -62,6 +71,7 @@
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] | intersect(groups[hive_stage]) | list}}{% endif %}"
+    tag_mapping_json: "{{ lookup('file',hive_context_dir + '/tag-mapping.json') | from_json }}"
     hive_safe_proxy_setting:
       HTTP_PROXY: "{{ ansible_env.HTTP_PROXY | default('') }}"
       http_proxy: "{{ ansible_env.http_proxy  | default('') }}"
@@ -100,15 +110,20 @@
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
       logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string), 'syslog-facility': 'local0', 'tag': item} }) }}"
       image: >-
+        {% set hive_safe_autovars = {'target_image': False} %}
         {%- if hostvars[item].hive_image_name is defined -%}
           {%- if hive_stage in hostvars[hostvars[item].hive_image_name].hive_pull_on | default([]) -%}
-            {{ hostvars[hostvars[item].hive_image_name].hive_pull_from }}
+            {% set _ = hive_safe_autovars.update({'target_image': hostvars[hostvars[item].hive_image_name].hive_pull_from}) %}
           {%- else -%}
-            {{ hive_registry }}/{{ hostvars[item].hive_image_name}}:latest
+            {% set _ = hive_safe_autovars.update({'target_image': hive_registry + '/' + hostvars[item].hive_image_name + ':latest' }) %}
           {%- endif -%}
         {%- else -%}
-          {{hostvars[item].hive_image}}
+          {% set _ = hive_safe_autovars.update({'target_image': hostvars[item].hive_image}) %}
         {%- endif -%}
+        {%- if hive_safe_autovars['target_image'] in tag_mapping_json.keys() -%}
+          {% set _ = hive_safe_autovars.update({'target_image': tag_mapping_json[hive_safe_autovars['target_image']]}) %}
+        {%- endif -%}
+        {{ hive_safe_autovars['target_image'] }}
       # Docker calls it command, but swarmkit calls it args
       args: "{{ hostvars[item].hive_command | default(omit) }}"
       # Docker calls it entrypoint, but swarmkit calls it command
