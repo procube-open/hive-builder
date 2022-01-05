@@ -2,5 +2,5 @@
 - name: "setup ddclient"
   import_tasks: ddclient.yml
   when:
-    - inventory_hostname in groups['hives']
-    - ddclient_cred[ansible_host] is defined
+    - inventory_hostname in (groups['hives'] | list )
+    - ddclient_cred[inventory_hostname] is defined

@@ -4,8 +4,24 @@
   hosts: hives
   become: True
   vars:
-    hive_safe_drbd_volumes: "{%if hive_limit is defined %}{{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\\1') | list) | list}}{% else %}{{ groups['drbd_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
-    hive_safe_volumes: "{%if hive_limit is defined %}{{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\\1') | list) | list}}{% else %}{{ groups['volumes']  | default([]) | intersect(groups[hive_stage]) | list}}{% endif %}"
+    hive_safe_drbd_volumes: >-
+      {% if hive_limit is defined -%}
+        {{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
+      {% else -%}
+        {{ groups['drbd_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
+      {% endif %}
+    hive_safe_nfs_volumes: >-
+      {% if hive_limit is defined -%}
+        {{ groups['nfs_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
+      {% else -%}
+        {{ groups['nfs_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
+      {% endif %}
+    hive_safe_volumes: >-
+      {% if hive_limit is defined -%}
+        {{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
+      {% else -%}
+        {{ groups['volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
+      {% endif %}
 
   tasks:
   - include_role:
@@ -24,6 +40,9 @@
     loop: "{{ hive_safe_drbd_volumes }}"
     vars:
       ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  - include_role:
+      name: "nfs-{{ hive_provider }}-volumes"
+    when: (hive_safe_nfs_volumes | length) > 0
   - name: create another driver volume
     docker_volume:
       name: "{{ hostvars[item].hive_volume.name }}"

@@ -78,6 +78,7 @@ class InventoryModule(BaseInventoryPlugin):
     self.inventory.add_group('images')
     self.inventory.add_group('volumes')
     self.inventory.add_group('drbd_volumes')
+    self.inventory.add_group('nfs_volumes')
     self.inventory.add_group('networks')
     available_on = self.get_option('available_on')
     if available_on is None:
@@ -120,7 +121,7 @@ SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'ent
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'source', 'readonly']
-VOLUME_PARAMS_DEF = ['driver', 'driver_opts', 'drbd']
+VOLUME_PARAMS_DEF = ['driver', 'driver_opts', 'drbd', 'nfs']
 
 
 class Network:
@@ -182,12 +183,18 @@ class Service:
         elif type(volume) == AnsibleMapping:
           if 'source' not in volume or 'target' not in volume:
               raise AnsibleParserError(f'both "source" and "target" must be specified in volume at service {self.name}')
+          if 'nfs' in volume:
+            if 'driver' in volume:
+              raise AnsibleParserError(f'both "driver" and "nfs" can not be specified in volume at service {self.name}')
+            if 'drbd' in volume:
+              raise AnsibleParserError(f'both "nfs" and "drbd" can not be specified in volume at service {self.name}')
+            self.add_volume(inventory, {'name': volume['source'], 'nfs': volume['nfs']}, 'nfs_volumes', volume['nfs'].get('available_on', self.available_on))
           if 'driver' in volume:
             # we prepare volume at build-volume phase
             prepared_volume = {'name': volume['source'], 'driver': volume['driver']}
             if 'driver_opts' in volume:
               prepared_volume['dirver_options'] = volume['driver_opts']
-            self.add_volume(inventory, prepared_volume, 'volumes')
+            self.add_volume(inventory, prepared_volume, 'volumes', self.available_on)
           if 'drbd' in volume:
             if 'driver' in volume:
               raise AnsibleParserError(f'both "driver" and "drbd" can not be specified in volume at service {self.name}')
@@ -207,7 +214,8 @@ class Service:
                 if 'device_id' not in volume['drbd']:
                   raise AnsibleParserError(f'too many drbd volumes or garbage device_id are remain in "device_id_map" of persistent hive variable')
             device_id_map[text_type(volume['source'])] = volume['drbd']['device_id']
-            self.add_volume(inventory, {'name': volume['source'], 'drbd': volume['drbd']}, 'drbd_volumes')
+            self.add_volume(inventory, {'name': volume['source'], 'drbd': volume['drbd']},
+                            'drbd_volumes', volume['drbd'].get('available_on', self.available_on))
           volume_value = {}
           for k, v in volume.items():
             # TODO: support properties of mounts property of docker_swarm_service module
@@ -287,9 +295,9 @@ class Service:
         ports.append(portdef)
       inventory.set_variable(self.name, f'hive_ports', ports)
 
-  def add_volume(self, inventory, volume, group):
+  def add_volume(self, inventory, volume, group, available_on):
     name = 'volume_' + volume['name']
     inventory.add_host(name, group=group)
-    for s in self.available_on:
+    for s in available_on:
       inventory.add_host(name, group=s)
     inventory.set_variable(name, 'hive_volume', volume)

@@ -28,6 +28,16 @@
   register: hive_safe_eip
   loop: "{{ hive_safe_instances.results | map(attribute='instances') | flatten | selectattr('public_ip_address', 'defined') | map(attribute='public_ip_address') | difference(hive_safe_hosts | map('extract', hostvars) | selectattr('hive_published_ip', 'defined') | map(attribute='hive_published_ip') | list) | list }}"
 
+- name: Delete EFS file system
+  efs:
+    state: absent
+    name: "efs-{{ hive_name }}"
+    region: "{{ hostvars[groups['mother'] | intersect(groups[hive_stage]) | first].hive_region }}"
+    tags:
+      Name: "efs-{{ hive_name }}"
+      Project: "{{ hive_name }}"
+  when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0
+
 - name: get vpc info
   ec2_vpc_net_info:
     filters:

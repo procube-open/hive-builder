@@ -8,6 +8,7 @@ services:
       MYSQL_HOST: pdnsdb
       MYSQL_DNSSEC: "yes"
       MYSQL_CHECK_INTERVAL: "10"
+      MYSQL_CHECK_RETRY: "50"
     command:
     - "--api=yes"
     - "--api-key={{db_password}}"
@@ -39,10 +40,11 @@ services:
     - source: pdnsdb_data
       target: /var/lib/mysql
       type: volume
-      drbd:
-        fstype: xfs
+      nfs:
         size: 500M
-        diskless: ['s-hive0.pdns']
+        available_on:
+         - production
+         - staging
     backup_scripts:
     - name: pdnsdb
       backup_command: "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
@@ -66,9 +68,11 @@ services:
     - source: pdnsadmin_data
       target: /app/data
       type: volume
-      drbd:
-        fstype: xfs
+      nfs:
         size: 500M
+        available_on:
+         - production
+         - staging
     labels:
       published_fqdn: "pdnsadmin.pdns.{{ domain }}"
     monitor_error:
@@ -92,9 +96,11 @@ services:
     - source: proxy_config
       target: /etc/nginx/conf.d
       type: volume
-      drbd:
-        fstype: xfs
+      nfs:
         size: 80M
+        available_on:
+         - production
+         - staging
     # mode: global
     # endpoint_mode: dnsrr
     placement:
@@ -138,10 +144,8 @@ services:
     - source: letsencrypt_data
       target: /etc/letsencrypt
       type: volume
-      drbd:
-        fstype: xfs
+      nfs:
         size: 52M
-        diskless: ['s-hive1.pdns']
     - source: /var/run/docker.sock
       target: /var/run/docker.sock
     backup_scripts:

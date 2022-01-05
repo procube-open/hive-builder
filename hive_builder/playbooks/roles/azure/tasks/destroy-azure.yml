@@ -20,6 +20,16 @@
     name: "sg_{{ hive_name }}"
     state: absent
 
+- name: Delete storage account for NFS shared storage
+  azure_rm_storageaccount:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ hive_name }}"
+    location: "{{ hive_region }}"
+    kind: FileStorage
+    account_type: Premium_ZRS
+    state: absent
+    force_delete_nonempty: True
+
 - name: Delete subnet for VPC
   azure_rm_subnet:
     resource_group: "{{ hive_safe_azure_resourcegroup }}"
