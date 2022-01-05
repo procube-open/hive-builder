@@ -19,6 +19,7 @@ hive-builder ドキュメントページへようこそ
     migration.rst
     zabbix.rst
     backup.rst
+    tagmapping.rst
     repair.rst
     faq.rst
     bashcompletion.rst
