@@ -1,5 +1,7 @@
+# disk name is assined randomly when RHEL8 on azure, try symbolic link created by udev rules.
 hive_default_mirrored_disk_device:
   device_order:
+    - /dev/disk/azure/scsi1/lun0
     - /dev/sdc
     - /dev/sdb
     - /dev/vdc
