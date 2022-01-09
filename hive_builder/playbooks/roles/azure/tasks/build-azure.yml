@@ -25,8 +25,39 @@
     name: "{{ item.name }}"
     address_prefix: "{{ item.cidr }}"
     virtual_network: "{{ hive_safe_vpc_name }}"
+    service_endpoints:
+      - service: "Microsoft.Storage"
+        locations:
+          - "{{ hive_region }}"
   loop: "{{ hive_subnets }}"
   register: subnets_facts
+
+
+- name: Create storage account for NFS shared storage
+  azure_rm_storageaccount:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "{{ hive_name }}"
+    account_type: Premium_ZRS
+    https_only: False
+    location: "{{ hive_region }}"
+    kind: FileStorage
+    network_acls:
+      bypass: AzureServices
+      default_action: Deny
+      virtual_network_rules: >-
+        {% set network_rules = [] -%}
+        {% for subnet in hive_subnets -%}
+           {% set _ = network_rules.append({
+               'id': '/subscriptions/' + lookup('env','AZURE_SUBSCRIPTION_ID')  + '/resourceGroups/' +
+                  hive_name + '/providers/Microsoft.Network/virtualNetworks/' +
+                  hive_safe_vpc_name + '/subnets/' +
+                  subnet.name,
+               'action': 'Allow'
+             }) -%}
+        {% endfor -%}
+        {{ network_rules }}
+    state: present
+  when: (groups['nfs_volumes']  | default([]) | intersect(groups[hive_stage]) | list | length) > 0
 
 - name: Create Network Security Group for site specific inbound rules from internet
   azure_rm_securitygroup:

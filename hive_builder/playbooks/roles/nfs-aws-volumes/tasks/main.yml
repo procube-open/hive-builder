@@ -1,0 +1,59 @@
+- name: delete nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    state: absent
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: hive_destroy | default(false)
+- name: create directory for EFS root
+  file:
+    state: directory
+    path: /mnt/efs_root
+- name: Search EFS
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  run_once: True
+  become: False
+  efs_info:
+    name: "efs-{{ hive_name }}"
+    region: "{{ hostvars[groups['mother'] | intersect(groups[hive_stage]) | first].hive_region }}"
+    tags:
+      Name: "efs-{{ hive_name }}"
+      Project: "{{ hive_name }}"
+  register: efs_info_results
+- name: mount EFS root
+  run_once: True
+  mount:
+    path: /mnt/efs_root
+    src: "{{ (efs_info_results.efs | first).file_system_id }}.efs.{{ hostvars[groups['mother'] | intersect(groups[hive_stage]) | first].hive_region }}.amazonaws.com:/"
+    opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport
+    state: mounted
+    fstype: nfs
+  # when: inventory_hostname in groups['first_hive']
+- name: create mount point
+  run_once: True
+  file:
+    state: "{% if hive_destroy  | default(false) %}absent{% else %}directory{% endif %}"
+    path: "/mnt/efs_root/{{ hostvars[item].hive_volume.name }}"
+  loop: "{{ hive_safe_nfs_volumes }}"
+  # when: inventory_hostname in groups['first_hive']
+- name: create nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    # The no such device error you are seeing is happening because the EFS mount helper
+    # is not compatible with the docker local volume plugin. Currently the only way
+    # to reference an EFS file system in your task definition is to mount using NFS.
+    # https://github.com/aws/efs-utils/issues/39
+    driver_options:
+      type: nfs
+      device: ":/{{ hostvars[item].hive_volume.name }}"
+      o: "addr={{ (efs_info_results.efs | first).file_system_id
+          }}.efs.{{ hostvars[groups['mother'] | intersect(groups[hive_stage]) | first].hive_region
+          }}.amazonaws.com,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport"
+    state: present
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: not (hive_destroy | default(false))

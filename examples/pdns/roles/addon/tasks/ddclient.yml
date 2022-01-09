@@ -1,10 +1,10 @@
 ---
-- name: install epel-release
-  yum:
-    name: epel-release
-  become: True
-  when: ansible_distribution != 'Amazon'
-
+# - name: install epel-release
+#   yum:
+#     name: epel-release
+#   become: True
+#   when: ansible_distribution != 'Amazon'
+#
 - name: get package list
   yum:
     list: epel-release
@@ -21,17 +21,63 @@
     # The repo is now powertools instead of PowerTools
     # https://bugs.centos.org/view.php?id=17920
     enablerepo: "{{ omit if ansible_distribution == 'Amazon' else 'PowerTools' if ansible_distribution_version is version('8.2', 'lt') else 'powertools' }}"
-
-- name: replace ddclient.conf
+  when: ansible_distribution == 'Amazon'
+- name: downnload ddclinet
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  run_once: True
+  become: False
+  get_url:
+    url: "https://github.com/ddclient/ddclient/archive/refs/tags/v3.9.1.zip"
+    dest: "{{ hive_context_dir }}/"
+  when: ansible_distribution != 'Amazon'
+- name: unarchive ddclinet
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  run_once: True
+  become: False
+  unarchive:
+    src: "{{ hive_context_dir }}/ddclient-3.9.1.zip"
+    dest: "{{ hive_context_dir }}/"
+    remote_src: True
+    creates: "{{ hive_context_dir }}/ddclient-3.9.1"
+  when: ansible_distribution != 'Amazon'
+- name: install dependent packages
+  yum:
+    name:
+    - perl-IO-Socket-INET6
+    - perl-IO-Socket-SSL
+    - perl-JSON-PP
+    - https://download-ib01.fedoraproject.org/pub/epel/8/Everything/aarch64/Packages/p/perl-Data-Validate-IP-0.27-11.el8.noarch.rpm
+    disable_gpg_check: True
+  when: ansible_distribution != 'Amazon'
+- name: install ddclient
+  copy:
+    src: "{{ hive_context_dir }}/ddclient-3.9.1/ddclient"
+    dest: /usr/sbin
+    mode: "0755"
+  when: ansible_distribution != 'Amazon'
+- name: create ddclient User
+  user:
+    name: ddclient
+    shell: /sbin/nologin
+  when: ansible_distribution != 'Amazon'
+- name: install ddclient.conf
   template:
     src: ddclient.conf.j2
     dest: /etc/ddclient.conf
+    mode: "0600"
+    owner: ddclient
+- name: install sysconfig/ddclient
+  copy:
+    src: sysconfig-ddclient
+    dest: /etc/sysconfig/ddclient
+    mode: "0600"
+    owner: ddclient
+  when: ansible_distribution != 'Amazon'
 
-- name: replace ddclient.service
+- name: install/replace ddclient.service
   copy:
     src: ddclient.service
     dest: /usr/lib/systemd/system/ddclient.service
-
 - name: start ddclient
   systemd:
     name: ddclient

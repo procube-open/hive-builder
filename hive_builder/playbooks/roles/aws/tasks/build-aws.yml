@@ -78,3 +78,21 @@
   loop: "{{ hive_safe_hosts }}"
   loop_control:
     loop_var: aws_host
+
+- name: Create EFS file system
+  efs:
+    state: present
+    name: "efs-{{ hive_name }}"
+    region: "{{ hive_region }}"
+    tags:
+      Name: "efs-{{ hive_name }}"
+      Project: "{{ hive_name }}"
+    targets: |-
+      {% set targets = [] %}
+      {% for subnet in (hive_safe_subnets_info.results | map(attribute='subnet') | list) %}
+      {%   set _ = targets.append({'subnet_id': subnet.id}) %}
+      {% endfor %}
+      {{ targets }}
+    encrypt: "{{ hive_mirrored_disk_encrypted | default(False) }}"
+    kms_key_id: "{{ (hive_kms_key_id | default(omit)) if (hive_mirrored_disk_encrypted | default(False)) else omit }}"
+  when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0

@@ -9,8 +9,36 @@
   changed_when: False
   check_mode: False
   when: ansible_distribution == 'RedHat'
+- name: get partition info for root
+  parted:
+    device: "{{ vgroot.stdout | regex_replace('^([/a-z]*)([0-9]*)$', '\\1') }}"
+    unit: MiB
+  register: hive_safe_parted
+  when: ansible_distribution == 'RedHat'
+- set_fact:
+    hive_safe_partition: "{{ hive_safe_parted.partitions | selectattr('num', 'eq', vgroot.stdout | regex_replace('^([/a-z]*)([0-9]*)$', '\\2') | int) | first}}"
+- name: fdisk partition for root
+  shell: "echo -e 'd\n2\nn\n\n\n\nw' | fdisk {{ vgroot.stdout | regex_replace('^([/a-z]*)([0-9]*)$', '\\1') }} >& /root/fdiks.log"
+  when: ansible_distribution == 'RedHat' and hive_safe_partition.end < (hive_disk_size * 1024)
+  register: hive_safe_parted_result
+- name: reboot
+  shell: "sleep 2 && {{ hive_reboot_command | default('reboot')}}"
+  async: 1
+  poll: 0
+  changed_when: false
+  when: hive_safe_parted_result is changed
+- name: wait for connectable
+  wait_for_connection:
+    delay: 30
+  when: hive_safe_parted_result is changed
+- name: get vgroot device
+  shell: "pvdisplay -c | awk -F : '/rootvg/{print $1}' | awk '{print $1}'"
+  register: vgroot
+  changed_when: False
+  check_mode: False
+  when: ansible_distribution == 'RedHat'
 - name: grow partition
-  shell: "{{ 'pvresize ' + vgroot.stdout + ' && lvextend -l $(pvdisplay -c ' + vgroot.stdout + ' | cut -d : -f 10) rootvg/rootlv' if ansible_distribution == 'RedHat'
-     else 'growpart /dev/sda 2' }} && xfs_growfs / >& /root/growpart.log"
+  shell: "{{ 'pvresize ' + vgroot.stdout + ' &>>/root/growpart.log && lvextend -l $(pvdisplay -c ' + vgroot.stdout + ' | cut -d : -f 10) rootvg/rootlv' if ansible_distribution == 'RedHat'
+     else 'growpart /dev/sda 2' }} &>>/root/growpart.log && xfs_growfs / &>> /root/growpart.log"
   args:
     creates: /root/growpart.log

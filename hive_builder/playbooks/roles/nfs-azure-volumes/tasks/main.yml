@@ -1,0 +1,44 @@
+- name: Delete nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    state: absent
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: hive_destroy | default(false)
+- name: Create storage share
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  run_once: True
+  become: False
+  azure_rm_storageshare:
+    name: "{{ hostvars[item].hive_volume.name | regex_replace('_', '-') }}"
+    resource_group: "{{ hive_name }}"
+    account_name: "{{ hive_name }}"
+    state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
+    enabled_protocols: NFS
+    quota: >-
+      {% if hostvars[item].hive_volume.nfs.size is match('^[0-9]+M$') -%}
+         {{ [100, (hostvars[item].hive_volume.nfs.size | regex_replace('^([0-9]+)M$', '\1') | int) / 1024 | int] | max }}
+      {% endif %}
+      {% if hostvars[item].hive_volume.nfs.size is match('^[0-9]+G$') -%}
+         {{ [100, hostvars[item].hive_volume.nfs.size | regex_replace('^([0-9]+)G$', '\1') | int] | max }}
+      {% endif %}
+  loop: "{{ hive_safe_nfs_volumes }}"
+- name: create nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    # The no such device error you are seeing is happening because the EFS mount helper
+    # is not compatible with the docker local volume plugin. Currently the only way
+    # to reference an EFS file system in your task definition is to mount using NFS.
+    # https://github.com/aws/efs-utils/issues/39
+    driver_options:
+      type: nfs
+      device: ":/{{ hive_name }}/{{ hostvars[item].hive_volume.name | regex_replace('_', '-') }}"
+      o: "addr={{ hive_name }}.file.core.windows.net,vers=4,minorversion=1,sec=sys"
+    state: present
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: not (hive_destroy | default(false))

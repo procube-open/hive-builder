@@ -63,3 +63,21 @@
   loop: "{{ hive_safe_hosts }}"
   loop_control:
     loop_var: gcp_host
+
+- name: Create filestore instance
+  gcp_filestore_instance:
+    name: "filestore-{{ hive_name }}"
+    zone: "{{ hive_region }}"
+    project: "{{hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    tier: ENTERPRISE
+    file_shares:
+    - capacity_gb: "{{ hive_gcp_capacity_gb | default(1024) }}"
+      name: filestore_root
+    networks:
+    - network: "{{ hive_safe_vpc_name }}"
+      modes:
+      - MODE_IPV4
+    state: present
+  when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0

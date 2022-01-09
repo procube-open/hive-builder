@@ -11,7 +11,7 @@ EnvironmentFile=-/etc/sysconfig/ddclient
 PermissionsStartOnly=true
 ExecStartPre=/bin/mkdir -p /var/run/ddclient
 ExecStartPre=-/bin/chown ddclient:ddclient /var/run/ddclient
-ExecStartPre=-/bin/chmod 700 /run/run/ddclient
+ExecStartPre=-/bin/chmod 700 /var/run/ddclient
 ExecStart=/usr/sbin/ddclient $DDCLIENT_OPTIONS
 
 [Install]

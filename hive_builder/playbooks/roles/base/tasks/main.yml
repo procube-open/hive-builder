@@ -4,6 +4,12 @@
   when: ansible_distribution != 'Amazon' and hive_yum_url is defined and hive_yum_url != omit
 - import_tasks: growfs.yml
   when: hive_provider == 'azure' and hive_disk_size is defined
+- name: install nfs utils
+  yum: name=nfs-utils state=present
+  when: groups['nfs_volumes'] | length > 0
+- name: activate nfs service
+  service: name=nfs enabled=yes state=started
+  when: groups['nfs_volumes'] | length > 0 and ansible_distribution == 'Amazon'
 - name: make yum do not update kernel* package
   lineinfile:
     path: /etc/yum.conf
@@ -15,18 +21,22 @@
   register: uname_result
   check_mode: False
   changed_when: False
+- debug: var=ansible_distribution
+- debug: var=ansible_distribution_release
 - name: update kernel for drbd
   yum:
     name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else
-                    ('4.18.0-326*.el8' if ansible_distribution_release == 'Stream' else
+                    ('4.18.0-348*.el8' if ansible_distribution_release == 'Stream' else
+                     '4.18.0-193*.el8' if ansible_distribution_release == 'Ootpa' else
                      '4.18.0-305*.el8') }}"
     disable_excludes: main
     state: latest
-  when: (ansible_distribution == 'CentOS' and (
+  when: (ansible_distribution in ['CentOS', 'RedHat'] and (
          (ansible_distribution_release != 'Stream' and uname_result.stdout is version('4.18.0-305', 'lt')) or
-         (ansible_distribution_release == 'Stream' and uname_result.stdout is version('4.18.0-326', 'lt')))) or
+         (ansible_distribution_release == 'Stream' and uname_result.stdout is version('4.18.0-348', 'lt')))) or
         (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt'))
   notify: require reboot
+  when: hive_mirrored_disk_size is defined
 - name: install packages
   yum:
     state: present
