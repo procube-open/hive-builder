@@ -1,0 +1,58 @@
+- name: delete nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    state: absent
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: hive_destroy | default(false)
+- name: create directory for filestore root
+  file:
+    state: directory
+    path: /mnt/filestore_root
+- name: Search filestore
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  run_once: True
+  become: False
+  gcp_filestore_instance_info:
+    zone: "{{ hostvars[groups['mother'] | intersect(groups[hive_stage]) | first].hive_region }}"
+    project: "{{ (lookup('file', hive_root_dir + '/gcp_credential.json') | from_json).project_id }}"
+    auth_kind: serviceaccount
+    service_account_file: "{{ hive_root_dir }}/gcp_credential.json"
+  register: filestore_instance_info_results
+- debug: var=filestore_instance_info_results
+- set_fact:
+    gcp_filestore_address: "{{ ((filestore_instance_info_results.resources |
+      selectattr('name', 'match', '.*/filestore-' + hive_name + '$') | first).networks | first).ipAddresses | first }}"
+    gcp_filestore_name: "{{ ((filestore_instance_info_results.resources |
+      selectattr('name', 'match', '.*/filestore-' + hive_name + '$') | first).fileShares | first).name }}"
+- name: mount filestore root
+  run_once: True
+  mount:
+    path: /mnt/filestore_root
+    src: "{{ gcp_filestore_address }}:/{{ gcp_filestore_name }}"
+    opts: hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async
+    state: mounted
+    fstype: nfs
+  # when: inventory_hostname in groups['first_hive']
+- name: create mount point
+  run_once: True
+  file:
+    state: "{% if hive_destroy  | default(false) %}absent{% else %}directory{% endif %}"
+    path: "/mnt/filestore_root/{{ hostvars[item].hive_volume.name }}"
+  loop: "{{ hive_safe_nfs_volumes }}"
+  # when: inventory_hostname in groups['first_hive']
+- name: create nfs volume
+  docker_volume:
+    name: "{{ hostvars[item].hive_volume.name }}"
+    driver: "local"
+    driver_options:
+      type: nfs
+      device: ":/{{ gcp_filestore_name }}/{{ hostvars[item].hive_volume.name }}"
+      o: "addr={{ gcp_filestore_address }},hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async"
+    state: present
+  loop: "{{ hive_safe_nfs_volumes }}"
+  vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  when: not (hive_destroy | default(false))
