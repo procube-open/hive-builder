@@ -36,7 +36,8 @@
     ansible_docker_extra_args: "-H unix://{{ hive_temp_dir }}/docker.sock@{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
     hive_safe_image_tag: "{{hostvars[hive_safe_repository_server].hive_registry}}/{{ inventory_hostname }}:{{ lookup('pipe', 'date +\"%Y%m%d%H%M%S\"') }}"
     hive_safe_image_tag_latest: "{{hostvars[hive_safe_repository_server].hive_registry}}/{{ inventory_hostname }}:latest"
-    tag_mapping_json: "{{ lookup('file',hive_context_dir + '/tag-mapping.json') | from_json }}"
+    tag_mapping_json: "{{ dict() if lookup('first_found', dict(files=[hive_context_dir + '/tag-mapping.json'], skip=true)) == []
+      else lookup('file',hive_context_dir + '/tag-mapping.json') | from_json}}"
 
   tasks:
   - set_fact:

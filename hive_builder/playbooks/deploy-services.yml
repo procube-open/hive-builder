@@ -5,7 +5,8 @@
   vars:
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | list) | list}}{% else %}{{ groups['services']  | intersect(groups[hive_stage]) | list }}{% endif %}"
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
-    tag_mapping_json: "{{ lookup('file',hive_context_dir + '/tag-mapping.json') | from_json }}"
+    tag_mapping_json: "{{ dict() if lookup('first_found', dict(files=[hive_context_dir + '/tag-mapping.json'], skip=true)) == []
+      else lookup('file',hive_context_dir + '/tag-mapping.json') | from_json}}"
 
   tasks:
   - name: debug
@@ -71,7 +72,8 @@
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
     hive_safe_services: "{%if hive_limit is defined %}{{ groups['services'] | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')) | list}}{% else %}{{ groups['services'] | intersect(groups[hive_stage]) | list}}{% endif %}"
-    tag_mapping_json: "{{ lookup('file',hive_context_dir + '/tag-mapping.json') | from_json }}"
+    tag_mapping_json: "{{ dict() if lookup('first_found', dict(files=[hive_context_dir + '/tag-mapping.json'], skip=true)) == []
+      else lookup('file',hive_context_dir + '/tag-mapping.json') | from_json}}"
     hive_safe_proxy_setting:
       HTTP_PROXY: "{{ ansible_env.HTTP_PROXY | default('') }}"
       http_proxy: "{{ ansible_env.http_proxy  | default('') }}"
