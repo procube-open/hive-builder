@@ -29,6 +29,7 @@
     account_type: Premium_ZRS
     state: absent
     force_delete_nonempty: True
+  when: (groups['nfs_volumes']  | default([]) | intersect(groups[hive_stage]) | list | length) > 0
 
 - name: Delete subnet for VPC
   azure_rm_subnet:
