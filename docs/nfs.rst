@@ -101,6 +101,12 @@ AmazonElasticFileSystemFullAccess を付与してください。
 
 Azure Files NFSファイル共有の自動構築
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+   Azure Files NFSファイル共有の自動構築を利用する場合は
+   hive名の長さが 3文字以上 24文字以下でなければなりません。
+
 azure プロバイダで volumeの定義に nfs 属性が指定されている場合、
 以下のパラメータでストレージアカウントが作成されます。
 
@@ -192,13 +198,17 @@ GCP Cloud Filestore の自動構築を使用する場合は、
 サービスアカウントのロールに「Cloud Filestore 編集者」の権限を与えてください。
 
 また、EnterpriseStorageGibPerRegion を以下の手順で割り当ててください。
+
 1. IAM の割当で EnterpriseStorageGibPerRegion で検索し、自分のリージョンにチェックして上の割当を編集をクリック
 2. 利用する容量（単位GB）を割り当てて、「次へ」をクリック
 3. 開いた連絡先を確認後「送信」をクリック
+
 割当の変更には営業日で2日程度かかる場合があります。
 
-GCP Cloud Filestore の自動構築では、
-build-infra フェーズで20分から30分の時間がかかる場合がありますので注意してください。
+.. warning::
+
+  GCP Cloud Filestore の自動構築では、
+  build-infra フェーズで20分から30分の時間がかかる場合がありますので注意してください。
 
 DRBDとの比較
 ----------------------------------------
