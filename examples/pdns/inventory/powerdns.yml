@@ -40,8 +40,9 @@ services:
     - source: pdnsdb_data
       target: /var/lib/mysql
       type: volume
-      nfs:
+      drbd:
         size: 500M
+        fstype: xfs
         available_on:
          - production
          - staging
@@ -68,13 +69,14 @@ services:
     - source: pdnsadmin_data
       target: /app/data
       type: volume
-      nfs:
+      drbd:
         size: 500M
+        fstype: xfs
         available_on:
          - production
          - staging
     labels:
-      published_fqdn: "pdnsadmin.pdns.{{ domain }}"
+      published_fqdn: "pdnsadmin.pdns2.{{ domain }}"
     monitor_error:
       - Error
       - Exception
@@ -146,6 +148,7 @@ services:
       type: volume
       nfs:
         size: 52M
+        fstype: xfs
     - source: /var/run/docker.sock
       target: /var/run/docker.sock
     backup_scripts:
