@@ -55,7 +55,7 @@
     line: "        usage-count no;"
     path: /etc/drbd.d/global_common.conf
     state: present
-- name: change usage count setting
+- name: setup minor-count configuration
   lineinfile:
     insertafter: "# minor-count"
     line: "        minor-count 128;"
