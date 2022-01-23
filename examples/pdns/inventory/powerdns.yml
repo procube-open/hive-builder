@@ -40,11 +40,12 @@ services:
     - source: pdnsdb_data
       target: /var/lib/mysql
       type: volume
-      nfs:
+      drbd:
         size: 500M
+        fstype: xfs
         available_on:
-         - production
-         - staging
+        - production
+        - staging
     backup_scripts:
     - name: pdnsdb
       backup_command: "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
@@ -68,13 +69,14 @@ services:
     - source: pdnsadmin_data
       target: /app/data
       type: volume
-      nfs:
+      drbd:
         size: 500M
+        fstype: xfs
         available_on:
-         - production
-         - staging
+        - production
+        - staging
     labels:
-      published_fqdn: "pdnsadmin.pdns.{{ domain }}"
+      published_fqdn: "pdnsadmin.{{ hive_name }}.{{ domain }}"
     monitor_error:
       - Error
       - Exception
@@ -96,11 +98,12 @@ services:
     - source: proxy_config
       target: /etc/nginx/conf.d
       type: volume
-      nfs:
+      drbd:
         size: 80M
+        fstype: xfs
         available_on:
-         - production
-         - staging
+        - production
+        - staging
     # mode: global
     # endpoint_mode: dnsrr
     placement:
@@ -144,8 +147,9 @@ services:
     - source: letsencrypt_data
       target: /etc/letsencrypt
       type: volume
-      nfs:
+      drbd:
         size: 52M
+        fstype: xfs
     - source: /var/run/docker.sock
       target: /var/run/docker.sock
     backup_scripts:

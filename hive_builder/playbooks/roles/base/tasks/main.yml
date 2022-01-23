@@ -31,12 +31,12 @@
                      '4.18.0-305*.el8') }}"
     disable_excludes: main
     state: latest
-  when: (ansible_distribution in ['CentOS', 'RedHat'] and (
-         (ansible_distribution_release != 'Stream' and uname_result.stdout is version('4.18.0-305', 'lt')) or
-         (ansible_distribution_release == 'Stream' and uname_result.stdout is version('4.18.0-348', 'lt')))) or
-        (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt'))
+  when: hive_mirrored_disk_size is defined and (
+         (ansible_distribution in ['CentOS', 'RedHat'] and (
+           (ansible_distribution_release != 'Stream' and uname_result.stdout is version('4.18.0-305', 'lt')) or
+           (ansible_distribution_release == 'Stream' and uname_result.stdout is version('4.18.0-348', 'lt')))) or
+         (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt')))
   notify: require reboot
-  when: hive_mirrored_disk_size is defined
 - name: install packages
   yum:
     state: present

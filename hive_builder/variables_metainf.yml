@@ -341,3 +341,13 @@ retries:
   default: 0
   name_in_ansible_cfg: retries
   section_in_ansible_cfg: ssh_connection
+zabbix_backup_cleanup_days_before:
+  description: days to clean up backup data of zabbix
+  type: int
+  default: 3
+  name_in_ansible: hive_zabbix_backup_cleanup_days_before
+registry_backup_cleanup_days_before:
+  description: days to clean up backup data of registry
+  type: int
+  default: 3
+  name_in_ansible: hive_registry_backup_cleanup_days_before
