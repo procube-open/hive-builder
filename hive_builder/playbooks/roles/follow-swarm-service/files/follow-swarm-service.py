@@ -13,6 +13,10 @@ import json
 import signal
 import time
 import threading
+from datetime import datetime, timedelta
+
+STREAM_REFLESH_INTERVAL = timedelta(seconds=int(os.environ.get('HIVE_STREAM_REFLESH_INTERVAL', "30")))
+STREAM_MAX_DELAY = int(os.environ.get('HIVE_STREAM_MAX_DELAY', "5"))
 
 logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
@@ -257,6 +261,7 @@ class HookBase:
   def check_tasks(self):
     stay = False
     running_task = None
+    DAEMON.logger.debug(f'start search for running task for service {self.id}')
     for task in DAEMON.client.services.get(self.serivce_id).tasks():
       if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
         DAEMON.logger.debug(f'found task: {json.dumps(task)}')
@@ -264,6 +269,7 @@ class HookBase:
         running_task = task
         break
     self.task = running_task
+    DAEMON.logger.debug(f'end search for running task for service {self.id} stay {self.stay} -> {stay}')
     if self.stay and not stay:
       self.on_leave()
     elif stay and not self.stay:
@@ -618,17 +624,28 @@ class FollowSwarmServiceDaemon:
       self.logger.exception(f'exception occur in shutdown process: {e}')
 
   def run(self):
-    self.logger.info('Follow Swarm Service Daemon Started')
+    self.logger.info(f'Follow Swarm Service Daemon Started log level:{os.environ.get("HIVE_LOG_LEVEL", "INFO")}')
+    since = datetime.now()
     self.check_services()
     try:
-      for ev in self.client.events(decode=True):
-        if ev.get('Type') == 'service':
-          self.logger.debug('service type event received')
-          self.check_services()
-          self.logger.debug('container type event received')
-        if ev.get('Type') == 'container':
-          self.check_tasks()
-      # when events() return End of Element, it means node is down
+      while True:
+        until = datetime.now() + STREAM_REFLESH_INTERVAL
+        self.logger.debug(f'read event stream since={since.isoformat(sep=" ", timespec="seconds")} until={until.isoformat(sep=" ", timespec="seconds")}')
+        for ev in self.client.events(decode=True, since=since.timestamp() - 1, until=until.timestamp()):
+          delay = (datetime.now() - until).total_seconds()
+          if delay > STREAM_MAX_DELAY:
+            self.logger.warning(f'event receiving process is too long delayed ({delay} > {STREAM_MAX_DELAY})')
+            until = datetime.now()  # trick for since value of next loop
+            self.check_services()
+            self.check_tasks()
+            break
+          if ev.get('Type') == 'service':
+            self.logger.debug(f'service event received')
+            self.check_services()
+          if ev.get('Type') == 'container' and ev.get('Action') in ['start', 'stop', 'die']:
+            self.logger.debug(f'container type {ev.get("Action")} event received')
+            self.check_tasks()
+        since = until
     except docker.errors.APIError as e:
       # raise exception from docker api, it means node is down
       self.logger.exception(f'fail to call docker api: {e}')
