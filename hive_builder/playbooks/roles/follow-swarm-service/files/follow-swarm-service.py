@@ -262,12 +262,16 @@ class HookBase:
     stay = False
     running_task = None
     DAEMON.logger.debug(f'start search for running task for service {self.id}')
-    for task in DAEMON.client.services.get(self.serivce_id).tasks():
-      if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
-        DAEMON.logger.debug(f'found task: {json.dumps(task)}')
-        stay = True
-        running_task = task
-        break
+    try:
+      for task in DAEMON.client.services.get(self.serivce_id).tasks():
+        if task.get('DesiredState') == 'running' and task.get('NodeID') == DAEMON.node_id:
+          DAEMON.logger.debug(f'found task: {json.dumps(task)}')
+          stay = True
+          running_task = task
+          break
+    except docker.errors.NotFound:
+      DAEMON.logger.info(f'service {self.service_name}({self.serivce_id}) is already deleted')
+      stay = False
     self.task = running_task
     DAEMON.logger.debug(f'end search for running task for service {self.id} stay {self.stay} -> {stay}')
     if self.stay and not stay:
