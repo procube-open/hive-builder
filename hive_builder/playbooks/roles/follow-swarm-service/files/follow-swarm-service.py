@@ -64,13 +64,13 @@ class NATExecutor:
     return proto, port
 
   def gen_dnat_comment(self, ip, proto, port):
-    return f'hive_dnat_{ip}_{proto}_{port}_'
+    return f'hive_dnat_{ip}_{proto}_{port}_{self.service_name}'
 
   def gen_accept_comment(self, ip, proto, port):
-    return f'hive_accept_{ip}_{proto}_{port}_'
+    return f'hive_accept_{ip}_{proto}_{port}_{self.service_name}'
 
   def gen_snat_comment(self, ip):
-    return f'hive_snat_{ip}_'
+    return f'hive_snat_{ip}_{self.service_name}'
 
   def wrap_dnat_address(self, ip):
     return ip
@@ -633,7 +633,7 @@ class FollowSwarmServiceDaemon:
     self.check_services()
     try:
       while True:
-        until = datetime.now() + STREAM_REFLESH_INTERVAL
+        until = since + STREAM_REFLESH_INTERVAL
         self.logger.debug(f'read event stream since={since.isoformat(sep=" ", timespec="seconds")} until={until.isoformat(sep=" ", timespec="seconds")}')
         for ev in self.client.events(decode=True, since=since.timestamp() - 1, until=until.timestamp()):
           delay = (datetime.now() - until).total_seconds()
