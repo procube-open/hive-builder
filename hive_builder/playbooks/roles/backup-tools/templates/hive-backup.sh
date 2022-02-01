@@ -4,7 +4,7 @@ LOGGER=${0##*/}
 . ~/docker/bin/activate
 
 function message () {
-  echo "INFO: $LOGGER:" $*
+  echo "INFO: $LOGGER:" "$*"
 }
 
 function error () {
@@ -73,7 +73,7 @@ for service in $targets; do
         message "FAIL backup for hive-zabbix"
       fi
       message "Clean up old files than {{ hive_zabbix_backup_cleanup_days_before }} like backup-hive-zabbix-*.sql.gz"
-      find ./ -name "backup-hive-zabbix-*.sql.gz" -mtime +{{ hive_zabbix_backup_cleanup_days_before }} -type f | xargs rm -f
+      find ./ -name "backup-hive-zabbix-*.sql.gz" -daystart -mtime +{{ hive_zabbix_backup_cleanup_days_before }} -type f | xargs rm -f
       message "LEAVE SERVICE hive-zabbix for BACKUP"
     }
     function restore_hive-zabbix() {
@@ -112,7 +112,7 @@ for service in $targets; do
         message "FAIL backup for hive-registry"
       fi
       message "Clean up old files than {{ hive_registry_backup_cleanup_days_before }} like backup-hive-registry-*.tar.gz"
-      find ./ -name "backup-hive-registry-*.tar.gz" -mtime +{{ hive_registry_backup_cleanup_days_before }} -type f | xargs rm -f
+      find ./ -name "backup-hive-registry-*.tar.gz" -daystart -mtime +{{ hive_registry_backup_cleanup_days_before }} -type f | xargs rm -f
       message "LEAVE SERVICE hive-registry for BACKUP"
     }
     function restore_hive-registry() {
