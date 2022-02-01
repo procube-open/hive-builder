@@ -48,7 +48,7 @@ function backup_{{ hive_safe_target }}() {
     {%- if hive_safe_backup_script.cleanup_days_before is defined %}
 
   message "Clean up old files than {{ hive_safe_backup_script.cleanup_days_before }} like backup-{{ hive_safe_backup_script.name }}-*.{{ hive_safe_backup_script.ext | default('tar.gz')}}"
-  find ./ -name "backup-{{ hive_safe_backup_script.name }}-*.{{ hive_safe_backup_script.ext | default('tar.gz')}}" -mtime +{{ hive_safe_backup_script.cleanup_days_before }} -type f | xargs rm -f
+  find ./ -name "backup-{{ hive_safe_backup_script.name }}-*.{{ hive_safe_backup_script.ext | default('tar.gz')}}" -daystart -mtime +{{ hive_safe_backup_script.cleanup_days_before }} -type f | xargs rm -f
     {%- endif %}
   {%- endfor %}
 

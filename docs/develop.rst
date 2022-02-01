@@ -459,3 +459,35 @@ separate_repository: True の状態で、リポジトリサーバを除いてコ
 ::
 
     when: inventory_hostname in groups['hives']
+
+グループを使った切り分け
+----------------------------------------
+
+hive のインベントリには以下のグループが定義されています。
+
+=================== =================================================
+グループ名          説明
+=================== =================================================
+drbd_volumes        DRBDのボリューム
+first_hive          1台目のコンテナ収容サーバ
+hives               コンテナ収容サーバ
+hosts               全サーバ（mother + servers）
+images              ビルドイメージ
+mother              motherマシン
+networks            仮想ネットワーク
+private             privateステージでビルド対象となるもの
+production          productionステージでビルド対象となるもの
+repository          リポジトリサーバ
+servers             サーバ（repsoitory ∪ hives）
+services            サービス
+staging             stagingステージでビルド対象となるもの
+=================== =================================================
+
+.. note::
+
+    separate_repository: False の場合は最後の1台はコンテナ収容サーバ兼
+    リポジトリサーバとなるため、 hives, repository の両方に属します。
+
+これらのグループを使って、when でビルド対象がグループに含まれる場合に
+限定したり、 inventory/group_vars/グループ名.yml に変数定義することで
+変数のスコープを限定したりすることができます。
