@@ -156,7 +156,7 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 :対応方法: 仮想環境を作成し、そこに hive-builder をインストールして、仮想環境をアクティベートしてから hiveコマンドを実行してください。
       仮想環境をアクティベートすると、OSには python3 しかインストールされていな状態でも pythonコマンドが利用できます。
 
-異常がないのに zabbix で At least one of the services is in a failed state のトリガーがあがる
+異常がないのに zabbix で At least one of the services is in a failed state のトリガーがあがります
 ----------------------------------------------------------------------------------------------------------
 :現象:
 
@@ -177,7 +177,7 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 
     $ sudo systemctl reset-failed
 
-異なるホストに配置されたサービス間の通信ができない
+異なるホストに配置されたサービス間の通信ができません
 ----------------------------------------------------------------------------------------------------
 :現象: 異なるホストに配置されたサービス間で通信できない。例えば、hive-builder のサンプルにおいて、
        powerdns サービスから pdnsdb へのアクセスが異なるホストに配置されたときのみアクセスができないという現象が発生する場合がある。
@@ -267,3 +267,26 @@ docker swarm join-token manager で表示されたトークンの値を記録し
     hive ssh -t ホスト名
     sudo systemctl restart follow-swarm-service.service
     logout
+
+dockerhub からイメージをダウンロードするときにダウンロードでエラーになります
+----------------------------------------------------------------------------------------------------
+:現象: dockerhub からイメージをダウンロードする際に toomanyrequests のエラーになる。
+       例えば、setup-hosts フェーズの zabbix サーバの起動タスクで以下のようなエラーになる。
+
+::
+
+  TASK [zabbix : compose up zabbix container] ***************************************************************************************************************
+  fatal: [p-hive0.nec-hss]: FAILED! => changed=false
+  errors: []
+    module_stderr: ''
+    module_stdout: ''
+    msg: 'Error starting project 500 Server Error for http+docker://localhost/v1.41/images/create?tag=alpine-5.2-latest&fromImage=zabbix%2Fzabbix-server-mysql: Internal Server Error ("toomanyrequests: You have reached your pull rate limit. You may increase the limit by authenticating and upgrading: https://www.docker.com/increase-rate-limit")'
+
+:原因: dockerhub の `アクセス頻度制限 <https://www.docker.com/increase-rate-limit>`_ の上限を超えてアクセスした。
+       アクセス頻度制限は dockerhub から匿名でダウンロードしようとすると 100回/6時間の制限がかかる。
+       通常、1ユーザで100回/6時間の制限に抵触することはが、匿名のアクセスについてはユーザを送信元IPアドレスで特定されるため、
+       企業内のネットワークから複数人でアクセスすると同じユーザと認識されて制限にかかる場合がある。
+:対応方法:
+       hive_ext_repositories に dockerhub のアカウントを設定する。設定方法については :doc:`hive構築ガイド<develop>` の外部リポジトリへのログインの節を参照のこと。
+       これにより送信元IPではなく、アカウントに結びついたダウンロードとなるため、200回/6時間の制限となるとともに
+       企業内のネットワークから複数人でアクセスする場合でもここのユーザごとの制限数となる。

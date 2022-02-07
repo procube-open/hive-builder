@@ -14,16 +14,8 @@
 #     email attribute of docker_login has been removed in community.docker 2.0.0.
 #     cause error: Unsupported parameters for (docker_login) module: email.
 #       email: "{{ hive_safe_email }}"
-  - name: login to external repository
-    docker_login:
-      registry: "{{ item.repository | default(omit) }}"
-      username: "{{ item.login_user }}"
-      password: "{{ item.password }}"
-#      email: "{{ item.email | default(omit) }}"
-    loop: "{{ hive_ext_repositories }}"
-    when: hive_ext_repositories is defined
-    no_log: True
-
+# move "login to external repository" task for repository server to zabbix role in setup-hosts phase
+# to avoid toomanyrequests error occur when docker-compose up
 - name: build images
   hosts: images
   gather_facts: False

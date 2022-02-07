@@ -14,6 +14,14 @@
 - vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
   block:
+  - name: login to external repository
+    docker_login:
+      registry: "{{ item.repository | default(omit) }}"
+      username: "{{ item.login_user }}"
+      password: "{{ item.password }}"
+    loop: "{{ hive_ext_repositories }}"
+    when: hive_ext_repositories is defined
+    no_log: True
   - name: compose up zabbix container
     become: False
     docker_compose:
