@@ -96,6 +96,17 @@ build-images で Release file is not valid yet のエラーが出ます
 :原因: サーバの時刻がずれているため、apt のリポジトリの正当性の検証に失敗しています。
 :対応方法: 各サーバで systemctl restart chroyd を実行してください。
 
+zabbix でDetect SELinux alert の障害（problem）が残ったままになります。
+-------------------------------------------------------------------------------
+:現象: Zabbix でアイテム SELinux alert の値が0 になっているにも関わらず、トリガー Detect SELinux alert
+       による障害（problem）が残ったままになります。
+:発生条件: SELinux alert の値が一度でも 1になった場合（構築時には起こりやすいです）
+:原因: このトリガーにはクローズの条件が指定されておらず、手動でクローズして頂く必要があります。
+:対応方法: 構築時の SELinux alert は無視していただいてかまいません。
+           構築時以外でアラートが上がった場合は、 SELinux のログで問題がないか確認してください。
+           障害をクローズするために障害を開き、「確認済」 のリンクを開き、メッセージを入力し、
+           「障害確認」と「障害のクローズ」をチェックしてください。
+
 zabbix の SELinux alert でエラーが出ます
 -------------------------------------------------------------------------------
 :メッセージ: Corrupted checkpoint file. Inode match, but newer complete event (XXX:YYY) found before loaded checkpoint XXXX:YYY
