@@ -12,7 +12,6 @@ import argparse
 from datetime import datetime
 from time import time
 import re
-import uptime
 # logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
 CACHE_FILE_DIR = '/var/lib/zabbix'
@@ -167,6 +166,7 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return -1
     min = -1
+    uptime_table = {}
     for task in sl[0].tasks():
       if task.get('DesiredState') == 'running':
         status = task.get('Status')
@@ -191,7 +191,20 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
             logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p ActiveEnterTimestampMonotonic {inner}' +
                          f' in "{service_name}" on node "{task.get("NodeID")}"')
             return -1
-          s_uptime = int(uptime.uptime() - (float(key_value[1]) / 1000000))
+          server_uptime = uptime_table.get(task.get('NodeID'))
+          if server_uptime is None:
+            (rc, data) = container.exec_run('cat /proc/uptime', user='root')
+            decoded_data = ''
+            try:
+              decoded_data = data.decode('utf-8')
+            except Exception:
+              pass
+            if rc != 0:
+              logger.error(f'fail to get uptime of server  "{task.get("NodeID")}": result of cat /proc/uptime is "{decoded_data}"')
+              return -1
+            server_uptime = float(decoded_data.split(' ')[0])
+            uptime_table[task.get('NodeID')] = server_uptime
+          s_uptime = int(server_uptime - (float(key_value[1]) / 1000000))
           if min == -1 or s_uptime < min:
             min = s_uptime
     return min
