@@ -1,7 +1,8 @@
 ---
 collections:
  - ansible.posix
- - ansible.netcommon
+ - name: ansible.netcommon
+   version: 2.5.1
  - community.crypto
  - community.general
  - community.docker
