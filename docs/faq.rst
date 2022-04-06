@@ -197,8 +197,13 @@ mother 環境構築直後の build-infra フェーズで Unexpected failure duri
 :原因2: ホストに複数のネットワークインタフェースがある場合に swarm のオーバレイネットワークの通信に利用するIPアドレスが間違っている
 :原因3: ネットワークカードに offload したチェックサム照合機能がパケットをチェックサム不整合で破棄している。VMWare の仮想NICはこれに該当する。
         https://stackoverflow.com/questions/66251422/docker-swarm-overlay-network-icmp-works-but-not-anything-else
+:原因4: ホスト間のネットワークの mtu が1500より小さく、 VXLAN のヘッダが付いたパケットをドロップしてしまう。
+        ただし、この場合は全く通信できないわけではなく、サイズが大きいパケットのみがドロップされる。
 :対応方法: 原因1, 原因2 の場合は、以下の手順でdocker swarm のオーバレイネットワークが使用するポート番号やIPアドレスを変更してください。
            原因3 の場合は各ホストで ethtool -K <interface> tx off コマンドを実行してネットワークカードへの offload を無効化してください。
+           原因4 の場合は各環境に応じてホスト間のネットワークの mtu が 1500以上となるように設定してください。
+           ただし、GCPのVPNと併用する場合は、VPN側の制限と相反する場合がありますので、注意が必要です。
+           `MTU に関する考慮事項 <https://cloud.google.com/network-connectivity/docs/vpn/concepts/mtu-considerations?hl=ja>`_ を参照してください。
 
 1. 全サービスを削除
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -301,3 +306,31 @@ dockerhub からイメージをダウンロードするときにダウンロー�
        hive_ext_repositories に dockerhub のアカウントを設定する。設定方法については :doc:`hive構築ガイド<develop>` の外部リポジトリへのログインの節を参照のこと。
        これにより送信元IPではなく、アカウントに結びついたダウンロードとなるため、200回/6時間の制限となるとともに
        企業内のネットワークから複数人でアクセスする場合でもここのユーザごとの制限数となる。
+
+gcpプロバイダを使用している場合に hive build-infra で Permission denied のエラー
+----------------------------------------------------------------------------------------------------
+:現象:  gcp プロバイダを使用している場合に ssh 接続が Permission denied のエラーとなる。
+        例えば、build-infra フェーズの wait_for_connection タスクで以下のようなエラーになる。
+    
+::
+
+    TASK [wait_for_connection] *****************************************************
+    fatal: [hive3.pdns]: FAILED! => changed=false
+    elapsed: 600
+    msg: 'timed out waiting for ping module test: Failed to connect to the host via ssh: admin@34.97.59.48: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).'
+
+:原因: プロジェクトの設定で OS Login が有効になっているため、 hive の管理者ユーザが生成されない。
+:対応方法: 
+        `OS Loginの設定方法 <https://cloud.google.com/compute/docs/troubleshooting/troubleshoot-os-login#checking_if_os_login_is_enabled>`_ 
+        の「ステップ 1: OS Login を有効または無効にする」を参照してOS Loginを無効に設定する。
+        具体的には、以下のように設定する。
+
+        「[メタデータ]に移動」→GCPコンソール画面「メタデータ」→編集
+
+        キー1: enable-oslogin 値1: TRUE
+
+        ↓
+
+        キー1: enable-oslogin 値1: FALSE
+
+:参考: https://cloud.google.com/compute/docs/troubleshooting/troubleshooting-ssh

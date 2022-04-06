@@ -41,5 +41,7 @@ stages:
   #   cidr: 192.168.0.0/24
   #   instance_type: n1-standard-2
   #   region: asia-northeast2
+  # 　　　　disk_size: 100
+  # 　　　　repository_disk_size: 150
   #   mirrored_disk_size: 20
   #   repository_instance_type: n1-standard-2
