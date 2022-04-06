@@ -6,6 +6,7 @@
     auto_create_subnetworks: False
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    mtu: 1500
     state: present
   register: gcp_vpc
 
