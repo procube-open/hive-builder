@@ -65,6 +65,8 @@
     policy: targeted
     state: "{{ hive_safe_selinux }}"
   notify: require reboot
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/bin/python3' }}"
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:
@@ -136,9 +138,9 @@
 - name: check whether /etc/environment contains HTTP_PROXY
   command: "grep '^HTTP_PROXY=' /etc/environment"
   register: check_http_proxy
-  check_mode: no
-  failed_when: no
-  changed_when: no
+  check_mode: False
+  failed_when: False
+  changed_when: False
 - name: ensures /usr/lib/systemd/system/dnf-makecache.service.d dir exists
   file: path=/usr/lib/systemd/system/dnf-makecache.service.d state=directory
   when: check_http_proxy.rc == 0
