@@ -65,6 +65,8 @@
     policy: targeted
     state: "{{ hive_safe_selinux }}"
   notify: require reboot
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else omit }}"
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:

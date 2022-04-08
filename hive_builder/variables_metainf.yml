@@ -353,5 +353,5 @@ registry_backup_cleanup_days_before:
   name_in_ansible: hive_registry_backup_cleanup_days_before
 interpreter_python:
   description: "how to deside use which python interpretor"
-  default: auto_legacy_silent
+  default: auto_silent
   name_in_ansible_cfg: interpreter_python

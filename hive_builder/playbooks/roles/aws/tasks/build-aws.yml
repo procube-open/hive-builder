@@ -79,7 +79,7 @@
   loop_control:
     loop_var: aws_host
 
-- name: Create EFS file system
+- name: create EFS file system
   efs:
     state: present
     name: "efs-{{ hive_name }}"
