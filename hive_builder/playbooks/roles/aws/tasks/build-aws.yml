@@ -69,7 +69,7 @@
 
 - name: create key pair using key_material obtained using 'file' lookup plugin
   ec2_key:
-    name: "{{ hive_aws_key_name | default('awsroot') }}"
+    name: "{{ hive_aws_key_name | default('hive-bulder-' + hive_name) }}"
     region: "{{ hive_region }}"
     key_material: "{{ lookup('file', hive_safe_public_key_path) }}"
 
