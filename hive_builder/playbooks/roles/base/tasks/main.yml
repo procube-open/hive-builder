@@ -66,9 +66,7 @@
     state: "{{ hive_safe_selinux }}"
   notify: require reboot
   vars:
-    ansible_interpreter_python_fallback:
-    - /usr/bin/python
-    - /usr/bin/python3
+    ansible_python_interpreter: "{{ '/usr/bin/python if ansible_distribution == 'Amazon' else '/usr/bin/python3' }}"
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:
