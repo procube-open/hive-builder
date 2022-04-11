@@ -1,6 +1,6 @@
 ---
 - set_fact:
-    hive_safe_name: "{{ gcp_host.split('.')[0] }}"
+    hive_safe_name: "{{ gcp_host.split('.') | join('-') }}"
 - name: create global ip
   gcp_compute_address:
     name: "gip-{{hive_safe_name }}"

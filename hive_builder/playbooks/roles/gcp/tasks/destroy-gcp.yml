@@ -1,7 +1,7 @@
 - name: delete instances
   gcp_compute_instance:
     state: absent
-    name: "{{ item.split('.')[0] }}"
+    name: "{{ item.split('.') | join('-') }}"
     metadata:
       hostname: "{{ item }}"
       ssh-keys: "{{ hive_safe_admin }}:{{ lookup('file', hostvars[item].hive_safe_public_key_path) }}"
@@ -15,7 +15,7 @@
   retries: 3
 - name: delete global ip
   gcp_compute_address:
-    name: "gip-{{ item.split('.')[0] }}"
+    name: "gip-{{ item.split('.') | join('-') }}"
     region: "{{ hive_region }}"
     project: "{{hive_safe_gcp_project }}"
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
