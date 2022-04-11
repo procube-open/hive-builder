@@ -1,7 +1,7 @@
 - name: stop instances
   gcp_compute_instance:
     status: TERMINATED
-    name: "{{ item.split('.')[0] }}"
+    name: "{{ item.split('.') | join('-') }}"
     zone: "{{ hostvars[item].hive_available_zone }}"
     project: "{{hive_safe_gcp_project }}"
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
