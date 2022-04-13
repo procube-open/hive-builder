@@ -57,6 +57,7 @@
     status: RUNNING
     name: "{{ hive_safe_name }}"
     machine_type: "{{ hostvars[gcp_host].hive_instance_type }}"
+    hostname: "{{ gcp_host }}"
     # empty metadata cause error 'gcp_compute_instance.py, line 1109, in metadata_encoder for key in metadata: TypeError: 'NoneType' object is not iterable'
     metadata:
       hostname: "{{ gcp_host }}"
