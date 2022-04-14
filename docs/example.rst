@@ -38,6 +38,14 @@ svn コマンドを使用しない場合は、 hive-builder のソースコー�
   git clone https://github.com/procube-open/hive-builder
   cd hive-builder/examples/pdns
 
+zipファイルをダウンロードした場合、解凍してください。
+
+::
+
+  tar xvzf hive-builder-master.zip
+  cp -r hive-builder/examples/pdns . || cd pdns
+  
+
 仮想環境の activate
 =========================
 hive 用の仮想環境を作成し、activate します。仮想環境ツールが pyenv で python 3.9.5 がインストールされている場合、以下のコマンドで activate できます。
