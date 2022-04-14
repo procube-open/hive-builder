@@ -79,7 +79,7 @@ hive_email 変数にメールアドレス、domain 変数にドメイン名を�
 AWS の設定
 =========================
 
-GCPを使用する場合、このセクションをスキップして、「GCPの設定」に進んんでください。
+GCPプロバイダを使用する場合、このセクションをスキップして、「GCPの設定」に進んんでください。
 
 inventory/hive.yml に AWS の環境のパラメータを設定します。
 services.staging.region にリージョンを指定し、services.staging.subnets
@@ -94,10 +94,10 @@ services.staging.region にリージョンを指定し、services.staging.subnet
   hive set aws_access_key_id アクセスキーID
   hive set aws_secret_access_key アクセスキー
  
-gcpの設定
+GCPの設定
 =========================
  
-AWSを使用する場合、このセクションをスキップしてください。
+AWSプロバイダを使用する場合、このセクションをスキップしてください。
 
 inventory/hive.yml を編集してください。8行目から37行目をコメントアウトして、38行目から45行目のコメントアウトを外してください.
  
@@ -123,10 +123,12 @@ inventory/hive.yml を編集してください。8行目から37行目をコメ�
     region: asia-northeast2
     mirrored_disk_size: 20
     repository_instance_type: n1-standard-2
+    
+GCPプロバイダを使用する場合は、プロジェクトのルートディレクトリに gcp_credential.json という 名前でサービスアカウントキーを保持するファイルを置く必要があります。 サービスアカウントの作成については、 https://cloud.google.com/iam/docs/creating-managing-service-accounts?hl=ja を参照してください。サービスアカウントを作成する際には「Compute 管理者」のロールを割り当ててください。 サービスアカウントキーについては、 https://cloud.google.com/iam/docs/creating-managing-service-account-keys?hl=ja を参照してください。 鍵の形式でJSONを選択して、プロジェクトのルートディレクトリに gcp_credential.json という名前で保存してください。
 
 ステージの設定
 =========================
-今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を 切り替えてください。AWSを使用する場合は対象ステージがstaging, gcpを使用する場合は対象ステージがproduction になります。
+今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を 切り替えてください。AWSプロバイダを使用する場合は対象ステージがstaging, GCPプロバイダを使用する場合は対象ステージがproduction になります。
 
 AWSの場合
 
@@ -134,7 +136,7 @@ AWSの場合
 
   hive set stage staging
  
-gcpの場合
+GCPの場合
 
 ::
 
