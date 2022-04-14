@@ -75,24 +75,11 @@ hive_email 変数にメールアドレス、domain 変数にドメイン名を�
   hive_email: hostmaster@example.com
   domain: example.com
 
-ステージの設定
-=========================
-今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を staging  に切り替えてください。
-
-::
-
-  hive set stage staging
-
-collection と role のインストール
-======================================
-仮想環境が activate されている状態で以下のコマンドで collection と role をインストールしてください。
-
-hive install-collection
-ansible-galaxy role install -p .hive/staging/roles powerdns.pdns
-
 
 AWS の設定
 =========================
+
+GCPを使用する場合、このセクションをスキップして、「GCPの設定」に進んんでください。
 
 inventory/hive.yml に AWS の環境のパラメータを設定します。
 services.staging.region にリージョンを指定し、services.staging.subnets
@@ -106,6 +93,61 @@ services.staging.region にリージョンを指定し、services.staging.subnet
 
   hive set aws_access_key_id アクセスキーID
   hive set aws_secret_access_key アクセスキー
+ 
+gcpの設定
+=========================
+ 
+AWSを使用する場合、このセクションをスキップしてください。
+
+inventory/hive.yml を編集してください。8行目から37行目をコメントアウトして、38行目から45行目のコメントアウトを外してください.
+ 
+修正後
+
+:: 
+
+  #production:
+  #  provider: azure
+  #  separate_repository: True
+  #  cidr: 192.168.0.0/24
+  #  instance_type: Standard_D2s_v3
+  #  region: japaneast
+  #  disk_size: 100
+  #  repository_disk_size: 150
+  #  mirrored_disk_size: 20
+  #  repository_instance_type: Standard_D2s_v3
+  production:
+    provider: gcp
+    separate_repository: True
+    cidr: 192.168.0.0/24
+    instance_type: n1-standard-2
+    region: asia-northeast2
+    mirrored_disk_size: 20
+    repository_instance_type: n1-standard-2
+
+ステージの設定
+=========================
+今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を 切り替えてください。AWSを使用する場合は対象ステージがstaging, gcpを使用する場合は対象ステージがproduction になります。
+
+AWSの場合
+
+::
+
+  hive set stage staging
+ 
+gcpの場合
+
+::
+
+  hive set stage production
+
+collection と role のインストール
+======================================
+仮想環境が activate されている状態で以下のコマンドで collection と role をインストールしてください。
+
+::
+
+  hive install-collection
+  ansible-galaxy role install -p .hive/staging/roles powerdns.pdns
 
 ドメインの委譲設定
 =========================
