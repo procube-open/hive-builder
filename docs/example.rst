@@ -38,7 +38,7 @@ svn コマンドを使用しない場合は、 hive-builder のソースコー�
   git clone https://github.com/procube-open/hive-builder
   cd hive-builder/examples/pdns
 
-zipファイルをダウンロードした場合、解凍してください。
+zipファイルをダウンロードした場合、解凍してください。その後、サンプルのディレクトリを部分的に切り取ってください。
 
 ::
 
