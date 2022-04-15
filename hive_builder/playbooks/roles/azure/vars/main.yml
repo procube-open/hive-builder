@@ -8,7 +8,7 @@ hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
 hive_safe_default_azure_image:
   offer: RHEL
   publisher: RedHat
-  sku: '8.2'
+  sku: '85-gen2'
   version: latest
 # available disk type is Standard_LRS, StandardSSD_LRS, Premium_LRS
 hive_safe_managed_disk_type: Premium_LRS

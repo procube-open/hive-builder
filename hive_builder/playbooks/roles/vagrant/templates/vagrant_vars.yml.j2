@@ -1,6 +1,6 @@
 ---
 vagrant_ssh_insert_key: "{{ hive_vagrant_ssh_insert_key | default(True) }}"
-vagrant_box_name: "{{ hive_vagrant_box_name | default('centos/stream8') }}"
+vagrant_box_name: "{{ hive_vagrant_box_name | default('almalinux/8') }}"
 {%if hive_dev is defined %}
 vagrant_dev: "{{ hive_dev }}"
 {%endif%}
