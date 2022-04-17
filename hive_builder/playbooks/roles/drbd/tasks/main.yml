@@ -22,7 +22,7 @@
         (
          '9.1.2-2/drbd9-rpm-foros8' if uname_result.stdout is version('4.18.0-348', 'lt')
          else '9.1.2-3/drbd9-rpm-foros8'
-        ) if ansible_distribution_release == 'Stream' else
+        ) if ansible_distribution_release in ['Stream', 'Arctic Sphynx'] else
         ('9.0.20/drbd9-rpm' if uname_result.stdout is version('3.10.0-1127', 'lt')
          else '9.0.24/drbd9-rpm' if uname_result.stdout is version('4.18.0', 'lt')
          else '9.0.24/drbd9-rpm-foros8' if uname_result.stdout is version('4.18.0-305', 'lt')
