@@ -144,13 +144,27 @@ GCPの場合
 
 collection と role のインストール
 ======================================
-仮想環境が activate されている状態で以下のコマンドで collection と role をインストールしてください。
+仮想環境が activate されている状態で以下のコマンドで collection をインストールしてください。
 
 ::
 
   hive install-collection
-  ansible-galaxy role install -p .hive/staging/roles powerdns.pdns
+  
+続いて以下のコマンドで　role をインストールしてください。ただし、AWSとGCPでステージが異なります。
 
+AWSの場合
+
+::
+
+  ansible-galaxy role install -p .hive/staging/roles powerdns.pdn
+
+
+GCPの場合
+
+::
+
+  ansible-galaxy role install -p .hive/production/roles powerdns.pdn
+  
 ドメインの委譲設定
 =========================
 この手順は必須ではありません。ドメインを保有していない場合は、この手順をスキップして「構築」セクションに進んでください。
