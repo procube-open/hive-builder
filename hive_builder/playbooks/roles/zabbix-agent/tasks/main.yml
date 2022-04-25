@@ -35,7 +35,10 @@
     name:
       - pip
     virtualenv: /var/lib/zabbix/docker
-    virtualenv_python: python3
+    virtualenv_python: "{{ hive_safe_python_command }}"
+    # hive-builder does not require libselinux module,
+    # but inherit system site-pacakges for addon which requires libselinux module
+    virtualenv_site_packages: "{{ hive_safe_need_libselinux }}"
     extra_args: "{{ '-i ' + hive_pip_index_url if hive_pip_index_url is defined else omit }}"
     state: latest
   args:
@@ -91,7 +94,7 @@
     chdir: /root
     target: load
     file: /usr/share/selinux/devel/Makefile
-  become: yes
+  become: true
   when: hive_safe_selinux != 'disabled'
 - name: set SELinux boolean for zabbix agent
   seboolean:
@@ -100,6 +103,8 @@
     persistent: yes
   loop: "{{ hive_safe_selinux_boolean_amzn if ansible_distribution == 'Amazon' else hive_safe_selinux_boolean }}"
   when: hive_safe_selinux != 'disabled'
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else ansible_facts.python.executable }}"
 - name: modify zabbix_agentd config
   template: >
     src=zabbix_agentd.conf.j2

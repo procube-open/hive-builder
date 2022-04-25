@@ -53,7 +53,7 @@ services:
       backup_file: /root/today.sql
       restore_file: /root/today.sql
       ext: sql
-      cleanup_days_before: 10
+      cleanup_days_before: 3
   pdnsadmin:
     image:
       from: ngoduykhanh/powerdns-admin:0.2.2
@@ -126,7 +126,7 @@ services:
       type: volume
     - source: /var/run/docker.sock
       target: /var/run/docker.sock
-    mode: global
+    # mode: global
     labels:
       HIVE_MARK: proxy_config
   certbot:
@@ -155,7 +155,7 @@ services:
     backup_scripts:
     - name: certificates
       directory: /etc/letsencrypt
-      cleanup_days_before: 10
+      cleanup_days_before: 3
     available_on:
     - production
     - staging

@@ -26,15 +26,15 @@
 - name: update kernel for drbd
   yum:
     name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else
-                    ('4.18.0-348*.el8' if ansible_distribution_release == 'Stream' else
+                    ('4.18.0-348*.el8' if ansible_distribution_release in ['Stream', 'Arctic Sphynx'] else
                      '4.18.0-193*.el8' if ansible_distribution_release == 'Ootpa' else
                      '4.18.0-305*.el8') }}"
     disable_excludes: main
     state: latest
   when: hive_mirrored_disk_size is defined and (
-         (ansible_distribution in ['CentOS', 'RedHat'] and (
-           (ansible_distribution_release != 'Stream' and uname_result.stdout is version('4.18.0-305', 'lt')) or
-           (ansible_distribution_release == 'Stream' and uname_result.stdout is version('4.18.0-348', 'lt')))) or
+         (ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux'] and (
+           (ansible_distribution_release not in ['Stream', 'Arctic Sphynx'] and uname_result.stdout is version('4.18.0-305', 'lt')) or
+           (ansible_distribution_release in ['Stream', 'Arctic Sphynx'] and uname_result.stdout is version('4.18.0-348', 'lt')))) or
          (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt')))
   notify: require reboot
 - name: install packages
@@ -65,6 +65,8 @@
     policy: targeted
     state: "{{ hive_safe_selinux }}"
   notify: require reboot
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else ansible_facts.python.executable }}"
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:
@@ -136,9 +138,9 @@
 - name: check whether /etc/environment contains HTTP_PROXY
   command: "grep '^HTTP_PROXY=' /etc/environment"
   register: check_http_proxy
-  check_mode: no
-  failed_when: no
-  changed_when: no
+  check_mode: False
+  failed_when: False
+  changed_when: False
 - name: ensures /usr/lib/systemd/system/dnf-makecache.service.d dir exists
   file: path=/usr/lib/systemd/system/dnf-makecache.service.d state=directory
   when: check_http_proxy.rc == 0
