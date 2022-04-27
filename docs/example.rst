@@ -38,6 +38,14 @@ svn コマンドを使用しない場合は、 hive-builder のソースコー�
   git clone https://github.com/procube-open/hive-builder
   cd hive-builder/examples/pdns
 
+zipファイルをダウンロードした場合、解凍してください。その後、サンプルのディレクトリを部分的に切り取ってください。
+
+::
+
+  tar xvzf hive-builder-master.zip
+  cp -r hive-builder/examples/pdns . || cd pdns
+  
+
 仮想環境の activate
 =========================
 hive 用の仮想環境を作成し、activate します。仮想環境ツールが pyenv で python 3.9.5 がインストールされている場合、以下のコマンドで activate できます。
@@ -67,26 +75,11 @@ hive_email 変数にメールアドレス、domain 変数にドメイン名を�
   hive_email: hostmaster@example.com
   domain: example.com
 
-ステージの設定
-=========================
-今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を staging  に切り替えてください。
-
-::
-
-  hive set stage staging
-
-collection と role のインストール
-======================================
-仮想環境が activate されている状態で以下のコマンドで collection と role をインストールしてください。
-
-::
-
-  hive install-collection
-  ansible-galaxy role install -p .hive/staging/roles powerdns.pdns
-
 
 AWS の設定
 =========================
+
+GCPプロバイダを使用する場合、このセクションをスキップして、「GCPの設定」に進んんでください。
 
 inventory/hive.yml に AWS の環境のパラメータを設定します。
 services.staging.region にリージョンを指定し、services.staging.subnets
@@ -100,7 +93,78 @@ services.staging.region にリージョンを指定し、services.staging.subnet
 
   hive set aws_access_key_id アクセスキーID
   hive set aws_secret_access_key アクセスキー
+ 
+GCPの設定
+=========================
+ 
+AWSプロバイダを使用する場合、このセクションをスキップしてください。
 
+inventory/hive.yml を編集してください。8行目から37行目をコメントアウトして、38行目から45行目のコメントアウトを外してください.
+ 
+修正後
+
+:: 
+
+  #production:
+  #  provider: azure
+  #  separate_repository: True
+  #  cidr: 192.168.0.0/24
+  #  instance_type: Standard_D2s_v3
+  #  region: japaneast
+  #  disk_size: 100
+  #  repository_disk_size: 150
+  #  mirrored_disk_size: 20
+  #  repository_instance_type: Standard_D2s_v3
+  production:
+    provider: gcp
+    separate_repository: True
+    cidr: 192.168.0.0/24
+    instance_type: n1-standard-2
+    region: asia-northeast2
+    mirrored_disk_size: 20
+    repository_instance_type: n1-standard-2
+    
+GCPプロバイダを使用する場合は、プロジェクトのルートディレクトリに gcp_credential.json という 名前でサービスアカウントキーを保持するファイルを置く必要があります。 サービスアカウントの作成については、 https://cloud.google.com/iam/docs/creating-managing-service-accounts?hl=ja を参照してください。サービスアカウントを作成する際には「Compute 管理者」のロールを割り当ててください。 サービスアカウントキーについては、 https://cloud.google.com/iam/docs/creating-managing-service-account-keys?hl=ja を参照してください。 鍵の形式でJSONを選択して、プロジェクトのルートディレクトリに gcp_credential.json という名前で保存してください。
+
+ステージの設定
+=========================
+今回は staging ステージを構築します。以下のコマンドで対象ステージ（デフォルトでは private）を 切り替えてください。AWSプロバイダを使用する場合は対象ステージがstaging, GCPプロバイダを使用する場合は対象ステージがproduction になります。
+
+AWSの場合
+
+::
+
+  hive set stage staging
+ 
+GCPの場合
+
+::
+
+  hive set stage production
+
+collection と role のインストール
+======================================
+仮想環境が activate されている状態で以下のコマンドで collection をインストールしてください。
+
+::
+
+  hive install-collection
+  
+続いて以下のコマンドで　role をインストールしてください。ただし、AWSとGCPでステージが異なります。
+
+AWSの場合
+
+::
+
+  ansible-galaxy role install -p .hive/staging/roles powerdns.pdn
+
+
+GCPの場合
+
+::
+
+  ansible-galaxy role install -p .hive/production/roles powerdns.pdn
+  
 ドメインの委譲設定
 =========================
 この手順は必須ではありません。ドメインを保有していない場合は、この手順をスキップして「構築」セクションに進んでください。
