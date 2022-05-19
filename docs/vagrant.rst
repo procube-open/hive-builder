@@ -141,7 +141,7 @@ VirtualBox を公式サイト https://www.virtualbox.org/に従って Windows �
 
 ::
 
-    wget https://releases.hashicorp.com/vagrant/2.2.4/vagrant_2.2.16_x86_64.deb
+    wget https://releases.hashicorp.com/vagrant/2.2.16/vagrant_2.2.16_x86_64.deb
     dpkg -i vagrant_2.2.16_x86_64.deb
     vagrant plugin install vagrant-disksize
 

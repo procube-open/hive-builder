@@ -43,6 +43,8 @@
     state: latest
   args:
     chdir: /var/lib/zabbix
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
 - name: set PyPi index url for zabbix
   become_user: zabbix
   copy:
@@ -51,7 +53,7 @@
       index-url = {{ hive_pip_index_url }}
     dest: /var/lib/zabbix/docker/pip.conf
   when: hive_pip_index_url is defined
-- name: create virtual env for zabbix
+- name: install python pacages for zabbix
   become_user: zabbix
   pip:
     name:
@@ -63,6 +65,8 @@
     state: present
   args:
     chdir: /var/lib/zabbix
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
 - name: "setup tls connection - put ca certs"
   copy:
     src: "{{ hive_safe_ca_dir }}/cacert.pem"
