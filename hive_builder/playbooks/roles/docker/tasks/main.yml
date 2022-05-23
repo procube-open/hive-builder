@@ -45,6 +45,7 @@
       - "libseccomp{{ libsecomp_version }}.*"
       - docker-ce
     state: present
+    exclude: "*.i686"
   when: ansible_distribution != 'Amazon'
   # AWS linux provides docker ce in amazon extra repos
 - name: install docker package

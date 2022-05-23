@@ -4,7 +4,7 @@ stages:
   private:
     provider: vagrant
     separate_repository: False
-    cidr: 192.168.0.96/27
+    cidr: 192.168.56.0/27
     memory_size: 4096
     number_of_hosts: 1
   staging:

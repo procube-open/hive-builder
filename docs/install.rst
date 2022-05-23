@@ -79,7 +79,7 @@ WSL を公式サイト https://docs.microsoft.com/ja-jp/windows/wsl/install-win1
   ./configure --enable-optimizations
   make install
   apt install docker sshpass
-  apt docker.io
+  apt install docker.io
 
 ansible でサーバへのログインに使用する ssh 鍵のファイルについて、
 owner は自分で modeは 0400 となっていて、他人から参照できない状態である必要があります。

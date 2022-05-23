@@ -6,7 +6,6 @@ collections:
  - community.crypto
  - community.general
  - name: community.docker
-   version: 2.2.1
  - community.zabbix
  - community.aws
  - amazon.aws
