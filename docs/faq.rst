@@ -334,3 +334,80 @@ gcpプロバイダを使用している場合に hive build-infra で Permission
         キー1: enable-oslogin 値1: FALSE
 
 :参考: https://cloud.google.com/compute/docs/troubleshooting/troubleshooting-ssh
+
+構築後に internal_cidr の値を変更するにはどうしたらいいですか
+----------------------------------------------------------------------------------------------------
+以下の手順で変更してください。
+
+1. internal_cidr を変更
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+inventory/hive.yml の internal_cidr の値を変更してください。
+
+2. swarm クラスタの解除
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをすべてのコンテナ収容サーバで実行して、 swarm クラスタを解除してください。
+
+::
+    
+    docker swarm leave -f  
+
+3. docker_gwbridge の削除
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをすべてのコンテナ収容サーバで実行して、 docker_gwbridge を削除してください。
+
+::
+
+    docker network rm docker_gwbridge
+
+4. zabbix とリポジトリサービスの停止
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをリポジトリサーバで実行して、 zabbix とリポジトリサービスを停止してください。
+
+::
+
+    (cd zabbix; docker-compose down)
+    (cd registry; docker-compose down)
+
+5. setup-hosts フェーズの実行
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをマザーマシンで実行して、setup-hosts フェーズを実行してください。
+
+::
+
+    hive setup-hosts
+
+6. docker デーモンの再起動
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドをすべてのサーバで実行して、docker デーモンを再起動してください。
+
+::
+
+    systemctl restart docker
+
+7. ネットワークのビルド
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドを実行して、ネットワークをビルドしてください。
+
+::
+
+    hive build-networks
+
+8. サービスのデプロイ
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+以下のコマンドを実行して、サービスをデプロイしてください。
+
+::
+
+    hive deploy-services
+
+
+アドレスの確認
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+割り当てられているアドレスを確認するためには手順の前後で以下のコマンドを各サーバで実行してください。
+
+::
+
+    docker network inspect $(docker network ls --format "{{.Name}}") | grep Subnet
+
+手順実行後に internal_cidr の範囲内のアドレスのみが出るようになれば正解です。
+サービスやボリュームは作り直す必要はありません。
