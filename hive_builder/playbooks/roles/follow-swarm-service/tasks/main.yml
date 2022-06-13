@@ -13,7 +13,7 @@
   register: result_sefcontext_l
   when: hive_safe_selinux != 'disabled'
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else ansible_facts.python.executable }}"
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
 - name: Allow service to execute files ~/docker/bin/python3
   sefcontext:
     ftype: a
@@ -23,7 +23,7 @@
   register: result_sefcontext_f
   when: hive_safe_selinux != 'disabled'
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else ansible_facts.python.executable }}"
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
 - name: Apply new SELinux file context to filesystem
   command: "restorecon -irv {{ hive_home_dir }}/docker/bin/python*"
   when: hive_safe_selinux != 'disabled' and (result_sefcontext_l is changed or result_sefcontext_f is changed)

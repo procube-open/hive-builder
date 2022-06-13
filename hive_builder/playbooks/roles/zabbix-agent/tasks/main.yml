@@ -108,7 +108,7 @@
   loop: "{{ hive_safe_selinux_boolean_amzn if ansible_distribution == 'Amazon' else hive_safe_selinux_boolean }}"
   when: hive_safe_selinux != 'disabled'
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else ansible_facts.python.executable }}"
+    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
 - name: modify zabbix_agentd config
   template: >
     src=zabbix_agentd.conf.j2
