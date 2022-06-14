@@ -6,21 +6,25 @@
 
 yum install -y e2fsprogs
 
-if [ -b /dev/sda ]; then
-  TARGET_DISK=/dev/sda
-elif [ -b /dev/vda ]; then
-  TARGET_DISK=/dev/vda
-else
-  echo "ERROR: neather /dev/sda or /dev/vda is not exists." 1>&2
+TARGET_DISK=$(lsblk --list | awk '$7=="/" {print "/dev/" substr($1,1, length($1)-1)}')
+if [ -z "$TARGET_DISK" ]; then
+  echo "ERROR: / partition is not found(device)." 1>&2
+  exit 1
+fi
+
+TARGET_PART=$(lsblk --list | awk '$7=="/" {print substr($1,length($1),1)}')
+if [ -z "$TARGET_PART" ]; then
+  echo "ERROR: / partition is not found(partision)." 1>&2
   exit 1
 fi
 
 ## resize disk
 sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | fdisk $TARGET_DISK || true
 d  # delete partition
+${TARGET_PART} # ignore error "1: unknown command" when there is only one partition in the device.
 n  # add a new partition
 p  # primary
-1  # Partition number: 1
+${TARGET_PART} # Partition number
    # First sector(default)
    # Last sector(default)
 w  # write table to disk and exit
