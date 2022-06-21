@@ -9,7 +9,7 @@
     # Centos: /dev/sda1
     hive_safe_disks: >-
       {%- set disks = [{
-        'device_name': '/dev/xvda',
+        'device_name': "{{ hive_osdisk_device | default('/dev/sda1') }}",
         'ebs': {
           'volume_size': hostvars[aws_host].hive_disk_size | default(omit),
           'delete_on_termination': True,
