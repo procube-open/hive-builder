@@ -24,9 +24,8 @@
     block: |
       Host {{ azure_host }}
         HostName {{ hive_safe_gip.state.ip_address }}
-        UserKnownHostsFile /dev/null
+        UserKnownHostsFile {{ hive_context_dir }}/known_hosts
         User {{ hive_safe_admin }}
-        StrictHostKeyChecking no
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
