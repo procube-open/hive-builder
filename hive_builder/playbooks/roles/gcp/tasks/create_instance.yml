@@ -22,9 +22,8 @@
     block: |
       Host {{ gcp_host }}
         HostName {{ hive_safe_gip.address }}
-        UserKnownHostsFile /dev/null
+        UserKnownHostsFile {{ hive_context_dir }}/known_hosts
         User {{ hive_safe_admin }}
-        StrictHostKeyChecking no
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes

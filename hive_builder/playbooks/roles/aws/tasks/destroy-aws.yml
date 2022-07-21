@@ -82,3 +82,7 @@
     tags:
       Project: "{{ hive_name }}"
     state: absent
+
+- name: delete known hosts
+  file: path={{ hive_context_dir }}/known_hosts
+        state=absent

@@ -26,7 +26,7 @@
       ansible_host: "{{ hive_private_ip }}"
       ansible_user: "root"
       ansible_ssh_pass: "{{ hive_root_password }}"
-      ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      ansible_ssh_common_args: "-o UserKnownHostsFile={{ hive_context_dir }}/known_hosts"
     when: hive_root_password is defined
   - wait_for_connection:
     when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false)) and (hive_provider != 'kickstart')
