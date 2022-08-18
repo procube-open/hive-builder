@@ -10,6 +10,7 @@
       Host {{ setup_host }}
         HostName {{ hostvars[setup_host].hive_private_ip }}
         UserKnownHostsFile {{ hive_context_dir }}/known_hosts
+        StrictHostKeyChecking yes
         User {{ hostvars[setup_host].hive_safe_admin }}
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}
