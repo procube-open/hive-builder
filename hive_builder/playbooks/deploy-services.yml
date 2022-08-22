@@ -143,7 +143,12 @@
         {{ outputs }}
       placement: "{{ hostvars[item].hive_placement | default(omit) }}"
       healthcheck: "{{ hostvars[item].hive_healthcheck | default(omit) }}"
-      hosts: "{{ hostvars[item].hive_hosts | default(omit) }}"
+      hosts: |-
+        {% set output={} %}
+        {% for host in (groups['servers'] | intersect(groups[hive_stage])) %}
+        {%   set _ = output.update({host: hostvars[host].hive_private_ip}) %}
+        {% endfor %}
+        {{ output | combine(hostvars[item].hive_hosts | default({}))}}
       dns: "{{ hostvars[item].hive_dns | default(omit) }}"
       mode: "{{ hostvars[item].hive_mode | default(omit) }}"
       user: "{{ hostvars[item].hive_user | default(omit) }}"
