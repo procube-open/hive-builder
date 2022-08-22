@@ -25,6 +25,7 @@
       Host {{ azure_host }}
         HostName {{ hive_safe_gip.state.ip_address }}
         UserKnownHostsFile {{ hive_context_dir }}/known_hosts
+        StrictHostKeyChecking yes
         User {{ hive_safe_admin }}
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}

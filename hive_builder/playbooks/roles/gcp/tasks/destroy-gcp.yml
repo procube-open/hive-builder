@@ -80,7 +80,7 @@
     project: "{{hive_safe_gcp_project }}"
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
-
+    
 - name: delete known hosts
   file: path={{ hive_context_dir }}/known_hosts
         state=absent
