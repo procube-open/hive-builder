@@ -56,10 +56,7 @@
     state: absent
     force_delete_nonempty: yes
   when: not (hive_prepared_resource_group | default(False))
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 - name: delete known hosts
   file: path={{ hive_context_dir }}/known_hosts
         state=absent

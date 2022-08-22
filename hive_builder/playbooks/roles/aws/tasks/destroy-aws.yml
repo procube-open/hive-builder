@@ -82,10 +82,7 @@
     tags:
       Project: "{{ hive_name }}"
     state: absent
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 - name: delete known hosts
   file: path={{ hive_context_dir }}/known_hosts
         state=absent
