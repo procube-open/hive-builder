@@ -1,0 +1,39 @@
+---
+- name: install ca-certificates
+  shell: apt-get update -y && apt-get install -y ca-certificates
+- name: install CA cert files(ubuntu)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: /etc/ssl/certs/cacert.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_ubuntu
+- name: install built server cert files(ubuntu)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/built-server-cert.pem"
+    dest: /etc/ssl/certs/built-server-cert.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_ubuntu
+- name: install built CA key files(ubuntu)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/built-key.pem"
+    dest:  /etc/ssl/certs/built-key.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_ubuntu
+- name: install built csr files(ubuntu)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/built.csr"
+    dest:  /etc/ssl/certs/built.csr
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_ubuntu
+- name: update trust store(ubuntu)
+  shell: update-ca-certificates
+  when: 
+    - ca_certs_ubuntu.changed 
