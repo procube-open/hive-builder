@@ -1,0 +1,28 @@
+---
+- name: make extra attributes file
+  become: False
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  template:
+    src: extfile.cnf
+    dest: "{{ hive_safe_ca_dir }}/built-extfile-ca.cnf"
+- name: builtin CA CSR
+  become: False
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  shell: |
+    openssl req -batch -new -newkey rsa:4096 -nodes -sha256 \
+      -subj '{{ hive_safe_sub_prefix }}CN={{ hive_certificate_fqdn }}' \
+      -keyout {{ hive_safe_ca_dir }}/built-key.pem \
+      -out {{ hive_safe_ca_dir }}/built.csr
+  args:
+    creates: "{{ hive_safe_ca_dir }}/built.csr"
+- name: builtin server certificate
+  become: False
+  delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+  shell: |
+    openssl x509 -req  -days "{{ hive_safe_ca_valid_in }}" -sha256 -in {{ hive_safe_ca_dir }}/built.csr \
+      -CAkey {{ hive_safe_ca_dir }}/cakey.pem \
+      -CA {{ hive_safe_ca_dir }}/cacert.pem \
+      -out {{ hive_safe_ca_dir }}/built-server-cert.pem \
+      -extfile {{ hive_safe_ca_dir }}/built-extfile-ca.cnf
+  args:
+    creates: "{{ hive_safe_ca_dir }}/built-server-cert.pem"

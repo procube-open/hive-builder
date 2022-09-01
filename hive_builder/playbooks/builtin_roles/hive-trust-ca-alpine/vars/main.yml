@@ -1,0 +1,2 @@
+---
+hive_safe_ca_dir: "{{ hive_context_dir }}/ca"
