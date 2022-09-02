@@ -52,6 +52,7 @@
       - chrony
       - conntrack-tools
       - bash-completion
+      - rsyslog
       - "{{ 'libselinux-python' if ansible_distribution == 'Amazon' else 'python3-libselinux' }}"
 - name: install selinux packages
   yum:
