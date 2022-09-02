@@ -766,6 +766,10 @@ services 属性にサービスごとにサービス名をキーとしてサー�
       - {"restart_config": {"condition": "on-failure", "delay": "5s", "max_attempts": 3, "window": "120s"}}
       - []
       - 再起動に関する設定（docker service create の --restart-condition("condition", "max_attempts"に指定) --restart-window("window"に指定) --restart-delay（"delay"に指定）オプションと等価）
+    * - stop_grace_period
+      - 30s
+      - 10s
+      - コンテナを停止する際にシグナルを送ってから強制終了するまでの時間で、5h34m56s のように指定する。（docker service create の --stop-grace-period オプションと等価）
     * - standalone
       - - True
         - False
