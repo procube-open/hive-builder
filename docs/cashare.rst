@@ -6,36 +6,56 @@ hive-builderでは必要に応じてCA局証明書の共有および証明書の
 コンテナをクライアントとして運用したい場合
 --------------------------------------------
 
-コンテナをクライアントとして運用する場合、1.サーバー証明書の信頼および2.コンテナへのクライアント証明書の付与ができるようになります。
+コンテナをクライアントとして運用する場合、1.CA局証明書の信頼および2.コンテナへのクライアント証明書の付与ができるようになります。
 
-1.サーバー証明書の信頼
-hiveの機能でCA局証明書をトラストストアにインストールするため、通信相手のサーバー証明書を信頼することが可能です。
-
-=========================== ========================
-タスク名                     内容
-=========================== ========================
-install CA cert files       CA局証明書をインストールする
-install CA key files        CA局の秘密鍵をインストールする
-builtin server CA           サーバー鍵を作成する
-builtin server certificate  サーバー証明書を作成する
-=========================== ========================
-
+1.CA局証明書の信頼
+hiveの機能でCA局証明書をトラストストアに配置するため、通信相手のサーバー証明書を検証することが可能です。
 
 .. image:: imgs/share_ca.png
    :align: center
 
+put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
+put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
+
 2.コンテナへのクライアント証明書の付与
 「1.サーバー証明書の信頼」を行った上でクライアント証明書を付与することで、TLS相互認証が可能となります。
 
-.. image:: imgs/set_client_certificate.png
+.. image:: imgs/set_client_cert.png
    :align: center
+
+put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
+put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
+server/client CSP → クライアント(サーバー)証明書のCSRを作成する
+server/client certificate → CA局証明書によるクライアント(サーバー)証明書への署名および証明書の生成を行う
 
 コンテナをサーバーとして運用したい場合
 --------------------------------------------
 コンテナをサーバーとして運用する場合、コンテナへのサーバー証明書の付与が可能です。
 
-.. image:: imgs/set_server_certificate.png
+.. image:: imgs/set_server_cert.png
    :align: center
+
+put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
+put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
+server/client CSP → クライアント(サーバー)証明書のCSRを作成する
+server/client certificate → CA局証明書によるクライアント(サーバー)証明書への署名および証明書の生成を行う
+
+※クライアント(サーバー)証明書およびクライアント(サーバー)の秘密鍵について
+---------------------------------------------------------------------------
+クライアント(サーバー)証明書およびクライアント(サーバー)の秘密鍵はアプリケーションごとにユーザーがコピーする必要があります。
+以下に生成した証明書および秘密鍵をコピーするタスクの例を示します。
+::
+
+    - name: install server/client cert file
+      copy:
+        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
+        dest: /dd-cert.pem
+      with_items: "{{ certificates }}"
+    - name: install server/client key file
+      copy:
+        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
+        dest: /dd-key.pem
+      with_items: "{{ certificates }}"
 
 CA局証明書の共有
 ----------------------------------------
