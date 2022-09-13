@@ -6,7 +6,7 @@
     src: ../files/extfile.cnf
     dest: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-extfile.cnf"
   loop: "{{ certificates }}"
-- name: builtin CA CSR
+- name: server/client CSR
   become: False
   delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
   shell: |
@@ -18,7 +18,7 @@
     creates: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}.csr"
   loop: "{{ certificates }}"
   
-- name: builtin server certificate
+- name: server/client certificate
   become: False
   delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
   shell: |

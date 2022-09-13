@@ -27,7 +27,7 @@
     creates: "{{ hive_safe_ca_dir }}/cacert.pem"
   when: hive_ca_cert is not defined
 
-- name: install CA cert files
+- name: put CA cert files
   tags: signed
   copy:
     content: "{{hive_ca_cert}}"
@@ -35,7 +35,7 @@
     mode: 0644
   when: hive_ca_cert is defined
 
-- name: install CA key files
+- name: put CA key files
   tags: signed
   copy:
     content: "{{hive_ca_key}}"
