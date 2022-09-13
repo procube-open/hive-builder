@@ -9,28 +9,31 @@
   register: ca_certs_centos
 - name: install built server cert files(centos)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built-server-cert.pem"
-    dest: /etc/pki/ca-trust/source/anchors/built-server-cert.pem
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
+    dest: /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}-server-cert.pem
     group: root
     owner: root
     mode: 0644
   register: ca_certs_centos
+  loop: "{{ certificates }}"
 - name: install built CA key files(centos)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built-key.pem"
-    dest:  /etc/pki/ca-trust/source/anchors/built-key.pem
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
+    dest:  /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}-key.pem
     group: root
     owner: root
     mode: 0644
   register: ca_certs_centos
+  loop: "{{ certificates }}"
 - name: install built csr files(centos)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built.csr"
-    dest:  /etc/pki/ca-trust/source/anchors/built.csr
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}.csr"
+    dest:  /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}.csr
     group: root
     owner: root
     mode: 0644
   register: ca_certs_centos
+  loop: "{{ certificates }}"
 - name: update trust store(centos)
   shell: update-ca-trust
   when: 

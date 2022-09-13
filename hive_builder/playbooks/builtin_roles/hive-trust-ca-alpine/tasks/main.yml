@@ -9,28 +9,31 @@
   register: ca_certs_alpine
 - name: install built server cert files(alpine)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built-server-cert.pem"
-    dest:  /etc/ssl/certs/built-server-cert.pem
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
+    dest:  /etc/ssl/certs/{{ item.certificate_fqdn }}-server-cert.pem
     group: root
     owner: root
     mode: 0644
   register: ca_certs_alpine
+  loop: "{{ certificates }}"
 - name: install built CA key files(alpine)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built-key.pem"
-    dest:  /etc/ssl/certs/built-key.pem
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
+    dest:  /etc/ssl/certs/{{ item.certificate_fqdn }}-key.pem
     group: root
     owner: root
     mode: 0644
   register: ca_certs_alpine
+  loop: "{{ certificates }}"
 - name: install built csr files(alpine)
   copy:
-    src: "{{ hive_safe_ca_dir }}/built.csr"
-    dest:  /etc/ssl/certs/built.csr
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}.csr"
+    dest:  /etc/ssl/certs/{{ item.certificate_fqdn }}.csr
     group: root
     owner: root
     mode: 0644
   register: ca_certs_alpine
+  loop: "{{ certificates }}"
 - name: update trust store(alpine)
   shell: apk add --no-cache ca-certificates && update-ca-certificates
   when: 
