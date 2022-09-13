@@ -1,7 +1,41 @@
 証明書について
 ===============================
 hive-builderでは必要に応じてCA局証明書の共有および証明書の生成が可能となっています。
-複数hive間でCA局証明書を共有したい場合の手続きと証明書生成の流れを以下に示します。
+サーバー間でCA局証明書を共有した上での運用例を解説していきます。
+
+コンテナをクライアントとして運用したい場合
+--------------------------------------------
+
+コンテナをクライアントとして運用する場合、1.サーバー証明書の信頼および2.コンテナへのクライアント証明書の付与ができるようになります。
+
+1.サーバー証明書の信頼
+hiveの機能でCA局証明書をトラストストアにインストールするため、通信相手のサーバー証明書を信頼することが可能です。
+
+=========================== ========================
+タスク名                     内容
+=========================== ========================
+install CA cert files       CA局証明書をインストールする
+install CA key files        CA局の秘密鍵をインストールする
+builtin server CA           サーバー鍵を作成する
+builtin server certificate  サーバー証明書を作成する
+=========================== ========================
+
+
+.. image:: imgs/share_ca.png
+   :align: center
+
+2.コンテナへのクライアント証明書の付与
+「1.サーバー証明書の信頼」を行った上でクライアント証明書を付与することで、TLS相互認証が可能となります。
+
+.. image:: imgs/set_client_certificate.png
+   :align: center
+
+コンテナをサーバーとして運用したい場合
+--------------------------------------------
+コンテナをサーバーとして運用する場合、コンテナへのサーバー証明書の付与が可能です。
+
+.. image:: imgs/set_server_certificate.png
+   :align: center
 
 CA局証明書の共有
 ----------------------------------------
@@ -33,11 +67,25 @@ CA局証明書の共有機能を利用する場合は、必ず正しいペアの
 証明書生成ビルトインロール
 ----------------------------------------
 hive_builderのビルトインロールでアプリケーションのサーバに利用できるサーバ証明書を生成することが可能です。
-inventory/group_vars/all.ymlで変数hive_certificate_fqdnにサブジェクトを指定することで指定のドメインで証明書が生成されます。
+下記の形式でインベントリ(例えば、inventory/group_vars/all.yml)に変数certificate_fqdn, sub_prefix, ca_valid_inを定義することで指定のドメイン、サブプレフィックス、期間で証明書が生成されます。
 以下に例を示します。
 ::
 
-    hive_certificate_fqdn: "*.hogehoge.jp"
+    certificates:
+      - certificate_fqdn: "dnsdist-example-slave.test.procube-demo.jp"
+        ca_valid_in: "{{ 365 * 100 }}"
+        sub_prefix: /DC={{ hive_name.split('.') | reverse | join('/DC=') }}
+      - certificate_fqdn: "ddex.test.procube-demo.jp"
+        ca_valid_in: "{{ 365 * 100 }}"
+        sub_prefix: /DC={{ hive_name.split('.') | reverse | join('/DC=') }}
+    
+上記の例で作成される証明書は、
+1枚目:
+CN=dnsdist-example-slave.test.procube-demo.jp, DC=${ hive_name }, 証明期間=100年
+2枚目:
+CN=ddex.test.procube-demo.jp, DC=${ hive_name }, 証明期間=10年
+となります。
+sub_prefixについては値のみを定義していただくことで指定の値をDCに設定することができます。(DCを'boo'にしたい時は、sub_prefix: /DC=booとすることで設定可能)
 
 
 ルート証明書信頼設定ビルトインロール
@@ -55,28 +103,31 @@ inventory/group_vars/all.ymlで変数hive_certificate_fqdnにサブジェクト�
       register: ca_certs_alpine
     - name: install built server cert files(alpine)
       copy:
-        src: "{{ hive_safe_ca_dir }}/built-server-cert.pem"
+        src: "{{ hive_safe_ca_dir }}/{{ item }}-server-cert.pem"
         dest:  /etc/ssl/certs/built-server-cert.pem
         group: root
         owner: root
         mode: 0644
       register: ca_certs_alpine
+      loop: "{{ hive_certificate_fqdn }}"
     - name: install built CA key files(alpine)
       copy:
-        src: "{{ hive_safe_ca_dir }}/built-key.pem"
+        src: "{{ hive_safe_ca_dir }}/{{ item }}-key.pem"
         dest:  /etc/ssl/certs/built-key.pem
         group: root
         owner: root
         mode: 0644
       register: ca_certs_alpine
+      loop: "{{ hive_certificate_fqdn }}"
     - name: install built csr files(alpine)
       copy:
-        src: "{{ hive_safe_ca_dir }}/built.csr"
+        src: "{{ hive_safe_ca_dir }}/{{ item }}.csr"
         dest:  /etc/ssl/certs/built.csr
         group: root
         owner: root
         mode: 0644
       register: ca_certs_alpine
+      loop: "{{ hive_certificate_fqdn }}"
 
 
 OSごとのデフォルトトラストストア確認コマンド
