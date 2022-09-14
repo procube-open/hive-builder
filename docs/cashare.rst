@@ -1,32 +1,41 @@
+:orphan:
+
 証明書について
 ===============================
-hive-builderでは必要に応じてCA局証明書の共有および証明書の生成が可能となっています。
-サーバー間でCA局証明書を共有した上での運用例を解説していきます。
+| hive-builderでは必要に応じてCA局証明書の共有および証明書の生成が可能となっています。
+| サーバー間でCA局証明書を共有した上での運用例を解説していきます。
 
 コンテナをクライアントとして運用したい場合
 --------------------------------------------
 
-コンテナをクライアントとして運用する場合、1.CA局証明書の信頼および2.コンテナへのクライアント証明書の付与ができるようになります。
+| コンテナをクライアントとして運用する場合、
+| 「1.CA局証明書の信頼」および「2.コンテナへのクライアント証明書の付与」が可能です。
 
 1.CA局証明書の信頼
-hiveの機能でCA局証明書をトラストストアに配置するため、通信相手のサーバー証明書を検証することが可能です。
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+hiveの機能で共有したいCA局証明書をコンテナのトラストストアに配置して信頼するため、通信相手のサーバー証明書を検証することが可能です。
 
 .. image:: imgs/share_ca.png
    :align: center
 
-put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
-put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
+| 
+| ①CA局の証明書と秘密鍵をmotherマシンのコンテキストディレクトリに配置します。証明書と鍵の配置方法は「CA局証明書の共有」の節を参照してください。
+| ②共有したCA局の証明書をコンテナのトラストストアに配置します。
 
 2.コンテナへのクライアント証明書の付与
-「1.サーバー証明書の信頼」を行った上でクライアント証明書を付与することで、TLS相互認証が可能となります。
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+「1.CA局証明書の信頼」で共有したCA局証明書を用いて生成したクライアントの証明書と秘密鍵をコンテナに付与することで、通信相手とのTLS相互認証が可能となります。
 
 .. image:: imgs/set_client_cert.png
    :align: center
 
-put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
-put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
-server/client CSP → クライアント(サーバー)証明書のCSRを作成する
-server/client certificate → CA局証明書によるクライアント(サーバー)証明書への署名および証明書の生成を行う
+| 
+| ①CA局の証明書と秘密鍵をmotherマシンのコンテキストディレクトリに配置します。証明書と鍵の配置方法は「CA局証明書の共有」の節を参照してください。
+| ②共有したCA局証明書を用いて、motherマシンでクライアント証明書およびクライアントの秘密鍵を生成します。
+| クライアント証明書のドメイン名、サフィックス、有効期限の設定は「証明書生成ビルトインロール」の節を参照してください。
+| ③共有したCA局の証明書をコンテナのトラストストアに配置します。
+| ④生成したクライアントの証明書と秘密鍵をコンテナに配置します。
+| ※生成したクライアントの証明書と秘密鍵のコンテナへの配置はhive_builderの機能にはないため、ユーザーがアプリケーションごとに配置処理を行わなければなりません。この手順は「クライアント(サーバー)の証明書および秘密鍵について」の節を参照してください。
 
 コンテナをサーバーとして運用したい場合
 --------------------------------------------
@@ -35,31 +44,17 @@ server/client certificate → CA局証明書によるクライアント(サー�
 .. image:: imgs/set_server_cert.png
    :align: center
 
-put CA cert files → CA局証明書をコンテキストディレクトリ、コンテナのトラストストアに配置する
-put CA key files → CA 局の秘密鍵をコンテキストディレクトリに配置する
-server/client CSP → クライアント(サーバー)証明書のCSRを作成する
-server/client certificate → CA局証明書によるクライアント(サーバー)証明書への署名および証明書の生成を行う
-
-※クライアント(サーバー)証明書およびクライアント(サーバー)の秘密鍵について
----------------------------------------------------------------------------
-クライアント(サーバー)証明書およびクライアント(サーバー)の秘密鍵はアプリケーションごとにユーザーがコピーする必要があります。
-以下に生成した証明書および秘密鍵をコピーするタスクの例を示します。
-::
-
-    - name: install server/client cert file
-      copy:
-        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
-        dest: /dd-cert.pem
-      with_items: "{{ certificates }}"
-    - name: install server/client key file
-      copy:
-        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
-        dest: /dd-key.pem
-      with_items: "{{ certificates }}"
+| 
+| ①CA局の証明書と秘密鍵をmotherマシンのコンテキストディレクトリに配置します。証明書と鍵の配置方法は「CA局証明書の共有」の節を参照してください。
+| ②共有したCA局証明書を用いて、motherマシンでサーバー証明書およびサーバーの秘密鍵を生成します。
+| サーバー証明書のドメイン名、サフィックス、有効期限の設定は「証明書生成ビルトインロール」の節を参照してください。
+| ③生成したサーバー証明書と秘密鍵をコンテナに配置します。
+| ※生成したサーバーの証明書と秘密鍵のコンテナへの配置はhive_builderの機能にはないため、ユーザーがアプリケーションごとに配置処理を行わなければなりません。この手順は「クライアント(サーバー)の証明書および秘密鍵について」の節を参照してください。
 
 CA局証明書の共有
 ----------------------------------------
-CA局証明書を共有したい場合は、変数hive_ca_certにサーバー証明書を、変数hive_ca_keyにサーバ鍵を設定して、inventory/group_vars/all.ymlに保存してください。
+hive_builderの機能でCA局の証明書を共有することが可能です。(motherマシンへの配置)
+下記の形式でインベントリ(例えば、inventory/group_vars/all.yml)に変数hive_ca_certにサーバー証明書を、変数hive_ca_keyにサーバ鍵を定義してください。
 以下に例を示します。
 ::
 
@@ -81,14 +76,18 @@ CA局証明書を共有したい場合は、変数hive_ca_certにサーバー証
       K5hfEuwyPeeCaBuJua19DO/fl87L5pU=
       -----END PRIVATE KEY-----
 
-CA局証明書の共有機能を利用する場合は、必ず正しいペアの証明書と鍵の両方定義するようにしてください。
-また、証明書、鍵の内容が全行インデントされていないと正常に動作しないため、ご注意ください。
+| CA局の証明書と秘密鍵の共有はbuild-infraフェーズで実行されます。
+| (hive_ca_cert, hive_ca_keyが定義されていない場合は、同様のフェーズで新たにCA局証明書と秘密鍵が生成されます。)
+| 
+| CA局証明書の共有機能を利用する場合は、必ず正しいペアの証明書と鍵の両方定義するようにしてください。
+| また、証明書、鍵の内容が全行インデントされていないと正常に動作しないため、ご注意ください。
+| 
 
 証明書生成ビルトインロール
 ----------------------------------------
-hive_builderのビルトインロールでアプリケーションのサーバに利用できるサーバ証明書を生成することが可能です。
-下記の形式でインベントリ(例えば、inventory/group_vars/all.yml)に変数certificate_fqdn, sub_prefix, ca_valid_inを定義することで指定のドメイン、サブプレフィックス、期間で証明書が生成されます。
-以下に例を示します。
+| hive_builderのビルトインロールでアプリケーションのサーバに利用できるクライアント(サーバー)証明書を生成することが可能です。
+| 下記の形式でインベントリ(例えば、inventory/group_vars/all.yml)に変数certificate_fqdn, sub_prefix, ca_valid_inを定義することで指定のドメイン、サフィックス、有効期限で証明書が生成されます。
+| 以下に例を示します。
 ::
 
     certificates:
@@ -98,62 +97,39 @@ hive_builderのビルトインロールでアプリケーションのサーバ�
       - certificate_fqdn: "ddex.test.procube-demo.jp"
         ca_valid_in: "{{ 365 * 100 }}"
         sub_prefix: /DC={{ hive_name.split('.') | reverse | join('/DC=') }}
-    
-上記の例で作成される証明書は、
-1枚目:
-CN=dnsdist-example-slave.test.procube-demo.jp, DC=${ hive_name }, 証明期間=100年
-2枚目:
-CN=ddex.test.procube-demo.jp, DC=${ hive_name }, 証明期間=10年
-となります。
-sub_prefixについては値のみを定義していただくことで指定の値をDCに設定することができます。(DCを'boo'にしたい時は、sub_prefix: /DC=booとすることで設定可能)
 
+| 証明書の生成はbuild-imagesフェーズで実行されます。
+| 
+| 上記の例で作成される証明書は、
+| 1枚目:
+| CN=dnsdist-example-slave.test.procube-demo.jp, DC=${ hive_name }, 有効期限=100年
+| 2枚目:
+| CN=ddex.test.procube-demo.jp, DC=${ hive_name }, 有効期限=10年
+| となります。
+| sub_prefixについては値のみを定義していただくことで指定の値をDCに設定することができます。(DCを'boo'にしたい時は、sub_prefix: /DC=booとすることで設定可能)
+| 
 
-ルート証明書信頼設定ビルトインロール
-----------------------------------------
-以下のタスクでビルトインロールで生成したサーバー証明書類をデフォルトトラストストアにインストールします。(alpine系の例)
-::  
+クライアント(サーバー)の証明書および秘密鍵について
+---------------------------------------------------------------------------
+クライアント(サーバー)証明書およびクライアント(サーバー)の秘密鍵はアプリケーションごとにユーザーがコピーする必要があります。
+以下に生成した証明書および秘密鍵をコピーするタスクの例を示します。
+::
 
-    - name: install CA cert files(alpine)
+    - name: install server/client cert file
       copy:
-        src: "{{ hive_safe_ca_dir }}/cacert.pem"
-        dest:  /etc/ssl/certs/cacert.pem
-        group: root
-        owner: root
-        mode: 0644
-      register: ca_certs_alpine
-    - name: install built server cert files(alpine)
+        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
+        dest: /dd-cert.pem
+      with_items: "{{ certificates }}"
+    - name: install server/client key file
       copy:
-        src: "{{ hive_safe_ca_dir }}/{{ item }}-server-cert.pem"
-        dest:  /etc/ssl/certs/built-server-cert.pem
-        group: root
-        owner: root
-        mode: 0644
-      register: ca_certs_alpine
-      loop: "{{ hive_certificate_fqdn }}"
-    - name: install built CA key files(alpine)
-      copy:
-        src: "{{ hive_safe_ca_dir }}/{{ item }}-key.pem"
-        dest:  /etc/ssl/certs/built-key.pem
-        group: root
-        owner: root
-        mode: 0644
-      register: ca_certs_alpine
-      loop: "{{ hive_certificate_fqdn }}"
-    - name: install built csr files(alpine)
-      copy:
-        src: "{{ hive_safe_ca_dir }}/{{ item }}.csr"
-        dest:  /etc/ssl/certs/built.csr
-        group: root
-        owner: root
-        mode: 0644
-      register: ca_certs_alpine
-      loop: "{{ hive_certificate_fqdn }}"
-
+        src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
+        dest: /dd-key.pem
+      with_items: "{{ certificates }}"
 
 OSごとのデフォルトトラストストア確認コマンド
 ------------------------------------------------
-alpine系、ubuntu系、centos系それぞれのOSでhive_builderを用いて環境を構築した際のデフォルトトラストストアを確認する方法を示します。
-ビルトインロールにて作成したサーバ証明書、サーバ鍵は以下のコマンドを実行することで確認することが可能です。
+| alpine系、ubuntu系、centos系それぞれのOSでhive_builderを用いて環境を構築した際のデフォルトトラストストアを確認する方法を示します。
+| 共有したCA局の証明書、証明書生成ビルトインロールで生成されたクライアント(サーバー)の証明書と秘密鍵は、以下のコマンドを実行することで確認することが可能です。
 
 alpine系
 ::
