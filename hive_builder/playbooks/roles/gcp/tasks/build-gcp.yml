@@ -80,5 +80,6 @@
     - network: "{{ hive_safe_vpc_name }}"
       modes:
       - MODE_IPV4
+      reserved_ip_range: "{{ hive_filestore_cidr | default(omit) }}"
     state: present
   when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0

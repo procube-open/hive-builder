@@ -276,6 +276,8 @@ class Stage:
       self.inventory.set_variable(mother_name, 'hive_dev', self.stage['dev'])
     if 'kickstart_config' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_kickstart_config', self.stage['kickstart_config'])
+    if 'filestore_cidr' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_filestore_cidr', self.stage['filestore_cidr'])
     if 'subnets' not in self.stage:
       try:
         net = ipaddress.ip_network(self.stage['cidr'])
