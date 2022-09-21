@@ -207,7 +207,7 @@ inventory/group_vars/all.ymlに以下のパラメータを設定することでC
       - loud Filestoreの合計の最大容量（GB単位で記載）
     * - hive_gcp_nfs_options
       - "hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async,nolock"
-      - 
+      - "hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async,nolock" 
       - NFSマウントオプションの指定
 
 GCP Cloud Filestore の自動構築を使用する場合は、
