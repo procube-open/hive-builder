@@ -191,8 +191,24 @@ GCP Cloud Filestore の場合は nfs 属性のオブジェクトに有効な属�
       type: volume
       nfs: {}
 
-hive_gcp_capacity_gb にボリュームの合計の最大容量をGB単位の数値で指定してください。
-デフォルトでは 1024 （1Tバイト）になります。
+inventory/group_vars/all.ymlに以下のパラメータを設定することでCloud Filestoreの容量とマウントオプションの設定が可能です。。
+
+..  list-table::
+    :widths: 18 18 18 50
+    :header-rows: 1
+
+    * - パラメータ
+      - 選択肢/例
+      - デフォルト
+      - 意味
+    * - hive_gcp_capacity_gb
+      - 2048
+      - 1024(1Tバイト)
+      - loud Filestoreの合計の最大容量（GB単位で記載）
+    * - hive_gcp_nfs_options
+      - "hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async,nolock"
+      - 
+      - NFSマウントオプションの指定
 
 GCP Cloud Filestore の自動構築を使用する場合は、
 サービスアカウントのロールに「Cloud Filestore 編集者」の権限を与えてください。
