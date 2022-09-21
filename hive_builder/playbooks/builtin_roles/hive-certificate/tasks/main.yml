@@ -30,3 +30,15 @@
   args:
     creates: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
   loop: "{{ certificates }}"
+
+- name: install server/client cert file
+  copy:
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
+    dest: "{{ item.cert_dest }}"
+  loop: "{{ certificates }}"
+
+- name: install server/client key file
+  copy:
+    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
+    dest: "{{ item.key_dest }}"
+  loop: "{{ certificates }}"

@@ -1,5 +1,5 @@
 ---
-- name: put CA cert files(centos)
+- name: install CA cert files(centos)
   copy:
     src: "{{ hive_safe_ca_dir }}/cacert.pem"
     dest: /etc/pki/ca-trust/source/anchors/cacert.pem
@@ -7,33 +7,6 @@
     owner: root
     mode: 0644
   register: ca_certs_centos
-- name: put server/client cert files(centos)
-  copy:
-    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-server-cert.pem"
-    dest: /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}-server-cert.pem
-    group: root
-    owner: root
-    mode: 0644
-  register: ca_certs_centos
-  loop: "{{ certificates }}"
-- name: put server/client key files(centos)
-  copy:
-    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-key.pem"
-    dest:  /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}-key.pem
-    group: root
-    owner: root
-    mode: 0644
-  register: ca_certs_centos
-  loop: "{{ certificates }}"
-- name: put server/client csr files(centos)
-  copy:
-    src: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}.csr"
-    dest:  /etc/pki/ca-trust/source/anchors/{{ item.certificate_fqdn }}.csr
-    group: root
-    owner: root
-    mode: 0644
-  register: ca_certs_centos
-  loop: "{{ certificates }}"
 - name: update trust store(centos)
   shell: update-ca-trust
   when: 
