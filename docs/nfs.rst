@@ -191,7 +191,7 @@ GCP Cloud Filestore の場合は nfs 属性のオブジェクトに有効な属�
       type: volume
       nfs: {}
 
-inventory/group_vars/all.ymlに以下のパラメータを設定することでCloud Filestoreの容量とマウントオプションの設定が可能です。。
+inventory/group_vars/all.ymlに以下のパラメータを設定することでCloud Filestoreの容量とマウントオプションの設定が可能です。
 
 ..  list-table::
     :widths: 18 18 18 50
