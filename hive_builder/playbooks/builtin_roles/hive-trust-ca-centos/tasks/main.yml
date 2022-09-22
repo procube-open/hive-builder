@@ -1,0 +1,13 @@
+---
+- name: install CA cert files(centos)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: /etc/pki/ca-trust/source/anchors/cacert.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_centos
+- name: update trust store(centos)
+  shell: update-ca-trust
+  when: 
+    - ca_certs_centos.changed 

@@ -961,9 +961,12 @@ image 属性にオブジェクトを指定すると、イメージのビルド�
       - 省略可能
       - pull_on に指定されたステージでサービスを deploy する際のイメージのタグ。イメージはタグのリポジトリからダウンロードされる。
 
-ビルトインrole
+ビルトインロール
 ^^^^^^^^^^^^^^^^^^^
-python-aptk はビルトイン role であり、イメージのビルド時に role 定義を行わずに使用できます。
+| hive_builderではビルトインロールと呼ばれる組み込み式のロールがあります。これはサービスごとのimage.roles属性の下に追加することで使用でき、イメージのビルド時にrole定義を行う必要がありません。
+| 現在、hive_builderには4つのビルトインロールがあります。以下に詳細を示します。
+
+- python-aptk
 build-images フェーズでは、 ansible で中身を構築するため、
 ビルド用に起動したコンテナに python がインストールされていなければなりません。
 しかし、 ubuntu や alpine をベースとしたイメージには python がインストールされていないものが
@@ -977,6 +980,17 @@ python-aptk には以下のようにタスクが定義されており、ubuntu �
       raw: if [ -x /usr/bin/apt-get ]; then (apt-get update && apt-get -y install python3); else (apk update && apk add python3); fi
       changed_when: False
 
+- hive-syslog
+スタンドアロン型のサービスでは、そのままではリポジトリサーバにログが出力されません。スタンドアロン型の中の syslog をリポジトリサーバに
+送るためには hive-syslog ビルトインロールを組み込んでください。
+
+- hive-certificate
+サービスを構築する上で、複数枚の証明書が必要な場合があります。hive_certificateビルトインロールでは変数certificatesを指定することで任意のドメイン名、サフィックス、有効期限で証明書の生成が可能です。
+詳細は :ref:`こちら<cashare-create>` を確認ください。
+
+- hive-trust-ca
+CA局証明書をコンテナのトラストストアにインストールします。
+詳細は :ref:`こちら<cashare-catrust>` を確認ください。
 
 
 

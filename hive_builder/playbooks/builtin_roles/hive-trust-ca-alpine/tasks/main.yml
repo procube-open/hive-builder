@@ -1,0 +1,13 @@
+---
+- name: install CA cert files(alpine)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest:  /etc/ssl/certs/cacert.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_alpine
+- name: update trust store(alpine)
+  shell: apk add --no-cache ca-certificates && update-ca-certificates
+  when: 
+    - ca_certs_alpine.changed 

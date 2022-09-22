@@ -21,6 +21,7 @@ hive-builder ドキュメントページへようこそ
     backup.rst
     tagmapping.rst
     nfs.rst
+    cashare.rst
     repair.rst
     faq.rst
     bashcompletion.rst

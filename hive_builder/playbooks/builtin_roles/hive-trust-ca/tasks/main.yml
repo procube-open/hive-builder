@@ -1,0 +1,30 @@
+---
+- name: check file alpine
+  stat:
+    path: /etc/alpine-release
+  register: cafile_alpine
+- name: check file centos
+  stat:
+    path: /etc/redhat-release
+  register: cafile_centos
+- name: check file ubuntu
+  stat:
+    path: /etc/debian_version
+  register: cafile_ubuntu
+
+- name: install CA cert files(alpine)
+  import_role:
+    name: hive-trust-ca-alpine
+  when: 
+    - cafile_alpine.stat.exists
+- name: install CA cert files(centos)
+  import_role:
+    name: hive-trust-ca-centos
+  when: 
+    - cafile_centos.stat.exists
+
+- name: install CA cert files(ubuntu)
+  import_role:
+    name: hive-trust-ca-ubuntu
+  when: 
+    - cafile_ubuntu.stat.exists

@@ -1,0 +1,15 @@
+---
+- name: install ca-certificates
+  shell: apt-get update -y && apt-get install -y ca-certificates
+- name: install CA cert files(ubuntu)
+  copy:
+    src: "{{ hive_safe_ca_dir }}/cacert.pem"
+    dest: /etc/ssl/certs/cacert.pem
+    group: root
+    owner: root
+    mode: 0644
+  register: ca_certs_ubuntu
+- name: update trust store(ubuntu)
+  shell: update-ca-certificates
+  when: 
+    - ca_certs_ubuntu.changed 

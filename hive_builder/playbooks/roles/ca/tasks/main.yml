@@ -11,11 +11,12 @@
 - name: CA CSR
   shell: |
     openssl req -batch -new -newkey rsa:4096 -nodes -sha256 \
-      -subj '{{ hive_safe_sub_prefix }}/CN=ca.{{ hive_name }}' \
+      -subj '{{ hive_safe_sub_prefix }}CN=ca.{{ hive_name }}' \
       -keyout {{ hive_safe_ca_dir }}/cakey.pem \
       -out {{ hive_safe_ca_dir }}/ca-ca.csr
   args:
     creates: "{{ hive_safe_ca_dir }}/ca-ca.csr"
+  when: hive_ca_cert is not defined
 - name: CA certificate
   shell: |
     openssl x509 -req  -days "{{ hive_safe_ca_valid_in }}" -sha256 -in {{ hive_safe_ca_dir }}/ca-ca.csr \
@@ -24,3 +25,20 @@
       -extfile {{ hive_safe_ca_dir }}/extfile-ca.cnf
   args:
     creates: "{{ hive_safe_ca_dir }}/cacert.pem"
+  when: hive_ca_cert is not defined
+
+- name: put CA cert files
+  tags: signed
+  copy:
+    content: "{{hive_ca_cert}}"
+    dest: "{{ hive_safe_ca_dir }}/cacert.pem"
+    mode: 0644
+  when: hive_ca_cert is defined
+
+- name: put CA key files
+  tags: signed
+  copy:
+    content: "{{hive_ca_key}}"
+    dest: "{{ hive_safe_ca_dir }}/cakey.pem"
+    mode: 0644
+  when: hive_ca_key is defined
