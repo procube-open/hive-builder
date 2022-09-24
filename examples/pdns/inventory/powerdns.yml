@@ -22,12 +22,14 @@ services:
     initialize_roles:
     - python-aptk
     - powerdns-init
+    replicas: 2
   pdnsdb:
     image:
       from: "mariadb:10.4"
       roles:
       - python-aptk
       - powerdns-initdb
+    endpoint_mode: dnsrr
     environment:
       MYSQL_ROOT_PASSWORD: "{{db_password}}"
       MYSQL_USER: powerdns
@@ -59,8 +61,7 @@ services:
       from: ngoduykhanh/powerdns-admin:0.2.2
       roles:
       - powerdns-admin
-    ports:
-      - "80"
+    endpoint_mode: dnsrr
     environment:
       SQLALCHEMY_DATABASE_URI: "sqlite:////app/data/padmin.sqlite"
       GUINCORN_TIMEOUT: "60"
@@ -118,6 +119,7 @@ services:
       - /usr/local/bin/python
       command:
       - /usr/sbin/proxy-configure
+    endpoint_mode: dnsrr
     environment:
       TZ: JST-9
     volumes:
@@ -138,6 +140,7 @@ services:
       - /usr/local/bin/python
       command:
       - /usr/sbin/certbot-runner
+    endpoint_mode: dnsrr
     environment:
       TZ: JST-9
       CERTBOT_EMAIL: "{{ hive_email | default(omit) }}"

@@ -11,6 +11,7 @@ hive-builder ドキュメントページへようこそ
     proxy.rst
     example.rst
     develop.rst
+    servicepatterns.rst
     command.rst
     inventory.rst
     aws.rst

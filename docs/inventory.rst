@@ -967,6 +967,7 @@ image 属性にオブジェクトを指定すると、イメージのビルド�
 | 現在、hive_builderには4つのビルトインロールがあります。以下に詳細を示します。
 
 - python-aptk
+
 build-images フェーズでは、 ansible で中身を構築するため、
 ビルド用に起動したコンテナに python がインストールされていなければなりません。
 しかし、 ubuntu や alpine をベースとしたイメージには python がインストールされていないものが
@@ -981,14 +982,17 @@ python-aptk には以下のようにタスクが定義されており、ubuntu �
       changed_when: False
 
 - hive-syslog
+
 スタンドアロン型のサービスでは、そのままではリポジトリサーバにログが出力されません。スタンドアロン型の中の syslog をリポジトリサーバに
 送るためには hive-syslog ビルトインロールを組み込んでください。
 
 - hive-certificate
+
 サービスを構築する上で、複数枚の証明書が必要な場合があります。hive_certificateビルトインロールでは変数certificatesを指定することで任意のドメイン名、サフィックス、有効期限で証明書の生成が可能です。
 詳細は :ref:`こちら<cashare-create>` を確認ください。
 
 - hive-trust-ca
+
 CA局証明書をコンテナのトラストストアにインストールします。
 詳細は :ref:`こちら<cashare-catrust>` を確認ください。
 
