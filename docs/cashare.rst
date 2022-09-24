@@ -21,7 +21,7 @@ hiveの機能で共有したいCA局証明書をコンテナのトラストス�
 | ②共有したCA局の証明書をコンテナのトラストストアにインストールします。詳しくは :ref:`「ルート証明書信頼設定ビルトインロール」 <cashare-catrust>` の節を参照してください。
 
 A-2.コンテナへのクライアント証明書の付与
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 「1.CA局証明書の信頼」で共有したCA局証明書を用いて生成したクライアントの証明書と秘密鍵をコンテナに付与することで、通信相手とのTLS相互認証が可能となります。
 
 .. image:: imgs/set_client_cert.png
@@ -91,6 +91,7 @@ hive_builderの機能でCA局の証明書を共有することが可能です。
 | 下記の形式でインベントリ(例えば、inventory/group_vars/all.yml)に変数certificate_fqdn, sub_prefix, ca_valid_inを定義することで指定のドメイン、サフィックス、有効期限で証明書が生成されます。
 | また、証明書と秘密鍵をコピーしたいコンテナのパスは変数cert_dest, key_destで指定してください。
 | 以下に例を示します。
+
 ::
 
     certificates:
@@ -105,8 +106,8 @@ hive_builderの機能でCA局の証明書を共有することが可能です。
         cert_dest: /etc/pki/tls/certs/ddex.test.procube-demo.jp.crt
         key_dest: /etc/pki/tls/private/ddex.test.procube-demo.jp.key
 
-| 証明書の生成はbuild-imagesフェーズで実行されます。
-| 
+ 証明書の生成はbuild-imagesフェーズで実行されます。
+
 | 上記の例で作成される証明書は、
 | 1枚目:
 | CN=dnsdist-example-slave.test.procube-demo.jp, DC=${ hive_name }, 有効期限=100年
@@ -117,6 +118,7 @@ hive_builderの機能でCA局の証明書を共有することが可能です。
 | 
 | ビルトインロールhive-certificateを適用するには、サービスのimage.roles属性の下に追加する必要があります。
 | 以下に例を示します。
+
 ::
 
   hoge:
@@ -132,6 +134,7 @@ hive_builderの機能でCA局の証明書を共有することが可能です。
 ----------------------------------------
 | hive_builderのビルトインロールhive-trust-caでは、CA局証明書のコンテナのトラストストアにインストールします。ビルトインロールhive-trust-caを適用するには、サービスのimage.roles属性の下に追加する必要があります。
 | 以下に例を示します。
+
 ::
 
   hoge:
