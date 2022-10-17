@@ -51,7 +51,7 @@ Centos 8 の場合は sshpass コマンドは不要です。
 
 ::
 
-  yum config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   yum install -y python39 docker-ce-cli
 
 .. note::

@@ -38,7 +38,7 @@
   check_mode: False
   when: ansible_distribution == 'RedHat'
 - name: grow partition
-  shell: "{{ 'pvresize ' + vgroot.stdout + ' &>>/root/growpart.log && lvextend -l $(pvdisplay -c ' + vgroot.stdout + ' | cut -d : -f 10) rootvg/rootlv' if ansible_distribution == 'RedHat'
-     else 'growpart /dev/sda 2' }} &>>/root/growpart.log && xfs_growfs / &>> /root/growpart.log"
+  shell: "{{ 'pvresize ' + vgroot.stdout + ' &>>/root/growpart.log && lvextend -l $(pvdisplay -c ' + vgroot.stdout + ' | cut -d : -f 10) rootvg/varlv' if ansible_distribution == 'RedHat'
+     else 'growpart /dev/sda 2' }} &>>/root/growpart.log && xfs_growfs /var &>> /root/growpart.log"
   args:
     creates: /root/growpart.log
