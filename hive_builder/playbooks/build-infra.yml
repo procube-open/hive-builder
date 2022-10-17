@@ -24,7 +24,7 @@
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile={{ hive_context_dir }}/known_hosts"
   tasks:
   - wait_for_connection:
-    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false)) and (hive_provider != 'kickstart')
+    when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false)) and (hive_provider not in ['kickstart', 'prepared'])
   - vars:
       ansible_host: "{{ hive_private_ip }}"
       ansible_user: "root"
