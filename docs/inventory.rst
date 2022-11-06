@@ -1179,10 +1179,10 @@ backup_scripts 属性はバックアップ定義の配列です。
       - 指定された日数を超えて古いバックアップファイルを日次で削除する。例えば、0 を
         指定すると、当日のバックアップファイルのみが残り、
         3 を指定すると3日前、2日前、1日前、当日分の4個のバックアップファイルが残る。
-    * - batch_script
-      - "mysql -u powerdns -p{{db_password}} powerdns -e 'ALTER TABLE records;'"
+    * - batch_scripts
+      - ["mysql -u powerdns -p{{db_password}} powerdns -e 'ALTER TABLE records;'"]
       - ""
-      - 深夜日次バッチの実行時に指定されたコマンドをバックアップの採取前に実行する。
+      - 深夜日次バッチの実行時にバックアップの採取前に指定されたコマンドのリストを順に実行する。
 
 ここで directory 属性とコマンドでバックアップを採取する属性（backup_command, backup_file, restore_command, restore_file, ext）は排他的でどちらか一方しか指定できません。
 バックアップファイルの名前は backup-{name属性の値}-{採取日時}.{ext属性の値} になります。
