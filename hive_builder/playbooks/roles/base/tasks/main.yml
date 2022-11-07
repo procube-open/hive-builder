@@ -92,18 +92,20 @@
 # setting up locale if hive_locale is defined
 - name: install packages for locale
   yum:
-    name: glibc-common
+    name: langpacks-{{ hive_locale | regex_replace('LANG=') | regex_replace('_.*') }}.noarch
     state: latest
   when: hive_locale is defined
 - name: gather locale info
-  command: localectl
+  shell: "localectl | grep Locale | sed -e 's/\\s*System Locale: //g'"
   check_mode: False
   changed_when: False
   register: hive_safe_current_locale
   when: hive_locale is defined
 - name: "set locale"
   shell: "localectl set-locale {{ hive_locale }}"
-  when: "hive_locale is defined and not hive_safe_current_locale.stdout.find('System Locale: ' + hive_locale)"
+  when:
+  - "hive_locale is defined"
+  - "hive_locale is not in hive_safe_current_locale.stdout"
 # setting up sshd parameters
 - name: disable Password Authentication for sshd
   lineinfile:
