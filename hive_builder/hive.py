@@ -453,6 +453,11 @@ class buildVolumes(phaseBase):
     super().__init__('build-volumes', 'build volumes on hives')
     self.subject_name = 'volume'
 
+  def get_limit_targets(self, context):
+    if 'limit_server' in context.vars:
+      return ':' + context.vars['limit_server'] + ':&' + context.vars["stage"]
+    return context.vars["stage"]
+
 
 class buildNetworks(phaseBase):
   def __init__(self):
