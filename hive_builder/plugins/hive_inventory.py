@@ -86,8 +86,8 @@ DOCUMENTATION = r'''
           description: "number of cpu of hive hosts(only available when provider is 'vagrant')"
           type: int
           default: VirtualBox default
-        root_password:
-          description: "password of root user (only available when provider is 'preapred')"
+        drbd_download_url:
+          description: "download url for drbd"
         instance_type:
           description: "the instance type of hive hosts(availabe when provider is a IaaS)"
         image_name:
@@ -108,6 +108,8 @@ DOCUMENTATION = r'''
           default: False
         kms_key_id:
           description: "key id for encryption (availabe when provider is aws)"
+        kernel_version:
+          description: "kernel version to be updated at base role"
         mirrored_disk_size:
           description: disk size of hosts for drbd mirror disk, if not specified then hive does not provision mirrord disk
           type: int (megabyte)
@@ -129,6 +131,8 @@ DOCUMENTATION = r'''
           description: disk of repository server is encrypted
           type: bool
           default: False
+        root_password:
+          description: "password of root user (only available when provider is 'preapred')"
         kickstart_config:
           description: configuration for kickstart file, availble on kickstart provider
           type: dict
@@ -332,6 +336,10 @@ class Stage:
       self.inventory.add_host(host_name, group=self.stage_name)
       if 'root_password' in self.stage:
         self.inventory.set_variable(host_name, 'hive_root_password', self.stage['root_password'])
+      if 'kernel_version' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_kernel_version', self.stage['kernel_version'])
+      if 'drbd_download_url' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_drbd_download_url', self.stage['drbd_download_url'])
       if 'internal_cidr' in self.stage:
         self.inventory.set_variable(host_name, 'hive_internal_cidr', self.stage['internal_cidr'])
       if 'internal_cidr_v6' in self.stage:

@@ -12,6 +12,9 @@ stages:
     separate_repository: True
     cidr: 192.168.0.0/24
     instance_type: t3.xlarge
+    image_name: ami-0b299c22ffb336d85
+    kernel_version: 4.18.0-425.3.1.el8
+    drbd_download_url: https://github.com/procube-open/drbd9-rpm/releases/download/Latests/drbd-9.1.12-v9.19.1-4.18.0-425.3.1.el8.x86_64.tar.gz
     region: ap-northeast-1
     mirrored_disk_size: 20
     repository_instance_type: t3.large
@@ -30,6 +33,11 @@ stages:
     separate_repository: True
     cidr: 192.168.0.0/24
     instance_type: Standard_D2s_v3
+    image_name:
+      offer: RHEL
+      publisher: RedHat
+      sku: '86-gen2'
+      version: latest
     region: japaneast
     disk_size: 100
     repository_disk_size: 150

@@ -60,6 +60,9 @@
     reuse_existing_ip_allowed: "{{ hostvars[aws_host].hive_published_ip is defined }}"
     region: "{{ hive_region }}"
     public_ip: "{{ hostvars[aws_host].hive_published_ip | default(omit) }}"
+    tags:
+      Name: "for {{ aws_host }}"
+      Project: "{{ hive_name }}"
   register: hive_safe_eip
 - debug:
     msg: "build {{ aws_host }}: EIP={{ hive_safe_eip.public_ip }}, instance_type={{ hostvars[aws_host].hive_instance_type }}"

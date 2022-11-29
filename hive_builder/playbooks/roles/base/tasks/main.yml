@@ -23,7 +23,7 @@
   changed_when: False
 - debug: var=ansible_distribution
 - debug: var=ansible_distribution_release
-- name: update kernel for drbd
+- name: update kernel for drbd (implicit)
   yum:
     name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else
                     ('4.18.0-348*.el8' if ansible_distribution_release in ['Stream', 'Arctic Sphynx'] else
@@ -31,11 +31,18 @@
                      '4.18.0-305*.el8') }}"
     disable_excludes: main
     state: latest
-  when: hive_mirrored_disk_size is defined and (
+  when: hive_mirrored_disk_size is defined and hive_kernel_version is not defined and (
          (ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux'] and (
            (ansible_distribution_release not in ['Stream', 'Arctic Sphynx'] and uname_result.stdout is version('4.18.0-305', 'lt')) or
            (ansible_distribution_release in ['Stream', 'Arctic Sphynx'] and uname_result.stdout is version('4.18.0-348', 'lt')))) or
          (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt')))
+  notify: require reboot
+- name: update kernel for drbd (explicit)
+  yum:
+    name: "kernel-{{ hive_kernel_version }}"
+    disable_excludes: main
+    state: latest
+  when: hive_kernel_version is defined
   notify: require reboot
 - name: install packages
   yum:
