@@ -12,22 +12,17 @@
 - name: download drbd rpm tarball
   get_url:
     url: >-
-      https://github.com/procube-open/drbd9-rpm/releases/download/{{
-        ('9.0.22/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.203', 'lt')
+      {{ hive_drbd_download_url | default( 'https://github.com/procube-open/drbd9-rpm/releases/download/' +
+        (('9.0.22/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.203', 'lt')
          else '9.0.25/drbd9-rpm-amzn2' if uname_result.stdout is version('4.14.219', 'lt')
          else '9.0.27/drbd9-rpm-amzn2'  if uname_result.stdout is version('4.14.225', 'lt')
          else '9.1.2/drbd9-rpm-amzn2'  if uname_result.stdout is version('4.14.232', 'lt')
          else '9.1.2-1/drbd9-rpm-amzn2'
         ) if ansible_distribution == 'Amazon' else
         (
-         '9.1.2-2/drbd9-rpm-foros8' if uname_result.stdout is version('4.18.0-348', 'lt')
-         else '9.1.2-3/drbd9-rpm-foros8'
-        ) if ansible_distribution_release in ['Stream', 'Arctic Sphynx'] else
-        ('9.0.20/drbd9-rpm' if uname_result.stdout is version('3.10.0-1127', 'lt')
-         else '9.0.24/drbd9-rpm' if uname_result.stdout is version('4.18.0', 'lt')
-         else '9.0.24/drbd9-rpm-foros8' if uname_result.stdout is version('4.18.0-305', 'lt')
-         else '9.1.2/drbd9-rpm-foros8' if uname_result.stdout is version('4.18.0-348', 'lt')
-         else '9.1.2-3/drbd9-rpm-foros8')}}.tar.gz
+         'Latests/drbd-9.1.12-v9.22.0-4.18.0-372.32.1.el8.x86_64' if ansible_distribution_release == 'Ootpa'
+         else 'Latests/drbd-9.1.12-v9.22.0-4.18.0-425.3.1.el8.x86_64'
+        ) ) + '.tar.gz') }}
     dest: /root/drbd9-rpm.tar.gz
 - name: extract drbd rpm files
   unarchive:

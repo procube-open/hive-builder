@@ -207,6 +207,13 @@ limit_target:
   - build-volumes
   - deploy-services
   - initialize-services
+limit_server:
+  description: "limit server on build-volumes"
+  persistent_scope: phase
+  command_line_option: "-x"
+  command_line_option_level: phase
+  command_line_option_available:
+  - build-volumes
 vagrant_box_name:
   description: "box name for vagrant"
   persitent_scope: stage
