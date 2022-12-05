@@ -1,6 +1,6 @@
 #version=RHEL8
 # System authorization information
-auth --enableshadow --passalgo=sha512
+authselect --enableshadow --passalgo=sha512
 # Use text install
 text
 # repo --name="BaseOS" --baseurl=file:///run/install/repo/BaseOS
@@ -55,7 +55,7 @@ clearpart --all --initlabel --drives={{ hive_ks_target }}
 # unit of disk_size attribute is GB, not GiB
 part /boot/efi --fstype=efi --ondisk={{ hive_ks_target }} --size=200
 part swap --fstype=swap --ondisk={{ hive_ks_target }} --size={{ (hostvars[ks_host].hive_memory_size | default('10240')) }}
-part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ ((hostvars[ks_host].hive_disk_size | default('100'))  * 1000 / 1024 * 1000 / 1024 * 1000) | int }}
+part / --fstype=xfs --ondisk={{ hive_ks_target }} --size={{ ((hostvars[ks_host].hive_disk_size | default(100))  * 1000 / 1024 * 1000 / 1024 * 1000) | int }}
 
 %packages
 @core
