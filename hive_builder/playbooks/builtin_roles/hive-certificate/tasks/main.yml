@@ -3,7 +3,7 @@
   become: False
   delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
   copy:
-    src: ../files/extfile.cnf
+    src: extfile.cnf
     dest: "{{ hive_safe_ca_dir }}/{{ item.certificate_fqdn }}-extfile.cnf"
   loop: "{{ certificates }}"
 - name: server/client CSR
