@@ -35,6 +35,10 @@
     unit: MiB
   register: hive_safe_parted
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+  failed_when: hive_safe_parted is failed and 'have been written, but we have been unable to inform the kernel of the change' not in hive_safe_parted.err
+- debug:
+    msg: "ingnore error in create partition, but ignored: {{ hive_safe_parted.err }}"
+  when: hive_safe_parted is failed
 - name: create volume group
   lvg:
     vg: "{{ disk.vgname }}"

@@ -12,3 +12,4 @@
 - name: enable service
   shell: |
     systemctl enable rsyslog
+  creates: /etc/systemd/system/multi-user.target.wants/rsyslog.service
