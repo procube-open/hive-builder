@@ -69,7 +69,7 @@ function restore_{{ hive_safe_target }}() {
         {%- if hive_safe_backup_script.restore_file is defined %}
 
     {# In the case hive_safe_backup_script.backup_file is directory, problems may occur. -#}
-    tar cf - -h $backup_file | tar -O -xf - | dexec -n {{ hive_safe_target }} /bin/bash -c 'cat > {{ hive_safe_backup_script.restore_file }}'
+    tar cf - -h $backup_file | tar -O -xf - | dexec -n {{ hive_safe_target }} /bin/sh -c 'cat > {{ hive_safe_backup_script.restore_file }}'
     if dexec -n {{ hive_safe_target }} sh -c '{{ hive_safe_backup_script.restore_command }}'  ; then
         {%- else %}
 
@@ -78,7 +78,7 @@ function restore_{{ hive_safe_target }}() {
         {%- elif hive_safe_backup_script.directory is defined %}
 
     {# In the case hive_safe_backup_script.backup_file is directory, problems may occur. -#}
-    tar cf - -h $backup_file | tar -O -xf - | dexec -n {{ hive_safe_target }} /bin/bash -c "cat > {{ '/root' if (hostvars[hive_safe_target].hive_standalone | default(False)) else '/tmp' }}/restore.tar.gz"
+    tar cf - -h $backup_file | tar -O -xf - | dexec -n {{ hive_safe_target }} /bin/sh -c "cat > {{ '/root' if (hostvars[hive_safe_target].hive_standalone | default(False)) else '/tmp' }}/restore.tar.gz"
     if dexec -n {{ hive_safe_target }} sh -c 'cd {{hive_safe_backup_script.directory}}; rm -rf $(find . -maxdepth 1 -not -name .); tar xzf {{ '/root' if (hostvars[hive_safe_target].hive_standalone | default(False)) else '/tmp' }}/restore.tar.gz'; then
       {%- endif %}
 
