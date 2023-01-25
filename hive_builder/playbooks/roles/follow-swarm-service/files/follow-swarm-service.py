@@ -224,6 +224,39 @@ class NATExecutor:
     self.thread = None
     self.cancel_task = False
 
+class NATExecutorAnotherVip(NATExecutor):
+  def __init__(self, serivce_id, service_name, snat_another_vip):
+    self.serivce_id = serivce_id
+    self.service_name = service_name
+    self.snat_another_vip = snat_another_vip
+    self.thread = None
+    self.cancel_task = False
+    self.latest_task = None
+
+  def add_nat_rules(self, task, interface):
+    self.latest_task = task
+    DAEMON.logger.info(f'Try to add SNAT rules({self.service_name})')
+    if self.snat_another_vip and self.snat_another_vip.upper() == 'TRUE':
+      container_ip = self.resolveContainerIpFromTask()
+      if not(container_ip):
+        return
+      DAEMON.logger.debug(f'Add SNAT({container_ip} -> {interface["vip_if"].ip})')
+      subprocess_run([self.cmd_iptables, '-t', 'nat', '-I', SNAT_TARGET_RULE_NAME, '-s', container_ip, '-o', interface['name'],
+                      '-j', 'SNAT', '--to-source', str(interface['vip_if'].ip),
+                      '-m', 'comment', '--comment', self.gen_snat_comment(str(interface["vip_if"].ip))])
+    DAEMON.logger.info(f'Succeeded to add NAT rules({self.service_name})')
+    
+  def remove_nat_rules(self, interface):
+    DAEMON.logger.info(f'Try to remove SNAT rules({self.service_name})')
+    if self.snat_another_vip and self.snat_another_vip.upper() == 'TRUE':
+      ipaddr = str(interface["vip_if"].ip)
+      for nat_rule_src in self.resolveSNATRuleDst(ipaddr):
+        DAEMON.logger.debug(f'Delete SNAT({nat_rule_src} -> {interface["vip_if"].ip})')
+        subprocess_run([self.cmd_iptables, '-t', 'nat', '-D', SNAT_TARGET_RULE_NAME, '-s', nat_rule_src, '-o', interface['name'],
+                        '-j', 'SNAT', '--to-source', ipaddr,
+                        '-m', 'comment', '--comment', self.gen_snat_comment(ipaddr)])
+    DAEMON.logger.info(f'Succeeded to remove NAT rules({self.service_name})')
+    
 
 class NATExecutorv6(NATExecutor):
   container_ip_prop_name = "IPv6Address"
@@ -328,15 +361,27 @@ class SetVIP(HookBase):
   label_name = 'HIVE_VIP'
   router_label_name = 'HIVE_ROUTER'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT'
   nat_executor_class = NATExecutor
+  nat_executor_class_snat_another_vip = NATExecutorAnotherVip
+
+  def __init__(self, label_value, serivce_id, service_name, snat_another_vip):
+    super().__init__(label_value, serivce_id, service_name)
+    self.snat_another_vip = snat_another_vip 
+
+  @classmethod
+  def get_hook(cls, label_value, serivce_id, name, snat_another_vip):
+    return cls(label_value, serivce_id, name, snat_another_vip)
 
   @classmethod
   def check_service(cls, service):
     label_value = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.label_name)
+    snat_another_vip = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.snat_another_vip_label_name)
+    DAEMON.logger.debug(f'label "HIVE_SNAT_ANOTHER_VIP" value is {snat_another_vip}')
     if label_value is None:
       return None
-    me = cls.get_hook(label_value, service.id, service.name)
+    me = __class__.get_hook(label_value, service.id, service.name, snat_another_vip)
     if me is None:
       return None
     me.router = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.router_label_name)
@@ -345,7 +390,10 @@ class SetVIP(HookBase):
     DAEMON.logger.debug(f'label "HIVE_DNAT_PORTS" value is {dnat_ports}')
     enable_vip_snat = service.attrs.get('Spec', {}).get('Labels', {}).get(cls.enable_vip_snat_label_name)
     DAEMON.logger.debug(f'label "HIVE_ENABLE_VIP_SNAT" value is {enable_vip_snat}')
-    me.nat_executor = me.__class__.nat_executor_class(me.serivce_id, me.service_name, dnat_ports, enable_vip_snat)
+    if snat_another_vip is None:
+      me.nat_executor = me.__class__.nat_executor_class(me.serivce_id, me.service_name, dnat_ports, enable_vip_snat)
+    else:
+      me.nat_executor = me.__class__.nat_executor_class_snat_another_vip(me.serivce_id, me.service_name, snat_another_vip)
     return me
 
 # sample of output of ip addr command
@@ -440,32 +488,45 @@ class SetVIP(HookBase):
     if interface is None:
       DAEMON.logger.error(f'No network interface to which a virtual IP {self.label_value} can be added was found.')
       return
-    if interface['vip_if'].ip in interface['ips']:
-      DAEMON.logger.info(f'vip {str(interface["vip_if"].ip)} is already bound on interface {interface["name"]} at on_enter')
-      return
+    if self.snat_another_vip is None: 
+      if interface['vip_if'].ip in interface['ips']:
+        DAEMON.logger.info(f'vip {str(interface["vip_if"].ip)} is already bound on interface {interface["name"]} at on_enter')
+        return
+    else:
+      if interface['vip_if'].ip in interface['ips']:
+        DAEMON.logger.info(f'vip {str(interface["vip_if"].ip)} is already bound on interface {interface["name"]} but defined HIVE_SNAT_ANOTHER_VIP, do setVip at on_enter')
+      else:
+        DAEMON.logger.error(f'HIVE_SNAT_ANOTHER_VIP is defined but cannot find another vip at on_enter')
+        return
     self.setVip(interface)
 
   def setVip(self, interface):
-    subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
-    self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip))
-    success = False
-    if self.router:
-      rest_count = 5
-      while rest_count > 0:
-        ping_proc = subprocess_run([self.__class__.cmd_ping, '-c', '1', self.router, '-I', str(interface['vip_if'].ip)])
-        if ping_proc.returncode == 0:
-          success = True
-          break
-        rest_count -= 1
-        time.sleep(10)
-      if not(success):
-        DAEMON.logger.error(f'Exceed max retry ping test count:5')
-        self.clearVip(interface)
-        return
+    if self.snat_another_vip is None:
+      subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
+      self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip))
+      success = False
+      if self.router:
+        rest_count = 5
+        while rest_count > 0:
+          ping_proc = subprocess_run([self.__class__.cmd_ping, '-c', '1', self.router, '-I', str(interface['vip_if'].ip)])
+          if ping_proc.returncode == 0:
+            success = True
+            break
+          rest_count -= 1
+          time.sleep(10)
+        if not(success):
+          DAEMON.logger.error(f'Exceed max retry ping test count:5')
+          self.clearVip(interface)
+          return
+    else:
+      DAEMON.logger.info(f'use vip {str(interface["vip_if"].ip)} defined by another container at setVip')
     self.nat_executor.start(self.task, interface)
 
   def clearVip(self, interface):
-    subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'del', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
+    if self.snat_another_vip is None:
+      subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'del', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
+    else:
+      DAEMON.logger.info(f'vip {str(interface["vip_if"].ip)} is used by another container at clearVip')
     self.nat_executor.stop(interface)
 
   def on_leave(self):
@@ -484,6 +545,7 @@ class SetVIP0(SetVIP):
   router_label_name = 'HIVE_ROUTER0'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP0'
 
 
 class SetVIP1(SetVIP):
@@ -491,6 +553,7 @@ class SetVIP1(SetVIP):
   router_label_name = 'HIVE_ROUTER1'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP1'
 
 
 class SetVIP2(SetVIP):
@@ -498,6 +561,7 @@ class SetVIP2(SetVIP):
   router_label_name = 'HIVE_ROUTER2'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP2'
 
 
 class SetVIP3(SetVIP):
@@ -505,6 +569,7 @@ class SetVIP3(SetVIP):
   router_label_name = 'HIVE_ROUTER3'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP3'
 
 
 class SetVIP4(SetVIP):
@@ -512,6 +577,7 @@ class SetVIP4(SetVIP):
   router_label_name = 'HIVE_ROUTER4'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP4'
 
 
 class SetVIP5(SetVIP):
@@ -519,6 +585,7 @@ class SetVIP5(SetVIP):
   router_label_name = 'HIVE_ROUTER5'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP5'
 
 
 class SetVIPv6(SetVIP):
@@ -526,6 +593,7 @@ class SetVIPv6(SetVIP):
   router_label_name = 'HIVE_ROUTER_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP6'
   reg_inet = re.compile(r'^ +inet6 ([0-9a-f:]+/\d+) .*$')
   cmd_ping = 'ping6'
   cmd_ip_opts = '-6'
@@ -540,6 +608,7 @@ class SetVIP0v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER0_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS0_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT0_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP0_V6'
 
 
 class SetVIP1v6(SetVIPv6):
@@ -547,6 +616,7 @@ class SetVIP1v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER1_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS1_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT1_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP1_V6'
 
 
 class SetVIP2v6(SetVIPv6):
@@ -554,6 +624,7 @@ class SetVIP2v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER2_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS2_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT2_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP2_V6'
 
 
 class SetVIP3v6(SetVIPv6):
@@ -561,6 +632,7 @@ class SetVIP3v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER3_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS3_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT3_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP3_V6'
 
 
 class SetVIP4v6(SetVIPv6):
@@ -568,6 +640,7 @@ class SetVIP4v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER4_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS4_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT4_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP4_V6'
 
 
 class SetVIP5v6(SetVIPv6):
@@ -575,6 +648,7 @@ class SetVIP5v6(SetVIPv6):
   router_label_name = 'HIVE_ROUTER5_V6'
   dnat_ports_label_name = 'HIVE_DNAT_PORTS5_V6'
   enable_vip_snat_label_name = 'HIVE_ENABLE_VIP_SNAT5_V6'
+  snat_another_vip_label_name = 'HIVE_SNAT_ANOTHER_VIP5_V6'
 
 
 class FollowSwarmServiceDaemon:
