@@ -51,3 +51,4 @@ stages:
   #   repository_disk_size: 150
   #   mirrored_disk_size: 20
   #   repository_instance_type: n1-standard-2
+  #   custom_hostname: test-hive
