@@ -11,6 +11,7 @@ from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.errors import AnsibleParserError
 import ipaddress
 import os
+import re
 
 DOCUMENTATION = r'''
   name: hive_inventory
@@ -329,10 +330,14 @@ class Stage:
   def add_hives(self):
     separate_repository = self.stage.get('separate_repository', True)
     number_of_hosts = self.stage.get('number_of_hosts', 4 if separate_repository else 3)
+    custom_hostname = self.stage.get('custom_hostname', 'hive')
+    hostname_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname)) + len(self.name) < 55):
+      raise AnsibleParserError('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 55 in length')
     if 'ip_address_list' in self.stage:
       number_of_hosts = len(self.stage.get('ip_address_list'))
     for idx in range(number_of_hosts):
-      host_name = f'{self.stage_prefix}hive{idx}.{self.name}'
+      host_name = f'{self.stage_prefix}{custom_hostname}{idx}.{self.name}'
       self.inventory.add_host(host_name, group=self.stage_name)
       if 'root_password' in self.stage:
         self.inventory.set_variable(host_name, 'hive_root_password', self.stage['root_password'])
@@ -411,5 +416,5 @@ class Stage:
         self.inventory.set_variable(host_name, 'hive_available_zone', subnet.get('available_zone', az_default))
       self.inventory.set_variable(host_name, 'hive_private_ip', next(subnet['ip_list']))
       self.inventory.set_variable(host_name, 'hive_netmask', subnet['netmask'])
-    self.inventory.set_variable('hives', 'hive_swarm_master', f'{self.stage_prefix}hive{os.getenv("HIVE_FIRST_HIVE")}.{self.name}')
-    self.inventory.add_host(f'{self.stage_prefix}hive{os.getenv("HIVE_FIRST_HIVE")}.{self.name}', group='first_hive')
+    self.inventory.set_variable('hives', 'hive_swarm_master', f'{self.stage_prefix}{custom_hostname}{os.getenv("HIVE_FIRST_HIVE")}.{self.name}')
+    self.inventory.add_host(f'{self.stage_prefix}{custom_hostname}{os.getenv("HIVE_FIRST_HIVE")}.{self.name}', group='first_hive')
