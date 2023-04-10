@@ -260,6 +260,11 @@ class Stage:
   def add_stage_group(self):
     self.inventory.add_group(self.stage_name)
     self.inventory.set_variable(self.stage_name, 'hive_provider', self.provider)
+    custom_hostname = self.stage.get('custom_hostname', 'hive')
+    hostname_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname)) + len(self.name) < 55):
+      raise AnsibleParserError('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 55 in length')
+    self.inventory.set_variable(self.stage_name, 'custom_hostname', custom_hostname)
 
   def set_subnets(self):
     self.subnets = []
