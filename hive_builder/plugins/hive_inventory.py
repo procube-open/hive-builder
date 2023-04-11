@@ -264,7 +264,7 @@ class Stage:
     hostname_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
     if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname)) + len(self.name) < 55):
       raise AnsibleParserError('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 55 in length')
-    self.inventory.set_variable(self.stage_name, 'custom_hostname', custom_hostname)
+    self.inventory.set_variable(self.stage_name, 'hive_custom_hostname', custom_hostname)
 
   def set_subnets(self):
     self.subnets = []
