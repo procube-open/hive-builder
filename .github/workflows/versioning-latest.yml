@@ -20,10 +20,10 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.EXT_GITHUB_PAT }}
-      - name: Setup Node
-        uses: actions/setup-node@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          node-version: '16'
+          python-version: '3.x'
       - name: Set releaser settings
         run: |
           git config --global user.name ${{ secrets.EXT_GITHUB_USER }}
@@ -44,6 +44,6 @@ jobs:
       - name: Release
         if: "env.UPDATE_ARGS != ''"
         run: |
-          npm i -g release-it@${RELEASE_IT_VERSION}
-          npm i -g @release-it/bumper@${BUMPER_VERSION}
-          release-it -- ${UPDATE_ARGS} --ci
+          RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }}
+          git tag ${RELESE_VERSION}
+          git push origin ${RELESE_VERSION}
