@@ -27,7 +27,7 @@ jobs:
       - name: Install poetry
         run: pip install poetry
       - name: Resolve version num
-        run: echo PRERELESE_VERSION = $(poetry version --dry-run -s prerelease | sed 's/a/rc/g') >> $GITHUB_ENV
+        run: echo PRERELEASE_VERSION=$(poetry version --dry-run -s prerelease | sed 's/a/rc/g') >> $GITHUB_ENV
       - name: Set releaser settings
         run: |
           git config --global user.name ${{ secrets.EXT_GITHUB_USER }}
@@ -35,6 +35,6 @@ jobs:
       - name: Release
         if: "contains(toJSON(github.event.commits.*.message), '[[PRERELEASE]]')  && !contains(toJSON(github.event.commits.*.message), '[automate_versioning_prerelease] Prerelease ')"
         run: |
-          poetry version ${{ env.PRERELESE_VERSION }}
-          git tag ${{ env.PRERELESE_VERSION }}
-          git push origin ${{ env.PRERELESE_VERSION }}
+          poetry version ${{ env.PRERELEASE_VERSION }}
+          git tag ${{ env.PRERELEASE_VERSION }}
+          git push origin ${{ env.PRERELEASE_VERSION }}
