@@ -36,5 +36,7 @@ jobs:
         if: "contains(toJSON(github.event.commits.*.message), '[[PRERELEASE]]')  && !contains(toJSON(github.event.commits.*.message), '[automate_versioning_prerelease] Prerelease ')"
         run: |
           poetry version ${{ env.PRERELEASE_VERSION }}
+          git add pyproject.toml
+          git commit -m "[automate_versioning_prerelease] Prerelease ${{ env.PRERELEASE_VERSION }}"
           git tag ${{ env.PRERELEASE_VERSION }}
           git push origin ${{ env.PRERELEASE_VERSION }}
