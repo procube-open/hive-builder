@@ -125,3 +125,35 @@ git branch -D Feature/2.2.12/support-bonding-NIC
 Open the pull request you finished merging in the web and click ``Delete branch'' to delete the branch.
 #### Note
 > Pull requests that have been merged are not shown in [Pull requests](https://github.com/procube-open/hive-builder/pulls) by default. Remove "is:open" from "Filters" by default and search again to find and open the target pull request.
+
+## 10 Deploying to PyPI
+
+In the hive-builder repository, automatic deployment to PyPI and test PyPI is entered by github actions.
+
+## 10-1. Deployment specification to PyPI
+
+The deployment specification to PyPI is as follows.
+
+- Runs when a merge of a pull request into the main branch occurs
+- The appropriate version number is derived according to the specification below
+  - Update the major version if `[[MAJOR]]` is included in the commit log
+  - Update minor version if `[[MINOR]]` is included in the commit log
+  - In other cases, update the patch version
+- Update `pyproject.toml`, git tag and commit according to the version number derived above
+- Then build and deploy to PyPI
+
+## 10-2. Deployment specification to Test PyPI (RC version)
+
+The deployment specification to Test PyPI is as follows.
+
+- Runs if `[[PRERELEASE]]` is in the commit log for a push to a branch other than the main branch
+- If this is the first execution in that branch, increment the patch level by one and suffix the rc{number} to version up
+- If you commit multiple times with `[[PRERELEASE]]` in the same branch, the version number will not change and the number after rc will increase by the number of times
+- Update `pyproject.toml`, git tag and commit according to the version number derived above
+- Then build and deploy to Test PyPI
+
+### Notes
+
+If you run a prerelease on multiple branches, the version numbers will overlap and you will get an error.
+
+If you do pre-releases in multiple branches, you can work around this by editing the `version` variable in `pyproject.toml` so that the version numbers don't overlap.
