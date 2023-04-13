@@ -46,6 +46,6 @@ jobs:
         run: |
           RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }}
           git add pyproject.toml
-          git commit -m "[automate_versioning_prerelease] Prerelease ${RELEASE_VERSION}"
+          git commit -m "[automate_versioning] Release ${RELEASE_VERSION}"
           git tag ${RELEASE_VERSION}
           git push origin ${RELEASE_VERSION}
