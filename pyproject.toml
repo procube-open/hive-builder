@@ -23,3 +23,6 @@ pillow = "^9.5.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+hive = "hive_builder.hive:main"
