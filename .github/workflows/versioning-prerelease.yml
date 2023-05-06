@@ -1,0 +1,43 @@
+name: auto versioning for main branch
+on:
+  push:
+    tags-ignore: 
+      - '**'
+    branches-ignore:
+      - main
+jobs:
+  version-up-main:
+    runs-on: ubuntu-latest
+    env:
+      # https://github.community/t/github-action-trigger-on-release-not-working-if-releases-was-created-by-automation/16559
+      GITHUB_USER: ${{ secrets.EXT_GITHUB_USER }}
+      GITHUB_TOKEN: ${{ secrets.EXT_GITHUB_PAT }}
+      RELEASE_IT_VERSION: 14.14.0
+      BUMPER_VERSION: 3.0.1
+    steps:
+      - name: Check out codes
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.EXT_GITHUB_PAT }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install poetry
+        run: pip install poetry
+      - name: Resolve version num
+        run: echo PRERELEASE_VERSION=$(poetry version --dry-run -s prerelease | sed 's/a/rc/g') >> $GITHUB_ENV
+      - name: Set releaser settings
+        run: |
+          git config --global user.name ${{ secrets.EXT_GITHUB_USER }}
+          git config --global user.email ${{ secrets.EXT_GITHUB_EMAIL }}
+      - name: Release
+        if: "contains(toJSON(github.event.commits.*.message), '[[PRERELEASE]]')  && !contains(toJSON(github.event.commits.*.message), '[automate_versioning_prerelease] Prerelease ')"
+        run: |
+          poetry version ${{ env.PRERELEASE_VERSION }}
+          git add pyproject.toml
+          git commit -m "[automate_versioning_prerelease] Prerelease ${{ env.PRERELEASE_VERSION }}"
+          git tag ${{ env.PRERELEASE_VERSION }}
+          git push origin ${{ env.PRERELEASE_VERSION }}
+          git push
