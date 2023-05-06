@@ -36,7 +36,7 @@
 # $ pip list | grep docker
 # docker           5.0.0
 
-# avoid error in docker login task: Error connecting: Error while fetching server API version: request() got an unexpected keyword argument ''chunked''
+# 2023/05/05 avoid error in docker login task: Error connecting: Error while fetching server API version: request() got an unexpected keyword argument ''chunked''
 # https://github.com/docker/docker-py/issues/3113#issue-1685565058
 - name: install docker python module
   become: False
