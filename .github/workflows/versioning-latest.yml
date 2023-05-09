@@ -41,12 +41,14 @@ jobs:
         if: contains(toJSON(github.event.commits.*.message), '[[MAJOR]]')
         run: |
           echo 'UPDATE_ARGS=major' >> $GITHUB_ENV
+      - name: Resolve version num
+        run: |
+          echo RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }}) >> $GITHUB_ENV
       - name: Release
         if: "env.UPDATE_ARGS != ''"
         run: |
-          RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }})
           git add pyproject.toml
-          git commit -m "[automate_versioning] Release ${{ RELEASE_VERSION }}"
-          git tag ${{ RELEASE_VERSION }}
-          git push origin ${{ RELEASE_VERSION }}
+          git commit -m "[automate_versioning] Release ${{ env.RELEASE_VERSION }}"
+          git tag ${{ env.RELEASE_VERSION }}
+          git push origin ${{ env.RELEASE_VERSION }}
           git push
