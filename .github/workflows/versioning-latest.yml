@@ -44,7 +44,7 @@ jobs:
       - name: Release
         if: "env.UPDATE_ARGS != ''"
         run: |
-          RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }}
+          RELEASE_VERSION=$(poetry version -s ${{ env.UPDATE_ARGS }})
           git add pyproject.toml
           git commit -m "[automate_versioning] Release ${RELEASE_VERSION}"
           git tag ${RELEASE_VERSION}
