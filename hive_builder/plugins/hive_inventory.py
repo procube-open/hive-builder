@@ -261,7 +261,7 @@ class Stage:
     self.inventory.add_group(self.stage_name)
     self.inventory.set_variable(self.stage_name, 'hive_provider', self.provider)
     custom_hostname = self.stage.get('custom_hostname', 'hive')
-    hostname_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    hostname_pattern = r'^[a-z0-9][a-z0-9-]*[a-z0-9]$'
     if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname)) + len(self.name) < 55):
       raise AnsibleParserError('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 55 in length')
     self.inventory.set_variable(self.stage_name, 'hive_custom_hostname', custom_hostname)
@@ -336,7 +336,7 @@ class Stage:
     separate_repository = self.stage.get('separate_repository', True)
     number_of_hosts = self.stage.get('number_of_hosts', 4 if separate_repository else 3)
     custom_hostname = self.stage.get('custom_hostname', 'hive')
-    hostname_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+    hostname_pattern = r'^[a-z0-9][a-z0-9-]*[a-z0-9]$'
     if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname)) + len(self.name) < 55):
       raise AnsibleParserError('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 55 in length')
     if 'ip_address_list' in self.stage:
