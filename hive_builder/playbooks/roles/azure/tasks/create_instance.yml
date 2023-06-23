@@ -31,6 +31,7 @@
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
         LogLevel FATAL
+      {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}
 
 - name: Create default network inteface card
   azure_rm_networkinterface:

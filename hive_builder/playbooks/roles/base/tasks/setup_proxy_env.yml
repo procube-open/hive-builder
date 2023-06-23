@@ -1,0 +1,40 @@
+---
+- name: setup proxy into /etc/environment
+  lineinfile:
+    path: "/etc/environment"
+    state: present
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value}}"
+  with_items:
+  - key: http_proxy
+    value: "{{ hive_safe_proxy }}"
+  - key: https_proxy
+    value: "{{ hive_safe_proxy }}"
+  - key: no_proxy
+    value: "{{ (['localhost', '127.0.0.1'] + hive_safe_servers + hive_safe_services) | join(',')}}"
+  - key: HTTP_PROXY
+    value: "{{ hive_safe_proxy }}"
+  - key: HTTPS_PROXY
+    value: "{{ hive_safe_proxy }}"
+  - key: NO_PROXY
+    value: "{{ (['localhost', '127.0.0.1'] + hive_safe_servers + hive_safe_services) | join(',')}}"
+  - key: PIP_CERT
+    value: /etc/pki/ca-trust/source/anchors/cacert.pem
+  vars:
+    hive_safe_proxy: "http://{{ hive_private_ip }}:{{ hive_http_proxy_port }}"
+    hive_safe_servers: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+    hive_safe_services: "{{ groups['services'] | intersect(groups[hive_stage]) | list }}"
+- name: make the remote proxy bind to 0.0.0.0
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^GatewayPorts"
+    insertafter: "^#GatewayPorts"
+    line: "GatewayPorts yes"
+  register: remote_proxy_result
+- name: restart sshd service
+  service:
+    name: sshd
+    state: restarted
+  when: remote_proxy_result is changed
+- name: Reset ssh connection to enable proxy
+  ansible.builtin.meta: reset_connection

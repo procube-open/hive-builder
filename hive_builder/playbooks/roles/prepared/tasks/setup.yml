@@ -16,6 +16,7 @@
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
         LogLevel FATAL
+      {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}
   loop: "{{ hive_safe_hosts }}"
   loop_control:
     loop_var: setup_host

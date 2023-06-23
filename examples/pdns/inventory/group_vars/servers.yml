@@ -2,4 +2,4 @@
 hive_timezone: "Asia/Tokyo"
 # hive_locale: "ja_JP.utf8"
 hive_ntp_servers: "{{ omit if hive_provider in ['aws', 'azure', 'gcp'] else 'ntp.nict.jp' }}"
-hive_yum_url: "{{ omit if hive_provider in ['aws', 'azure', 'gcp'] else 'http://ftp.riken.jp/Linux/centos' }}"
+hive_yum_url: "{{ omit if hive_provider in ['aws', 'azure', 'gcp'] else 'http://ftp.iij.ad.jp/pub/linux/almalinux' }}"

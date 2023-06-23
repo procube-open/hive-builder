@@ -362,3 +362,12 @@ interpreter_python:
   description: "how to deside use which python interpretor"
   default: auto_silent
   name_in_ansible_cfg: interpreter_python
+http_proxy:
+  description: use http proxy for download software from public repository
+  name_in_ansible: hive_http_proxy
+  persistent_scope: stage
+http_proxy_port:
+  description: port number of proxy in servers
+  name_in_ansible: hive_http_proxy_port
+  default: '3128'
+  persistent_scope: stage

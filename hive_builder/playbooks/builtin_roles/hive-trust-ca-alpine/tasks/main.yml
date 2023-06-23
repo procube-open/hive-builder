@@ -7,7 +7,12 @@
     owner: root
     mode: 0644
   register: ca_certs_alpine
-- name: update trust store(alpine)
-  shell: apk add --no-cache ca-certificates && update-ca-certificates
+- name: add ca certificate into OS trust store
+  raw: "if [ -x /usr/sbin/update-ca-certificates ]; then /usr/sbin/update-ca-certificates; else cat /etc/ssl/certs/cacert.pem >> /etc/ssl/certs/ca-certificates.crt; fi"
   when: 
-    - ca_certs_alpine.changed 
+    - ca_certs_alpine.changed
+- name: creating the symlink for pip
+  file:
+    src: /etc/ssl/certs/cacert.pem
+    dest: /etc/cacert_pip.pem
+    state: link

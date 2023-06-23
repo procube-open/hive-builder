@@ -49,6 +49,7 @@
         https_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.https_proxy | default('') }}"
         NO_PROXY: "{{ hostvars[hive_safe_repository_server].ansible_env.NO_PROXY | default('') }}"
         no_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.no_proxy | default('') }}"
+        PIP_CERT: "{{ '/etc/cacert_pip.pem' if hive_http_proxy is defined else omit }}"
   - name: create container
     delegate_to: "{{ hive_safe_repository_server }}"
     docker_container:

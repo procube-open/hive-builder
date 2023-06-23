@@ -4,6 +4,8 @@
   when: ansible_distribution != 'Amazon' and hive_yum_url is defined and hive_yum_url != omit
 - import_tasks: growfs.yml
   when: hive_provider == 'azure' and hive_disk_size is defined
+- import_tasks: setup_proxy_env.yml
+  when: hive_http_proxy is defined
 - name: install nfs utils
   yum: name=nfs-utils state=present
   when: groups['nfs_volumes'] | length > 0

@@ -197,9 +197,12 @@ base role で実施するタスクについて以下に説明します。
 
 yum の設定
 +++++++++++++++++++++
-hive_yum_url を指定されている場合は、 CentOS の Base リポジトリの yum のダウンロード元として指定します。
+hive_yum_url を指定されている場合は、 CentOS および  AlmaLinux の Base, AppStream, Extras リポジトリの yum のダウンロード元として指定します。
+https://mirrors.cat.net/centos のようにミラーサイトの '/centos' までを切り取ったパスで指定してください。 almalinux の場合も
+http://ftp.iij.ad.jp/pub/linux/almalinux のように '/almalinux'  までを切り取ったパスで指定してください。 
 また、この場合、yum の fastestmirror の機能を無効にします。
 CentOS のミラーサイトで近いものがわかっている場合は、指定してインストールにかかる時間を短縮できます。
+
 AWS, Azure, GCP などの IaaS の場合は、デフォルトで近くのサイトが設定されている場合が多いので、
 指定しないほうが良いでしょう。
 
