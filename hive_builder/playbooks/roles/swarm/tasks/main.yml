@@ -63,14 +63,52 @@
     jump: DOCKER
   when: hive_internal_cidr_v6 is defined
 
-- name: add masquarade rule for nat table 1
-  iptables:
-    ip_version: ipv6
-    table: nat
-    chain: POSTROUTING
-    jump: MASQUERADE
-    out_interface: docker_gwbridge
+- name: check masqrade rule for nat table exists
+  shell: /usr/sbin/ip6tables-save | fgrep -q 'addrtype --src-type LOCAL'
+  check_mode: False
+  failed_when: False
+  changed_when: False
+  register: check
+  become: yes
   when: hive_internal_cidr_v6 is defined
+
+- name: insert rule
+  shell: ip6tables -t nat -I POSTROUTING -o docker_gwbridge -s ::/0 -d ::/0 -m addrtype --src-type LOCAL -j MASQUERADE  
+  become: yes
+  when: check.rc != 0 and hive_internal_cidr_v6 is defined
+
+- name: insert masquarade rule in filter table for docker_gwbridge and make setting persistent
+  blockinfile:
+    dest: /etc/sysconfig/ip6tables
+    insertafter: "^:OUTPUT ACCEPT"
+    block: |
+      -N DOCKER
+      -A FORWARD -o docker_gwbridge -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 
+      -A FORWARD -o docker_gwbridge -j DOCKER
+      -A FORWARD -i docker_gwbridge ! -o docker_gwbridge -j ACCEPT
+      -A FORWARD -i docker_gwbridge -o docker_gwbridge -j DROP
+    marker: "# {mark} HIVE-BUILDER MANAGED BLOCK for IPv6 in docker_gwbridge for filter table"
+  when: hive_internal_cidr_v6 is defined
+
+- name: insert masquarade rule in nat table for docker_gwbridge and make setting persistent
+  blockinfile:
+    dest: /etc/sysconfig/ip6tables
+    insertafter: EOF
+    block: |
+      *nat
+      -N DOCKER
+      -I POSTROUTING ! -o docker_gwbridge -s {{subnet_v6}} -d ::/0 -j MASQUERADE
+      -I POSTROUTING -o docker_gwbridge -s ::/0 -d ::/0 -m addrtype --src-type LOCAL -j MASQUERADE
+      -I OUTPUT -p all -j DOCKER
+      -I PREROUTING -j DOCKER
+      COMMIT
+    marker: "# {mark} HIVE-BUILDER MANAGED BLOCK for IPv6 in docker_gwbridge for nat table"
+  when: hive_internal_cidr_v6 is defined
+
+- name: Enable service ip6tables
+  service:
+    name: ip6tables
+    enabled: yes
 
 - name: add masquarade rule for nat table 2
   iptables:
@@ -129,13 +167,6 @@
     jump: DROP
     in_interface : docker_gwbridge
     out_interface : docker_gwbridge
-  when: hive_internal_cidr_v6 is defined
-
-- name: set forward policy to DROP
-  iptables:
-    ip_version: ipv6
-    chain: FORWARD
-    policy: DROP
   when: hive_internal_cidr_v6 is defined
 
 - name: initialize master node
