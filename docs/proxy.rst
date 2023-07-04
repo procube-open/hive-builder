@@ -32,7 +32,7 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 
 .. warning::
     ここで紹介するオフラインキャッシュサーバは dockerhub 以外の外部コンテナリポジトリはサポートしていません。
-    dockerhub 以外の外部コンテナリポジトリを利用しているプロジェクトでは個々に記載されている方法は利用できませんので、注意してください。
+    dockerhub 以外の外部コンテナリポジトリを利用しているプロジェクトではここに記載されている方法は利用できませんので、注意してください。
 
 以下に適用手順を示します。
 
@@ -51,8 +51,18 @@ hive-builder のコードで build-images や  initialize-services でパブリ�
 
 
     git clone https://github.com/procube-open/offline-cache.git
+    cd offline-cache
     export HIVE_HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス>
     docker-compose up -d
+
+<hiveのコンテキストディレクトリのパス>は、hive-builder のコードの下の .hive/ステージ名 のディレクトリを指定してください。
+例えば、 /home/mitsuru/Projects/pdns に hive-builder のコードがあり、 private ステージをビルドしている場合は、
+
+::
+
+    /home/mitsuru/Projects/pdns/.hive/private
+
+を指定してください。
 
 2. ビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,7 +85,7 @@ dockerhub のアカウントにログインするためのユーザIDとパス�
 
 ::
 
-
+    cd オフラインキャッシュサーバのディレクトリ
     ansible-playbook -i squid,registry, -e dockerhub_login_user=dockerhubアカウント -e dockerhub_login_password=dockerhubパスワード offline.yml 
 
 
