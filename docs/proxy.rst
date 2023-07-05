@@ -38,9 +38,10 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 
 1. hive-builderコードの修正
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+プロジェクトのコードをオフラインキャッシュサーバに対応させるために以下の点を修正してください。
 
-hive-builder のコードで build-images や  initialize-services でパブリックリポジトリにアクセスするものについては、image.roles にビルトインロール hive_trust_ca を追加してください。
-hive_ext_repositories で  dockerhub のID, パスワードを指定している場合にはそれをコメントアウトしてください。
+- プロジェクトのコードで build-images や  initialize-services でパブリックリポジトリにアクセスするものについては、image.roles にビルトインロール hive_trust_ca を追加してください。
+- hive_ext_repositories で  dockerhub のID, パスワードを指定している場合にはそれをコメントアウトしてください。
 
 2. サーバとCA局のビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -49,7 +50,7 @@ hive_ext_repositories で  dockerhub のID, パスワードを指定している
 
 ::
 
-    cd hiveのルートディレクトリ
+    cd プロジェクトのルートディレクトリ
     hive set stage private # or staging or production
     hive install-collection
     hive set http_proxy localhost:3128
@@ -57,12 +58,12 @@ hive_ext_repositories で  dockerhub のID, パスワードを指定している
     hive build-infra
 
 3. オフラインキャッシュサーバのソースコードの取得
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるために mother 環境とは別のディレクトリに取得してください。
+以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるためにプロジェクトのルートディレクトリとは別のディレクトリに取得してください。
 ただし、mother マシンに docker のサーバがインストールされている必要があります。
 また ansible-core、 docker、 docker-compose モジュールがインストールされた  python の仮想環境を作成し、その仮想環境内で ansible-playbook を実行してください。
-hive-builder ようにインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker``` で追加インストールしてください。
+hive-builder 用にインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker``` でモジュールを追加してください。
 
 ::
 
@@ -73,8 +74,8 @@ hive-builder ようにインストールされた仮想環境を使用する場�
     docker-compose up -d
     ansible-playbook -i squid,registry, -e dockerhub_login_user=dockerhubアカウント -e dockerhub_login_password=dockerhubパスワード setup.yml 
 
-<hiveのコンテキストディレクトリのパス>は、hive-builder のコードの下の .hive/ステージ名 のディレクトリを指定してください。
-例えば、 /home/mitsuru/Projects/pdns に hive-builder のコードがあり、 private ステージをビルドしている場合は、
+<hiveのコンテキストディレクトリのパス>は、プロジェクトのルートディレクトリの .hive/ステージ名 のディレクトリを指定してください。
+例えば、 /home/mitsuru/Projects/pdns がプロジェクトのルートディレクトリであり、 private ステージをビルドしている場合は、
 
 ::
 
@@ -82,20 +83,20 @@ hive-builder ようにインストールされた仮想環境を使用する場�
 
 を指定してください。
 
-4. 全ビルド
+1. 全ビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 以下のコマンドで全ビルドをかけてください。
 
 ::
 
-    cd hiveのルートディレクトリ
+    cd プロジェクトのルートディレクトリ
     hive all
 
 5. オフライン化
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-以下のコマンドでオフライン化を実行してください。このときはまだネットワークに繋がっている必要があります。
+以下のコマンドでオフラインキャッシュサーバのオフライン化を実行してください。このときはまだネットワークに繋がっている必要があります。
 dockerhub のアカウントにログインするためのユーザIDとパスワードを用意してください。
 
 ::
