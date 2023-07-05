@@ -36,35 +36,13 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 
 以下に適用手順を示します。
 
-0. hive-builderコードの修正
+1. hive-builderコードの修正
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 hive-builder のコードで build-images や  initialize-services でパブリックリポジトリにアクセスするものについては、image.roles にビルトインロール hive_trust_ca を追加してください。
+hive_ext_repositories で  dockerhub のID, パスワードを指定している場合にはそれをコメントアウトしてください。
 
-1. ソースコードの取得
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるために mother 環境とは別のディレクトリに取得してください。
-ただし、mother マシンに docker のサーバがインストールされている必要があります。
-
-::
-
-
-    git clone https://github.com/procube-open/offline-cache.git
-    cd offline-cache
-    export HIVE_HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス>
-    docker-compose up -d
-
-<hiveのコンテキストディレクトリのパス>は、hive-builder のコードの下の .hive/ステージ名 のディレクトリを指定してください。
-例えば、 /home/mitsuru/Projects/pdns に hive-builder のコードがあり、 private ステージをビルドしている場合は、
-
-::
-
-    /home/mitsuru/Projects/pdns/.hive/private
-
-を指定してください。
-
-2. ビルド
+2. サーバとCA局のビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 以下のコマンドで全ビルドをかけてください。
@@ -75,9 +53,46 @@ hive-builder のコードで build-images や  initialize-services でパブリ�
     hive set stage private # or staging or production
     hive install-collection
     hive set http_proxy localhost:3128
+    hive set registry_mirror registry-mirror.offline-cache
+    hive build-infra
+
+3. オフラインキャッシュサーバのソースコードの取得
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるために mother 環境とは別のディレクトリに取得してください。
+ただし、mother マシンに docker のサーバがインストールされている必要があります。
+また ansible-core、 docker、 docker-compose モジュールがインストールされた  python の仮想環境を作成し、その仮想環境内で ansible-playbook を実行してください。
+hive-builder ようにインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker``` で追加インストールしてください。
+
+::
+
+
+    git clone https://github.com/procube-open/offline-cache.git
+    cd offline-cache
+    export HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス>
+    docker-compose up -d
+    ansible-playbook -i squid,registry, -e dockerhub_login_user=dockerhubアカウント -e dockerhub_login_password=dockerhubパスワード setup.yml 
+
+<hiveのコンテキストディレクトリのパス>は、hive-builder のコードの下の .hive/ステージ名 のディレクトリを指定してください。
+例えば、 /home/mitsuru/Projects/pdns に hive-builder のコードがあり、 private ステージをビルドしている場合は、
+
+::
+
+    /home/mitsuru/Projects/pdns/.hive/private
+
+を指定してください。
+
+4. 全ビルド
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+以下のコマンドで全ビルドをかけてください。
+
+::
+
+    cd hiveのルートディレクトリ
     hive all
 
-3. オフライン化
+5. オフライン化
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 以下のコマンドでオフライン化を実行してください。このときはまだネットワークに繋がっている必要があります。
@@ -86,26 +101,10 @@ dockerhub のアカウントにログインするためのユーザIDとパス�
 ::
 
     cd オフラインキャッシュサーバのディレクトリ
-    ansible-playbook -i squid,registry, -e dockerhub_login_user=dockerhubアカウント -e dockerhub_login_password=dockerhubパスワード offline.yml 
+    ansible-playbook -i squid, offline.yml 
 
 
-4. docker イメージの push
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-以下のコマンドでコンテナ収容サーバとリポジトリサーバにダウンロードされているコンテナイメージを擬似dockerhub に push してください。
-このとき、間違って本物の dockerhub に push するのをさけるためにネットワークが切れていることが望ましいです。
-
-::
-
-
-    hive ssh
-    docker image ls --format='docker push {{.Repository}}:{{.Tag}}' | grep -v :5000 | sh -x
-    exit
-    hive ssh -t コンテナ収容サーバ1号機 # separate_repository が false の場合は不要
-    docker image ls --format='docker push {{.Repository}}:{{.Tag}}' | grep -v :5000 | sh -x
-    exit
-
-5. 再ビルド
+6. 再ビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 この mother 環境があれば、オフラインの状態で全サーバをOSインストールから再構築( hive all )することができます。

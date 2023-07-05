@@ -371,3 +371,7 @@ http_proxy_port:
   name_in_ansible: hive_http_proxy_port
   default: '3128'
   persistent_scope: stage
+registry_mirror:
+  description: mirror site URL for dockerhub registry
+  name_in_ansible: hive_registry_mirror
+  persistent_scope: stage
