@@ -173,9 +173,9 @@ class Service:
       volumes = []
       if self.options.get('standalone', False):
         volumes = [
-            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup', 'readonly': True},
             {'source': '', 'target': '/run', 'type': 'tmpfs'},
-            {'source': '', 'target': '/tmp', 'type': 'tmpfs'}
+            {'source': '', 'target': '/tmp', 'type': 'tmpfs'},
+            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup', 'readonly': True}
         ]
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
