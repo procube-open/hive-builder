@@ -40,8 +40,13 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 プロジェクトのコードをオフラインキャッシュサーバに対応させるために以下の点を修正してください。
 
-- プロジェクトのコードで build-images や  initialize-services でパブリックリポジトリにアクセスするものについては、image.roles にビルトインロール hive_trust_ca を追加してください。
+- プロジェクトのコードで build-images や  initialize-services で PyPI 以外のパブリックリポジトリにアクセスするものについては、image.roles や initialize_roles にビルトインロール hive_trust_ca を追加してください。
 - hive_ext_repositories で  dockerhub のID, パスワードを指定している場合にはそれをコメントアウトしてください。
+
+.. warning::
+
+  python_aptk ビルトインロールを使用している場合、 hive_trust_ca を利用することができません。 python がインストールされたコンテナイメージを別途用意してください。
+
 
 2. サーバとCA局のビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -55,6 +60,8 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
     hive install-collection
     hive set http_proxy localhost:3128
     hive set registry_mirror registry-mirror.offline-cache
+    hive set pip_index_url http://devpi-server.offline-cache/root/pypi/+simple/
+    hive set pip_trusted_host devpi-server.offline-cache
     hive build-infra
 
 3. オフラインキャッシュサーバのソースコードの取得
@@ -83,7 +90,7 @@ hive-builder 用にインストールされた仮想環境を使用する場合 
 
 を指定してください。
 
-1. 全ビルド
+4. 全ビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 以下のコマンドで全ビルドをかけてください。
@@ -102,7 +109,7 @@ dockerhub のアカウントにログインするためのユーザIDとパス�
 ::
 
     cd オフラインキャッシュサーバのディレクトリ
-    ansible-playbook -i squid, offline.yml 
+    ansible-playbook -i squid,registry,devpi-server, offline.yml 
 
 
 6. 再ビルド

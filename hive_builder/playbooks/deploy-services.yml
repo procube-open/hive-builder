@@ -82,6 +82,8 @@
       NO_PROXY: "{{ ansible_env.NO_PROXY | default('') }}"
       no_proxy: "{{ ansible_env.no_proxy  | default('') }}"
       PIP_CERT: "{{ '/etc/cacert_pip.pem' if hive_http_proxy is defined else omit }}"
+      PIP_INDEX_URL: "{{ ansible_env.PIP_INDEX_URL | default('') }}"
+      PIP_TRUSTED_HOST: "{{ ansible_env.PIP_TRUSTED_HOST | default('') }}"
 
   tasks:
   - name: get containers for the serivce
