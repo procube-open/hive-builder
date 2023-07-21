@@ -12,6 +12,8 @@
       tags: [ 'always' ]
       when: ansible_facts == {}
   roles:
+    - role: tls-certificate
+      tags: ["tls-certificate"]
     - role: base
       tags: ["base"]
     - role: hostsfile
@@ -34,8 +36,6 @@
     - role: strict-source-ip
       tags: ["strict-source-ip"]
       when: hive_ssh_source_ips is defined
-    - role: tls-certificate
-      tags: ["tls-certificate"]
     - role: docker
       tags: ["docker"]
     - role: drbd

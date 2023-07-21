@@ -10,4 +10,9 @@
 - name: update trust store(centos)
   shell: update-ca-trust
   when: 
-    - ca_certs_centos.changed 
+    - ca_certs_centos.changed
+- name: creating the symlink for pip
+  file:
+    src: /etc/pki/ca-trust/source/anchors/cacert.pem
+    dest: /etc/cacert_pip.pem
+    state: link

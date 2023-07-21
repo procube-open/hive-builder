@@ -1,4 +1,12 @@
 ---
+- name: copy ca certificate
+  local_action: "command docker {{ ansible_docker_extra_args }} cp {{ hive_context_dir }}/ca/cacert.pem {{ 'build_' + inventory_hostname if inventory_hostname in groups['images'] else ansible_host }}:/etc/ssl/certs/cacert.pem"
+  vars:
+    hive_context_dir: "{{ hostvars[group['mother'] | intersect[hive_stage] | list | first].hive_context_dir }}"
+  when: hive_http_proxy is defined
+- name: add ca certificate into OS trust store
+  raw: "if [ -x /usr/sbin/update-ca-certificates ]; then /usr/sbin/update-ca-certificates; else cat /etc/ssl/certs/cacert.pem >> /etc/ssl/certs/ca-certificates.crt; fi"
+  when: hive_http_proxy is defined
 - name: install python
   raw: if [ -x /usr/bin/apt-get ]; then (apt-get update ; apt-get -y install python3); else (apk update && apk add python3); fi
   changed_when: False

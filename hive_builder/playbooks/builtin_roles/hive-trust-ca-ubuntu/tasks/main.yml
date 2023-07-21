@@ -12,4 +12,9 @@
 - name: update trust store(ubuntu)
   shell: update-ca-certificates
   when: 
-    - ca_certs_ubuntu.changed 
+    - ca_certs_ubuntu.changed
+- name: creating the symlink for pip
+  file:
+    src: /etc/ssl/certs/cacert.pem
+    dest: /etc/cacert_pip.pem
+    state: link

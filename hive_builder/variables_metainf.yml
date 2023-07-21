@@ -362,3 +362,24 @@ interpreter_python:
   description: "how to deside use which python interpretor"
   default: auto_silent
   name_in_ansible_cfg: interpreter_python
+http_proxy:
+  description: use http proxy for download software from public repository
+  name_in_ansible: hive_http_proxy
+  persistent_scope: stage
+http_proxy_port:
+  description: port number of proxy in servers
+  name_in_ansible: hive_http_proxy_port
+  default: '3128'
+  persistent_scope: stage
+registry_mirror:
+  description: mirror site URL for dockerhub registry
+  name_in_ansible: hive_registry_mirror
+  persistent_scope: stage
+pip_index_url:
+  description: index URL for pip
+  name_in_ansible: hive_pip_index_url
+  persistent_scope: stage
+pip_trusted_host:
+  description: trusted host for pip
+  name_in_ansible: hive_pip_trusted_host
+  persistent_scope: stage

@@ -4,7 +4,7 @@
 #  results: []
 - name: Install Zabbix Repo
   yum:
-    name: https://repo.zabbix.com/zabbix/5.1/rhel/8/x86_64/zabbix-release-5.1-1.el8.noarch.rpm
+    name: http://repo.zabbix.com/zabbix/5.1/rhel/8/x86_64/zabbix-release-5.1-1.el8.noarch.rpm
     disable_gpg_check: true
     state: present
   until: not download_zabbix_repo.failed
@@ -33,26 +33,21 @@
   become_user: zabbix
   pip:
     name:
+      - setuptools
       - pip
+      - wheel
     virtualenv: /var/lib/zabbix/docker
-    virtualenv_python: "{{ hive_safe_python_command }}"
+    # virtualenv_python: "{{ hive_safe_python_command }}"
+    virtualenv_command: python3 -m venv
     # hive-builder does not require libselinux module,
     # but inherit system site-pacakges for addon which requires libselinux module
     virtualenv_site_packages: "{{ hive_safe_need_libselinux }}"
-    extra_args: "{{ '-i ' + hive_pip_index_url if hive_pip_index_url is defined else omit }}"
+    extra_args: --disable-pip-version-check
     state: latest
   args:
     chdir: /var/lib/zabbix
   vars:
     ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
-- name: set PyPi index url for zabbix
-  become_user: zabbix
-  copy:
-    content: |
-      [global]
-      index-url = {{ hive_pip_index_url }}
-    dest: /var/lib/zabbix/docker/pip.conf
-  when: hive_pip_index_url is defined
 - name: install python pacages for zabbix
   become_user: zabbix
   pip:

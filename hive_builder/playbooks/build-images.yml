@@ -49,6 +49,9 @@
         https_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.https_proxy | default('') }}"
         NO_PROXY: "{{ hostvars[hive_safe_repository_server].ansible_env.NO_PROXY | default('') }}"
         no_proxy: "{{ hostvars[hive_safe_repository_server].ansible_env.no_proxy | default('') }}"
+        PIP_CERT: "{{ '/etc/cacert_pip.pem' if hive_http_proxy is defined else omit }}"
+        PIP_INDEX_URL: "{{ hostvars[hive_safe_repository_server].ansible_env.PIP_INDEX_URL | default('') }}"
+        PIP_TRUSTED_HOST: "{{ hostvars[hive_safe_repository_server].ansible_env.PIP_TRUSTED_HOST | default('') }}"
   - name: create container
     delegate_to: "{{ hive_safe_repository_server }}"
     docker_container:
@@ -68,6 +71,7 @@
       command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
+      command_handling: correct
       state: present
     when: hive_stage not in (hive_pull_on | default([]))
   - name: start container
@@ -82,13 +86,14 @@
       exposed_ports: "{{ hive_expose | default(omit) }}"
       name: "build_{{ inventory_hostname }}"
       hostname: "{{ inventory_hostname }}"
-      env: "{%if lookup('env', 'HTTP_PROXY') | length > 0 %}{{(hive_env | default({}))|combine({'HTTP_PROXY':lookup('env', 'HTTP_PROXY'),'http_proxy':lookup('env', 'HTTP_PROXY'),'HTTPS_PROXY':lookup('env', 'HTTPS_PROXY'),'https_proxy':lookup('env', 'HTTPS_PROXY'),'NO_PROXY':lookup('env', 'NO_PROXY'),'no_proxy':lookup('env', 'NO_PROXY')})}}{% else %}{{ hive_env | default(omit) }}{% endif %}"
+      env: "{{(hive_env | default({})) | combine(hive_safe_proxy_settings) }}"
       privileged: "{{ hive_privileged | default(omit) }}"
       entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
       working_dir: "{{ hive_working_dir | default(omit) }}"
       command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
+      command_handling: correct
     changed_when: False
     when: hive_stage not in (hive_pull_on | default([]))
   - name: apply role

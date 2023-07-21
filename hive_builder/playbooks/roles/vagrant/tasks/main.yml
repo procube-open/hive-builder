@@ -53,3 +53,10 @@
     dest: "{{ hive_context_dir }}/ssh_config"
   when:
     - not (hive_safe_vagrant_ssh_config.skipped | default(false))
+- name: put RemoteForward setting
+  replace:
+    regexp: "^  User vagrant$"
+    replace: "  User vagrant\n  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}"
+    path: "{{ hive_context_dir }}/ssh_config"
+  when:
+    - hive_http_proxy is defined

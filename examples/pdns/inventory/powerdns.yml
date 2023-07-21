@@ -60,6 +60,7 @@ services:
     image:
       from: ngoduykhanh/powerdns-admin:0.2.2
       roles:
+      - hive-trust-ca
       - powerdns-admin
     endpoint_mode: dnsrr
     environment:
@@ -114,6 +115,7 @@ services:
     image:
       from: python:3-alpine
       roles:
+        - hive-trust-ca
         - proxy-configure
       entrypoint:
       - /usr/local/bin/python

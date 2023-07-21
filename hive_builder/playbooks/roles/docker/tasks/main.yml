@@ -82,6 +82,18 @@
       - 7946
       - 4789
     hive_safe_iptables_protocol: udp
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: http_proxy
+    hive_safe_iptables_dports:
+      - "{{ hive_http_proxy_port }}"
+    hive_safe_iptables_protocol: tcp
+    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) +
+      [hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' +
+      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] +
+      [hive_internal_cidr | ipaddr(((hive_internal_cidr | ipaddr('size')) / 8 * 5) + 1) | ipaddr('address') + '/' +
+      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.17.0.0/16'] }}"
+  when: hive_http_proxy is defined
 
 - name: create directory /etc/docker
   file:

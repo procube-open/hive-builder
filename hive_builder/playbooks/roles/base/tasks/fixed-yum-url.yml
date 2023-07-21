@@ -16,6 +16,8 @@
   - CentOS-Stream-AppStream.repo
   - CentOS-Stream-Base.repo
   - CentOS-Stream-Extras.repo
+  # almalinux
+  - almalinux.repo
 - name: Disable yum-fastestmirror
   lineinfile: >
     dest="/etc/yum/pluginconf.d/fastestmirror.conf"
@@ -34,6 +36,6 @@
 - name: fix yum download site - set baseurl
   replace:
     path: "/etc/yum.repos.d/{{ item }}"
-    regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
+    regexp: "^#? *baseurl=.*/(centos|\\$contentdir|almalinux)/(.*)$"
     replace: "baseurl={{ hive_yum_url }}/\\2"
   loop: "{{ repo_files.results | selectattr('stat.exists', 'eq', True) | map(attribute='item') | list }}"

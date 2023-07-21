@@ -1,0 +1,16 @@
+- name: setup PIP_INDEX_URL into /etc/environment
+  lineinfile:
+    path: "/etc/environment"
+    state: present
+    regexp: "^PIP_INDEX_URL="
+    line: "PIP_INDEX_URL={{ hive_pip_index_url }}"
+  when: hive_pip_index_url is defined
+- name: setup PIP_TRUSTED_HOST into /etc/environment
+  lineinfile:
+    path: "/etc/environment"
+    state: present
+    regexp: "^PIP_TRUSTED_HOST="
+    line: "PIP_TRUSTED_HOST={{ hive_pip_trusted_host }}"
+  when: hive_pip_trusted_host is defined
+- name: Reset ssh connection to enable index url
+  ansible.builtin.meta: reset_connection

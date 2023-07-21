@@ -417,12 +417,15 @@ class phaseWithDockerSocket(phaseBase):
     if grep_proc.returncode != 0:
       raise Error(f'fail to read ssh_config {ssh_config_path} error, you may never done build-infra: {grep_proc.stderr}')
     ssh_tunnel_procs = []
+    http_proxy = context.vars.get('http_proxy')
     for host_name in map(lambda x: x.decode(encoding='utf-8').split(' ')[1], grep_proc.stdout.splitlines()):
       socket_path = f'{context.vars["temp_dir"]}/docker.sock@{host_name}'
       if pathlib.Path(socket_path).is_socket():
         raise Error(f'fail to create socket {socket_path}, another hive process may doing build-images/deploy-services' +
                     ' or the file has been left because previus hive process aborted suddenly')
       args = ['ssh', '-N', '-F', ssh_config_path, '-L', socket_path + ':/var/run/docker.sock', host_name]
+      if http_proxy is not None:
+        args += ['-R', context.vars['http_proxy_port'] + ':' + http_proxy]
       ssh_tunnel_procs.append((socket_path, subprocess.Popen(args)))
     try:
       super().do_one(context)
