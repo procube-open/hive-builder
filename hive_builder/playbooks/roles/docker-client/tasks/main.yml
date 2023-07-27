@@ -47,6 +47,7 @@
     - six
     state: present
     virtualenv: "{{ hive_home_dir }}/docker"
+  throttle: 1
 - name: install utility comnand
   template:
     dest: /usr/bin/{{ item }}
