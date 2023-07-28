@@ -3,6 +3,17 @@
   hosts: servers
   become: True
   tags: setup-hosts
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile={{ hive_context_dir }}/known_hosts"
+  roles:
+    - role: ssh-connection
+      tags: [ 'ssh-connection' ]
+      when: hive_provider == 'kickstart'
+
+- name: setup hive servers
+  hosts: servers
+  become: True
+  tags: setup-hosts
 
   pre_tasks:
     # avoid error "The task includes an option with an undefined variable.
