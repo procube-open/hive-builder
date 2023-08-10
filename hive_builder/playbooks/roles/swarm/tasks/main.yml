@@ -75,7 +75,7 @@
 - name: insert rule
   shell: ip6tables -t nat -I POSTROUTING -o docker_gwbridge -s ::/0 -d ::/0 -m addrtype --src-type LOCAL -j MASQUERADE  
   become: yes
-  when: check.rc != 0 and hive_internal_cidr_v6 is defined
+  when: hive_internal_cidr_v6 is defined and check.rc != 0
 
 - name: insert masquarade rule in filter table for docker_gwbridge and make setting persistent
   blockinfile:
