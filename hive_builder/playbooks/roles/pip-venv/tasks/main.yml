@@ -33,7 +33,7 @@
       - setuptools
       - wheel
     virtualenv: "{{ hive_home_dir }}/docker"
-    virtualenv_command: python3 -m venv
+    virtualenv_command: "python{{ hive_safe_python_revision }} -m venv"
     # hive-builder does not require libselinux module,
     # but inherit system site-pacakges for addon which requires libselinux module
     virtualenv_site_packages: "{{ hive_safe_need_libselinux }}"
@@ -41,6 +41,7 @@
     state: latest
   args:
     chdir: "{{ hive_home_dir }}"
+  throttle: 1
 - name: install python-dxf
   become: False
   pip:
@@ -49,6 +50,7 @@
     virtualenv: "{{ hive_home_dir }}/docker"
   args:
     chdir: "{{ hive_home_dir }}"
+  throttle: 1
 - name: setup auto enter virtualenv at login
   become: False
   lineinfile:
