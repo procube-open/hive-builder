@@ -1,0 +1,4 @@
+---
+- name: connect to servers
+  wait_for_connection:
+    timeout: 20
