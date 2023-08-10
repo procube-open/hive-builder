@@ -40,7 +40,7 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 プロジェクトのコードをオフラインキャッシュサーバに対応させるために以下の点を修正してください。
 
-- プロジェクトのコードで build-images や  initialize-services で PyPI 以外のパブリックリポジトリにアクセスするものについては、image.roles や initialize_roles にビルトインロール hive_trust_ca を追加してください。
+- プロジェクトのコードで build-images や  initialize-services で PyPI 以外のパブリックリポジトリにアクセスするものについては、image.roles や initialize_roles にビルトインロール hive-trust-ca を追加してください。
 - hive_ext_repositories で  dockerhub のID, パスワードを指定している場合にはそれをコメントアウトしてください。
 
 .. warning::
@@ -59,7 +59,7 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
     hive set stage private # or staging or production
     hive install-collection
     hive set http_proxy localhost:3128
-    hive set registry_mirror registry-mirror.offline-cache
+    hive set registry_mirror http://registry-mirror.offline-cache
     hive set pip_index_url http://devpi-server.offline-cache/root/pypi/+simple/
     hive set pip_trusted_host devpi-server.offline-cache
     hive build-infra
@@ -70,7 +70,8 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるためにプロジェクトのルートディレクトリとは別のディレクトリに取得してください。
 ただし、mother マシンに docker のサーバがインストールされている必要があります。
 また ansible-core、 docker、 docker-compose モジュールがインストールされた  python の仮想環境を作成し、その仮想環境内で ansible-playbook を実行してください。
-hive-builder 用にインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker``` でモジュールを追加してください。
+hive-builder 用にインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker ``` でモジュールを追加してください。
+credentials.yml.example を参考に、credentials.yml を作成してください。なお NetSoarer 製品を使用しない場合は、nssdc_client_cert と nssdc_client_key の部分は修正する必要はありません。
 
 ::
 
@@ -78,8 +79,10 @@ hive-builder 用にインストールされた仮想環境を使用する場合 
     git clone https://github.com/procube-open/offline-cache.git
     cd offline-cache
     export HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス>
+    echo export HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス> >> ~/.bashrc
     docker-compose up -d
-    ansible-playbook -i squid,registry, -e dockerhub_login_user=dockerhubアカウント -e dockerhub_login_password=dockerhubパスワード setup.yml 
+    ln -s $HIVE_CONTEXT_DIR/collections ~/.ansible/collections/
+    ansible-playbook -i squid,registry, -e @credentials.yml setup.yml
 
 <hiveのコンテキストディレクトリのパス>は、プロジェクトのルートディレクトリの .hive/ステージ名 のディレクトリを指定してください。
 例えば、 /home/mitsuru/Projects/pdns がプロジェクトのルートディレクトリであり、 private ステージをビルドしている場合は、
@@ -109,7 +112,7 @@ dockerhub のアカウントにログインするためのユーザIDとパス�
 ::
 
     cd オフラインキャッシュサーバのディレクトリ
-    ansible-playbook -i squid,registry,devpi-server, offline.yml 
+    ansible-playbook -i squid,registry,devpi-server,nginx offline.yml 
 
 
 6. 再ビルド
