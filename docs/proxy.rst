@@ -112,13 +112,25 @@ dockerhub のアカウントにログインするためのユーザIDとパス�
 ::
 
     cd オフラインキャッシュサーバのディレクトリ
-    ansible-playbook -i squid,registry,devpi-server,nginx offline.yml 
+    ansible-playbook -i squid,registry,devpi-server,nginx, offline.yml 
 
 
 6. 再ビルド
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 この mother 環境があれば、オフラインの状態で全サーバをOSインストールから再構築( hive all )することができます。
+
+
+7. squid コンテナの hosts ファイルの再設定
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+マザーマシンを再起動した場合など、squid コンテナの hosts ファイルの設定と、コンテナの実際の IP アドレスのズレが発生する場合があります。
+以下のコマンドで squid コンテナの hosts ファイルの再設定を行い、IP アドレスのズレを解消することができます。
+
+::
+
+    cd オフラインキャッシュサーバのディレクトリ
+    ansible-playbook -i squid, reset-squid-hosts.yml
 
 
 vagrant プロバイダの場合
