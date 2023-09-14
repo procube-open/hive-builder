@@ -14,6 +14,7 @@ import signal
 import time
 import threading
 from datetime import datetime, timedelta
+from scapy.all import *
 
 STREAM_REFLESH_INTERVAL = timedelta(seconds=int(os.environ.get('HIVE_STREAM_REFLESH_INTERVAL', "30")))
 STREAM_MAX_DELAY = int(os.environ.get('HIVE_STREAM_MAX_DELAY', "5"))
@@ -377,13 +378,13 @@ class SetVIP(HookBase):
 #        valid_lft forever preferred_lft forever
 
   reg_start_if = re.compile(r'^ *(\d+): *([\w.\-]+)(@[\w]+)?: .*$')
-  reg_link = re.compile(r'^ +link/.*$')
+  reg_link = re.compile(r'^ +link/ether (([0-9A-Fa-f]{2}[:.-]?){5}([0-9A-Fa-f]{2})) .*$')
   reg_inet = re.compile(r'^ +inet (\d+\.\d+\.\d+\.\d+/\d+) .*$')
 
   cmd_ping = 'ping'
   cmd_ip_opts = '-4'
 
-  def clear_link_address_cache(self, interface_name, ip):
+  def clear_link_address_cache(self, interface_name, ip, macAddress):
     subprocess_run(['arping', '-c', '1', '-A', '-I', interface_name, ip])
 
   def list_ifs(self):
@@ -397,7 +398,10 @@ class SetVIP(HookBase):
         state = 'in_if'
         interface['name'] = start_if.group(2)
       elif state == 'in_if':
-        if self.__class__.reg_link.match(line) is None:
+        link = self.__class__.reg_link.match(line)
+        if link is not None:
+          interface['macAddress'] = link.group(1)
+        else:
           inet = self.__class__.reg_inet.match(line)
           if inet:
             inet_if = ipaddress.ip_interface(inet.group(1))
@@ -447,7 +451,7 @@ class SetVIP(HookBase):
 
   def setVip(self, interface):
     subprocess_run(['ip', self.__class__.cmd_ip_opts, 'addr', 'add', interface['vip_if'].with_prefixlen, 'dev', interface['name']])
-    self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip))
+    self.clear_link_address_cache(interface['name'], str(interface['vip_if'].ip), interface['macAddress'])
     success = False
     if self.router:
       rest_count = 5
@@ -531,8 +535,13 @@ class SetVIPv6(SetVIP):
   cmd_ip_opts = '-6'
   nat_executor_class = NATExecutorv6
 
-  def clear_link_address_cache(self, interface_name, ip):
-    DAEMON.logger.debug('cachec clear command is unimplemented')
+  def clear_link_address_cache(self, interface_name, ip, macAddress):
+    src_mac = macAddress
+    src_ip = ip
+    iface = interface_name
+    dst_ip = "ff02::1"
+    na_pkt = Ether(src=src_mac)/IPv6(src=src_ip, dst=dst_ip)/ICMPv6ND_NA(R=0, S=0, O=1, tgt=src_ip)/ICMPv6NDOptDstLLAddr(lladdr=src_mac)
+    sendp(na_pkt, iface=iface)
 
 
 class SetVIP0v6(SetVIPv6):
