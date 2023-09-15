@@ -27,6 +27,13 @@
 - name: Apply new SELinux file context to filesystem
   command: "restorecon -irv {{ hive_home_dir }}/docker/bin/python*"
   when: hive_safe_selinux != 'disabled' and (result_sefcontext_l is changed or result_sefcontext_f is changed)
+- name: install scapy
+  pip:
+    name:
+      - scapy
+    virtualenv: "{{ hive_home_dir }}/docker"
+  args:
+    chdir: "{{ hive_home_dir }}"
 - name: setup follow swarm service service
   template:
     src: follow-swarm-service.service
