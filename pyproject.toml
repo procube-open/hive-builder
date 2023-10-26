@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hive-builder"
-version = "3.7.5"
+version = "3.7.6"
 description = "Building docker swarm environment"
 authors = ["Mitsuru Nakakawaj <mitsuru@procube.jp>"]
 license = "MIT"
