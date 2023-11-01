@@ -107,3 +107,11 @@
       tags: ["swarm"]
     - role: reboot
       tags: ["reboot"]
+
+- name: setup hive servers beforeend setup-hosts
+  hosts: servers
+  become: True
+  tags: beforeend-setup-hosts
+  roles:
+    - role: addon2
+      tags: ["addon2"]
