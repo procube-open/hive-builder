@@ -1,0 +1,3 @@
+---
+- name: default addon2 for hive hosts
+  debug: msg='default addon2 do nothing'
