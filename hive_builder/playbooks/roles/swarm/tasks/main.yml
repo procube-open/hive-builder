@@ -73,7 +73,7 @@
   when: hive_internal_cidr_v6 is defined
 
 - name: insert rule
-  shell: ip6tables -t nat -I POSTROUTING -o docker_gwbridge -s ::/0 -d ::/0 -m addrtype --src-type LOCAL -j MASQUERADE  
+  shell: ip6tables -t nat -I POSTROUTING -o docker_gwbridge -s ::/0 -d ::/0 -m addrtype --src-type LOCAL -j MASQUERADE
   become: yes
   when: hive_internal_cidr_v6 is defined and check.rc != 0
 
@@ -83,7 +83,7 @@
     insertafter: "^:OUTPUT ACCEPT"
     block: |
       -N DOCKER
-      -A FORWARD -o docker_gwbridge -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 
+      -A FORWARD -o docker_gwbridge -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
       -A FORWARD -o docker_gwbridge -j DOCKER
       -A FORWARD -i docker_gwbridge ! -o docker_gwbridge -j ACCEPT
       -A FORWARD -i docker_gwbridge -o docker_gwbridge -j DROP
