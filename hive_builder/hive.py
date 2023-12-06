@@ -630,8 +630,9 @@ class listVolumes(ansbileCommandBase):
         for service in loaded_yml['services'].values():
           volumes = service.get('volumes')
           if volumes is not None:
-            volume_name = volumes[0].get('source')
-            volumes_list.append(volume_name)
+            for volume in volumes:
+              volume_name = volume.get('source')
+              volumes_list.append(volume_name)
     print(" ".join(volumes_list))
 
 
