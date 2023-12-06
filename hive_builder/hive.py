@@ -587,7 +587,7 @@ class listHosts(ansbileCommandBase):
     stage = hive_yml['stages'][stage_name]
     separate_repository = stage.get('separate_repository', True)
     number_of_hosts = stage.get('number_of_hosts', 4 if separate_repository else 3)
-    custom_hostname = self.stage.get('custom_hostname', 'hive')
+    custom_hostname = stage.get('custom_hostname', 'hive')
     hostname_pattern = r'^[a-z0-9][a-z0-9-]*[a-z0-9]$'
     if not (re.match(hostname_pattern, custom_hostname) and (len(custom_hostname) + len(name) < 57)):
       raise Error('custom_hostname must consist of alphanumeric and hyphens, and custom_hostname + inventory_name be up to 60 in length')
