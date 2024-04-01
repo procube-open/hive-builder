@@ -49,12 +49,12 @@
   vars:
     ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
   throttle: 1
-- name: install python pacages for zabbix
+- name: install python packages for zabbix
   become_user: zabbix
   pip:
     name:
       - wheel
-      - docker
+      - docker<7
       - uptime
       - six
     virtualenv: /var/lib/zabbix/docker
