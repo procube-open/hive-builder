@@ -54,7 +54,7 @@
   pip:
     name:
       - wheel
-      - docker<7
+      - docker
       - uptime
       - six
     virtualenv: /var/lib/zabbix/docker
