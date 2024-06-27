@@ -17,14 +17,14 @@
 - name: "set logrotate for services log files"
   become: True
   lineinfile:
-    dest: /etc/logrotate.d/syslog
+    dest: /etc/logrotate.d/rsyslog
     insertbefore: BOF
     line: "/var/log/services/*.log"
 
 - name: "set logrotate for services log files"
   become: True
   lineinfile:
-    dest: /etc/logrotate.d/syslog
+    dest: /etc/logrotate.d/rsyslog
     regexp: '^    create 0640 root zabbix'
     line: "    create 0640 root zabbix"
 

@@ -32,7 +32,7 @@
       crypt_scheme: bcrypt
       password: "{{ lookup('password', hive_context_dir + '/registry_password length=15') }}"
   - name: compose up registry container
-    docker_compose:
+    community.docker.docker_compose_v2:
       project_src: "{{ hive_home_dir }}/registry"
   vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"

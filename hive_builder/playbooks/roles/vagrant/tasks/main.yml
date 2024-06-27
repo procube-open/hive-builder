@@ -18,7 +18,7 @@
 - name: invoke Vagrant
   hive_vagrant:
     vagrant_dir: "{{ hive_context_dir }}"
-    box_name: "{{ hive_vagrant_box_name | default('centos/7') }}"
+    box_name: "{{ hive_vagrant_box_name | default('almalinux/9') }}"
     instances: "{{ groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars) | list}}"
     cmd: "{% if hive_destroy | default(false) %}destroy{% elif hive_halt | default(false) %}halt{% else %}up{% endif %}"
   # set vagrant server url prevent following error on linux scl vagrant package

@@ -24,7 +24,11 @@
       - python{{ hive_safe_python_revision | split('.') | join('') }}-devel
       - python{{ hive_safe_python_revision | split('.') | join('') }}-pip
       - python{{ hive_safe_python_revision | split('.') | join('') }}-setuptools
-      - "{{ 'python-virtualenv' if ansible_distribution == 'Amazon' else 'virtualenv' }}"
+- name: install python venv package
+  yum:
+    state: present
+    name: "{{ 'python-virtualenv' if ansible_distribution == 'Amazon' else 'virtualenv' }}"
+  when: ansible_distribution != 'AlmaLinux'
 - name: upgrade pip
   become: False
   pip:

@@ -20,8 +20,9 @@
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
 - name: yum install
   yum:
-    name=zabbix-agent
-    state=installed
+    state: installed
+    name: zabbix-agent
+    disable_gpg_check: true
 - name: create zabbix home/.docker directory
   file:
     path: /var/lib/zabbix/.docker
