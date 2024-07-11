@@ -4,5 +4,7 @@
   shell: update-ca-trust
   listen: update CA cert
 - name: restart docker daemon
-  service: name=docker state=restarted
+  service:
+    name: "docker"
+    state: "restarted"
   listen: update CA cert
