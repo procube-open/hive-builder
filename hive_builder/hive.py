@@ -566,7 +566,7 @@ class installCollection(ansbileCommandBase):
     args_collection = ['ansible-galaxy', 'collection', 'install', '-r', context.vars['install_dir'] + '/requirements.yml',
                        '-p', context.vars['context_dir'] + '/collections']
     args_requirements_azure = ['pip', 'install', '-r', context.vars['context_dir'] +
-                               '/collections/ansible_collections/azure/azcollection/requirements-azure.txt']
+                               '/collections/ansible_collections/azure/azcollection/requirements.txt']
     # subprocess.run(args_role)
     subprocess.run(args_collection)
     subprocess.run(args_requirements_azure)
