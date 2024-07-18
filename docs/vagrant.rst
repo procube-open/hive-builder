@@ -44,7 +44,7 @@ libvert, qemu-kvm と Vagrant がインストールされている必要があ�
 
     vagrant plugin install vagrant-libvirt
     vagrant plugin install vagrant-disksize
-    vagrant box add centos/8 --provider=libvirt
+    vagrant box add almalinux/9 --provider=libvirt
     sudo usermod --append --groups libvirt `whoami`
 
 .. note::
@@ -110,16 +110,6 @@ libvert, qemu-kvm と Vagrant がインストールされている必要があ�
 
 .. note::
 
-    CentOS Stream release 8 で vagrant 2.2.14 を安定して動作させるためには libvirt, libk5crypto, libssh をソースコードからビルドして
-    インストールする必要があります。バイナリ配布されているlibvirt-6.0.0-29 では、vagrant up 時に Waiting for domain to get an IP address...
-    のメッセージの後、ストールする場合があり、利用できません。また、 vagrant に付属のlibcrypto.so は CentOS 8 のものと
-    互換性がなく「symbol EVP_KDF_ctrl version OPENSSL_1_1_1b not defined in file libcrypto.so.1.1 」というエラーが
-    libk5cryptoとlibsshのロード時に発生し、利用できません。したがって、こちらもソースコードからビルドする必要があります。
-    この手順は将来のバージョンで必要なくなる可能性があります。
-
-
-.. note::
-
     最後の2行は vagrant up で「Vagrant could not detect VirtualBox! Make sure VirtualBox is properly installed.」の
     エラーが出る場合に必要となる回避策です。Vagrant のバージョンによっては不要になる可能性があります。
 
@@ -129,9 +119,7 @@ libvert, qemu-kvm と Vagrant がインストールされている必要があ�
 
     sudo usermod --append --groups libvirt `whoami`
     vagrant plugin install vagrant-libvirt vagrant-disksize
-    vagrant box add centos/8 --provider=libvirt
-    # stream-8 を使う場合
-    # vagrant box add centos/8 https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-Vagrant-8-20200113.0.x86_64.vagrant-libvirt.box
+    vagrant box add almalinux/9 --provider=libvirt
 
 WSL（Windows Subsystem for Linux）の場合
 ----------------------------------------------
