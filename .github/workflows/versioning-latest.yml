@@ -7,7 +7,7 @@ on:
       - master
 jobs:
   version-up-main:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       # https://github.community/t/github-action-trigger-on-release-not-working-if-releases-was-created-by-automation/16559
       GITHUB_USER: ${{ secrets.EXT_GITHUB_USER }}
