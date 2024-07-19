@@ -1,9 +1,9 @@
 ---
 # common utiility packages.
 - import_tasks: fixed-yum-url.yml
-  when: ansible_distribution != 'Amazon' and hive_yum_url is defined and hive_yum_url != omit
+  when: hive_yum_url is defined and hive_yum_url != omit
 - import_tasks: growfs.yml
-  when: hive_provider == 'azure' and hive_disk_size is defined
+  when: hive_provider == 'azure' and hive_disk_size is defined and ansible_distribution == 'RedHat'
 - import_tasks: setup_proxy_env.yml
   when: hive_http_proxy is defined
 - import_tasks: pip_index_url.yml
@@ -11,9 +11,9 @@
 - name: install nfs utils
   yum: name=nfs-utils state=present
   when: groups['nfs_volumes'] | length > 0
-- name: activate nfs service
-  service: name=nfs enabled=yes state=started
-  when: groups['nfs_volumes'] | length > 0 and ansible_distribution == 'Amazon'
+# - name: activate nfs service
+#   service: name=nfs enabled=yes state=started
+#   when: groups['nfs_volumes'] | length > 0 and ansible_distribution == 'Amazon'
 - name: make yum do not update kernel* package
   lineinfile:
     path: /etc/yum.conf
@@ -55,19 +55,13 @@
 # kernel.x86_64    4.18.0-305.19.1.el8_4  @BaseOS
 # kernel.x86_64    4.18.0-425.3.1.el8     @baseos
 
-
 - name: update kernel for drbd (implicit)
   yum:
-    name: "kernel-{{ '4.14.238-182.422.amzn2' if ansible_distribution == 'Amazon' else
-                    ('4.18.0-372*.el8' if ansible_distribution_release == 'Ootpa' else
-                     '4.18.0-425*.el8') }}"
+    name: "kernel-5.14.0-427.22.1.el9*"
     disable_excludes: main
     state: latest
-  when: hive_mirrored_disk_size is defined and hive_kernel_version is not defined and (
-         (ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux'] and (
-           (ansible_distribution_release  == 'Ootpa' and uname_result.stdout is version('4.18.0-372', 'lt')) or
-           (ansible_distribution_release != 'Ootpa' and uname_result.stdout is version('4.18.0-425', 'lt')))) or
-         (ansible_distribution == 'Amazon' and uname_result.stdout is version('4.14.238-182', 'lt')))
+  when: hive_kernel_version is not defined 
+    and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
   notify: require reboot
 - name: update kernel for drbd (explicit)
   yum:
@@ -92,7 +86,7 @@
       - conntrack-tools
       - bash-completion
       - rsyslog
-      - "{{ 'libselinux-python' if ansible_distribution == 'Amazon' else 'python3-libselinux' }}"
+      - python3-libselinux
 - name: install selinux packages
   yum:
     state: present
@@ -146,6 +140,25 @@
   - "hive_locale is defined"
   - "hive_locale is not in hive_safe_current_locale.stdout"
 # setting up sshd parameters
+- name: Check OpenSSH version
+  shell: sshd -V 2>&1 | grep "^OpenSSH_"
+  register: openssh_version
+  changed_when: false
+- name: Set LoginGraceTime to 0 if OpenSSH version is between 8.5p1 and 9.8p1
+  block:
+    - name: Set LoginGraceTime to 0 in sshd_config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?LoginGraceTime'
+        line: 'LoginGraceTime 0'
+        state: present
+      register: login_grace_time_set
+    - name: Restart SSH service
+      service:
+        name: sshd
+        state: restarted
+      when: login_grace_time_set.changed
+  when: openssh_version.stdout is match("OpenSSH_(8\.[5-9]p1|9\.[0-8]p1)")
 - name: disable Password Authentication for sshd
   lineinfile:
     dest: /etc/ssh/sshd_config

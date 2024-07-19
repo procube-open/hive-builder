@@ -57,9 +57,9 @@
     - dexec
     - dsh
     - dcp
-- name: setup bash completion for docker command
-  become: False
-  lineinfile:
-    path: "{{ hive_home_dir }}/.bashrc"
-    line: ". /usr/share/bash-completion/docker"
-  when: ansible_distribution == 'Amazon'
+# - name: setup bash completion for docker command
+#   become: False
+#   lineinfile:
+#     path: "{{ hive_home_dir }}/.bashrc"
+#     line: ". /usr/share/bash-completion/docker"
+#   when: ansible_distribution == 'Amazon'

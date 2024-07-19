@@ -14,17 +14,30 @@
     mode: 0755
   notify: update rsyslog config
 
+- name: Check if /etc/logrotate.d/rsyslog exists
+  become: True
+  stat:
+    path: /etc/logrotate.d/rsyslog
+  register: rsyslog_file
+
+- name: Create /etc/logrotate.d/rsyslog if it does not exist
+  become: True
+  file:
+    path: /etc/logrotate.d/rsyslog
+    state: touch
+  when: not rsyslog_file.stat.exists
+
 - name: "set logrotate for services log files"
   become: True
   lineinfile:
-    dest: /etc/logrotate.d/syslog
+    dest: /etc/logrotate.d/rsyslog
     insertbefore: BOF
     line: "/var/log/services/*.log"
 
 - name: "set logrotate for services log files"
   become: True
   lineinfile:
-    dest: /etc/logrotate.d/syslog
+    dest: /etc/logrotate.d/rsyslog
     regexp: '^    create 0640 root zabbix'
     line: "    create 0640 root zabbix"
 

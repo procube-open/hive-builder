@@ -2,6 +2,6 @@
 - name: install docker-compose
   become: False
   pip:
-    name: docker-compose<1.29
+    name: docker-compose
     state: present
     virtualenv: "{{ hive_home_dir }}/docker"

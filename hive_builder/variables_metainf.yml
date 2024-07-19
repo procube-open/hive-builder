@@ -217,7 +217,7 @@ limit_server:
 vagrant_box_name:
   description: "box name for vagrant"
   persitent_scope: stage
-  default: centos/7
+  default: almalinux/9
 stdout_callback:
   name_in_ansible_cfg: stdout_callback
   description: "formatting ansible-playbook output"

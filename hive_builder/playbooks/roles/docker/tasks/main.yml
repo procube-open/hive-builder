@@ -6,7 +6,6 @@
     owner: root
     group: root
     mode: 0644
-  when: ansible_distribution != 'Amazon'
 
 # # to avoid following error install containerd.io individually 2020-07-24 07:59:00
 # # fatal: [p-hive0.pdns]: FAILED! => changed=false
@@ -46,14 +45,6 @@
       - docker-ce
     state: present
     exclude: "*.i686"
-  when: ansible_distribution != 'Amazon'
-  # AWS linux provides docker ce in amazon extra repos
-- name: install docker package
-  yum:
-    name: docker
-    state: present
-    enablerepo: amzn2extra-docker
-  when: ansible_distribution == 'Amazon'
 - name: add docker group
   group:
     name: docker

@@ -20,8 +20,9 @@
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
 - name: yum install
   yum:
-    name=zabbix-agent
-    state=installed
+    state: installed
+    name: zabbix-agent
+    disable_gpg_check: true
 - name: create zabbix home/.docker directory
   file:
     path: /var/lib/zabbix/.docker
@@ -47,7 +48,7 @@
   args:
     chdir: /var/lib/zabbix
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
+    ansible_python_interpreter: /usr/libexec/platform-python
   throttle: 1
 - name: install python packages for zabbix
   become_user: zabbix
@@ -62,7 +63,7 @@
   args:
     chdir: /var/lib/zabbix
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
+    ansible_python_interpreter: /usr/libexec/platform-python
   throttle: 1
 - name: "setup tls connection - put ca certs"
   copy:
@@ -86,7 +87,7 @@
       dest: "/var/lib/zabbix/.docker/cert.pem"
 - name: copy selinux module for zabbix-agent
   copy:
-    src: "{{ 'hive.te.amzn' if ansible_distribution == 'Amazon' else 'hive.te' }}"
+    src: hive.te
     dest: /root/hive.te
   register: result_hive_zabbix_agent_policy
   when: hive_safe_selinux != 'disabled'
@@ -102,10 +103,10 @@
     name: "{{ item }}"
     state: yes
     persistent: yes
-  loop: "{{ hive_safe_selinux_boolean_amzn if ansible_distribution == 'Amazon' else hive_safe_selinux_boolean }}"
+  loop: "{{ hive_safe_selinux_boolean }}"
   when: hive_safe_selinux != 'disabled'
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
+    ansible_python_interpreter: /usr/libexec/platform-python
 - name: modify zabbix_agentd config
   template: >
     src=zabbix_agentd.conf.j2

@@ -64,6 +64,19 @@
     resource_group: "{{ hive_safe_azure_resourcegroup }}"
     name: "sg_{{ hive_name }}"
     rules:
+    - name: published_ports_udp
+      protocol: Udp
+      destination_port_range: "{{ hive_published_ports_udp}}"
+      priority: 201
+      access: Allow
+      direction: Inbound
+  when: hive_published_ports_udp is defined and hive_published_ports_udp|length > 0
+
+- name: Create Network Security Group for site specific inbound rules from internet
+  azure_rm_securitygroup:
+    resource_group: "{{ hive_safe_azure_resourcegroup }}"
+    name: "sg_{{ hive_name }}"
+    rules:
     - name: internal
       priority: 100
       source_address_prefix: VirtualNetwork
@@ -73,12 +86,6 @@
       protocol: Tcp
       destination_port_range: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
       priority: 200
-      access: Allow
-      direction: Inbound
-    - name: published_ports_udp
-      protocol: Udp
-      destination_port_range: "{{ hive_published_ports_udp }}"
-      priority: 201
       access: Allow
       direction: Inbound
     - name: deny_tcp

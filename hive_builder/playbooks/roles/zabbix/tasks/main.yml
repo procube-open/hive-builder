@@ -24,7 +24,7 @@
     no_log: True
   - name: compose up zabbix container
     become: False
-    docker_compose:
+    community.docker.docker_compose_v2:
       project_src: "{{ hive_home_dir }}/zabbix"
 
   - name: install zabbix api
