@@ -117,7 +117,7 @@ IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 's
                 'command', 'privileged', 'expose', 'pull_on', 'pull_from']
 SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'entrypoint', 'environment', 'healthcheck',
                        'hosts', 'ignore_error', 'initialize_roles', 'labels', 'logging', 'monitor_error', 'mode', 'networks', 'placement', 'replicas',
-                       'restart_config', 'stop_grace_period','standalone', 'user', 'working_dir']
+                       'restart_config', 'stop_grace_period','standalone', 'user', 'working_dir', 'cap_add', 'cap_drop']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'source', 'readonly']

@@ -112,6 +112,8 @@
     docker_swarm_service:
       name: "{{ item }}"
       hostname: "{{ item }}"
+      cap_add: "{{ hostvars[item].hive_cap_add | default(omit) }}"
+      cap_drop: "{{ hostvars[item].hive_cap_drop | default(omit) }}"
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
       stop_grace_period: "{{ hostvars[item].hive_stop_grace_period | default(omit) }}"
       logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string), 'syslog-facility': 'local0', 'tag': item} }) }}"
