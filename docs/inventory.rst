@@ -795,6 +795,15 @@ services 属性にサービスごとにサービス名をキーとしてサー�
       - /opt/wildfly
       - 省略
       - コンテナのプロセスの working diretory（docker service create の --workdir オプションと等価）
+    * - cap_add
+      - - ALL
+      - []
+      - Linux Capabillity を追加する
+    * - cap_drop
+      - - NET_ADMIN
+        - SYS_ADMIN
+      - []
+      - Linux Capabillity を削除する
 
 volumes 属性
 -----------------------------
