@@ -86,6 +86,9 @@
       - conntrack-tools
       - bash-completion
       - rsyslog
+      - rsyslog-openssl
+      - rsyslog-gnutls
+      - gnutls-utils
       - python3-libselinux
 - name: install selinux packages
   yum:

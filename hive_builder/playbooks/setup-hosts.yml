@@ -79,6 +79,14 @@
     - role: zabbix-agent
       tags: ["zabbix-agent"]
 
+- name: setup rsyslogd for hives
+  gather_facts: True
+  hosts: hives
+  
+  roles:
+    - role: rsyslogd-client
+      tags: ["rsyslogd-client"]
+
 - name: setup repository and zabbix
   hosts: repository
   gather_facts: False

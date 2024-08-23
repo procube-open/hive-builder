@@ -1,0 +1,8 @@
+---
+- name: "install rsyslog config file"
+  become: True
+  template:
+    src: docker.conf
+    dest: /etc/rsyslog.d/
+    mode: 0755
+  notify: update rsyslog config

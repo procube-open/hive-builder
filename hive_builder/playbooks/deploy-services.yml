@@ -114,7 +114,16 @@
       hostname: "{{ item }}"
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
       stop_grace_period: "{{ hostvars[item].hive_stop_grace_period | default(omit) }}"
-      logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string), 'syslog-facility': 'local0', 'tag': item} }) }}"
+      logging: "{{ hostvars[item].hive_logging | default({
+        'driver': 'syslog',
+        'options': {
+          'syslog-address': 'tcp+tls://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string),
+          'syslog-facility': 'local0',
+          'tag': item,
+          'syslog-tls-ca-cert': hive_home_dir + '/.docker/ca.pem',
+          'syslog-tls-cert': hive_home_dir + '/.docker/cert.pem',
+          'syslog-tls-key': hive_home_dir + '/.docker/key.pem'
+      } }) }}"
       image: >-
         {% set hive_safe_autovars = {'target_image': False} %}
         {%- if hostvars[item].hive_image_name is defined -%}

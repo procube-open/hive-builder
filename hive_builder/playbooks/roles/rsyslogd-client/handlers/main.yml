@@ -1,0 +1,4 @@
+- name: restart rsyslog daemon
+  become: True
+  service: name=rsyslog state=restarted
+  listen: update rsyslog config
