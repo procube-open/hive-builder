@@ -383,3 +383,9 @@ pip_trusted_host:
   description: trusted host for pip
   name_in_ansible: hive_pip_trusted_host
   persistent_scope: stage
+tls_logging:
+  description: enable tls logging on rsyslog
+  default: False
+  type: boolean
+  name_in_ansible: hive_tls_logging
+  persistent_scope: stage

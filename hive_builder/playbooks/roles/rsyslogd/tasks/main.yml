@@ -1,4 +1,13 @@
 ---
+- name: install tls packages
+  become: True
+  yum:
+    state: present
+    name:
+      - rsyslog-openssl
+      - rsyslog-gnutls
+      - gnutls-utils
+  when: hive_tls_logging
 - name: "setup rsyslogd - create dir"
   become: True
   file:
@@ -53,7 +62,7 @@
     hive_safe_iptables_name: syslog
     hive_safe_iptables_dports:
       - "{{ hive_safe_syslog_port }}"
-    hive_safe_iptables_protocol: tcp
+    hive_safe_iptables_protocol: "{{ 'tcp' if hive_tls_logging else 'udp' }}"
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) +
       [hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' +
       (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] }}"

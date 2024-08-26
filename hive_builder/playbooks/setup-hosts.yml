@@ -86,6 +86,7 @@
   roles:
     - role: rsyslogd-client
       tags: ["rsyslogd-client"]
+      when: hive_tls_logging
 
 - name: setup repository and zabbix
   hosts: repository
