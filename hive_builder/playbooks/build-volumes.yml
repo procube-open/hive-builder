@@ -47,7 +47,7 @@
     docker_volume:
       name: "{{ hostvars[item].hive_volume.name }}"
       driver: "{{ hostvars[item].hive_volume.driver }}"
-      driver_options: "{{ hostvars[item].hive_volume.dirver_options | default(omit) }}"
+      driver_options: "{{ hostvars[item].hive_volume.driver_options | default(omit) }}"
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
     loop: "{{ hive_safe_volumes }}"
     vars:
