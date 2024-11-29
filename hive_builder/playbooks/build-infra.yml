@@ -16,6 +16,9 @@
   - import_role:
       name: ca
     when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false))
+  - include_role:
+      name: mother-repository
+    when: hive_mother_repository
 
 - name: wait for connectable
   gather_facts: False

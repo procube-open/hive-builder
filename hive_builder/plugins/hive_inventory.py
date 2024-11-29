@@ -47,6 +47,10 @@ DOCUMENTATION = r'''
           description: whether repository node is separated from swarm nodes
           type: bool
           default: true
+        mother_repository:
+          description: whether repository node is placed on mother server.
+          type: bool
+          default: false
         cidr:
           description: cidr of vpc
           required: true
@@ -288,6 +292,8 @@ class Stage:
       self.inventory.set_variable(mother_name, 'hive_kickstart_config', self.stage['kickstart_config'])
     if 'filestore_cidr' in self.stage:
       self.inventory.set_variable(mother_name, 'hive_filestore_cidr', self.stage['filestore_cidr'])
+    if 'mother_repository' in self.stage:
+      self.inventory.set_variable(mother_name, 'hive_mother_repository', self.stage['mother_repository'])
     if 'subnets' not in self.stage:
       try:
         net = ipaddress.ip_network(self.stage['cidr'])
@@ -334,6 +340,9 @@ class Stage:
 
   def add_hives(self):
     separate_repository = self.stage.get('separate_repository', True)
+    mother_repository = self.stage.get('mother_repository', False)
+    if not separate_repository and mother_repository:
+      raise Error("plese set separate_repository True, when use mother_repository")
     number_of_hosts = self.stage.get('number_of_hosts', 4 if separate_repository else 3)
     custom_hostname = self.stage.get('custom_hostname', 'hive')
     hostname_pattern = r'^[a-z0-9][a-z0-9-]*[a-z0-9]$'
@@ -356,6 +365,8 @@ class Stage:
         self.inventory.set_variable(host_name, 'hive_internal_cidr_v6', self.stage['internal_cidr_v6'])
       if 'kms_key_id' in self.stage:
         self.inventory.set_variable(host_name, 'hive_kms_key_id', self.stage['kms_key_id'])
+      if 'mother_repository' in self.stage:
+        self.inventory.set_variable(host_name, 'hive_mother_repository', self.stage['mother_repository'])
       if idx == number_of_hosts - 1:
         if not separate_repository:
           self.inventory.add_host(host_name, group='hives')

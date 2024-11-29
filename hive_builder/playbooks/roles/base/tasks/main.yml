@@ -62,13 +62,14 @@
     state: latest
   when: hive_kernel_version is not defined 
     and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
+    and inventory_hostname in groups['hives']
   notify: require reboot
 - name: update kernel for drbd (explicit)
   yum:
     name: "kernel-{{ hive_kernel_version }}"
     disable_excludes: main
     state: latest
-  when: hive_kernel_version is defined
+  when: hive_kernel_version is defined and inventory_hostname in groups['hives']
   notify: require reboot
 - name: install packages
   yum:
@@ -108,6 +109,7 @@
 - name: set hostname
   hostname:
     name: "{{ inventory_hostname.split('.')[0] }}"
+  when: not inventory_hostname in groups['repository'] or not hive_mother_repository
 - name: check /etc/cloud/ directory
   stat:
     path: /etc/cloud

@@ -1,0 +1,20 @@
+---
+- name: "Build hosts file"
+  become: True
+  blockinfile:
+    dest: /etc/hosts
+    insertafter: BOF
+    state: "present"
+    block: "{{ hostvars[item].hive_private_ip }} {{ item }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+  with_items: "{{ groups['hives'] | intersect(groups[hive_stage]) | list }}"
+  when: inventory_hostname in groups['hives']
+- name: "Build hosts file"
+  become: True
+  blockinfile:
+    dest: /etc/hosts
+    insertafter: BOF
+    state: "present"
+    block: "{{ hostvars[item].ansible_facts.ipify_public_ip }} {{ item }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+  with_items: "{{ groups['repository'] | intersect(groups[hive_stage]) | list }}"

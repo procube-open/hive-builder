@@ -1,0 +1,20 @@
+---
+- debug:
+    var: "hostvars[item].ansible_facts.ipify_public_ip"
+  loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+  register: debug_output
+- name: write extra-hosts
+  blockinfile:
+    path: "{{ hive_context_dir }}/docker-compose.yml"
+    insertafter: "extra_hosts:"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK extra_hosts {{ item }}"
+    block: |2
+      {{ '    - ' + item + ':' + hostvars[item].ansible_facts.ipify_public_ip }}
+  loop: "{{ debug_output.results | map(attribute='item') | list }}"
+  register: result
+- name: restart mother repository
+  community.docker.docker_compose_v2:
+    project_src: "{{ hive_context_dir }}"
+    state: restarted
+  become: true
+  when: result is changed

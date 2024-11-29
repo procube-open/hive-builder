@@ -1,0 +1,16 @@
+services:
+  mother-repository:
+    build:
+      context: .
+      dockerfile: Dockerfile.repository
+    container_name: "{{ hive_safe_repository_server }}"
+    hostname: "{{ hive_safe_repository_server }}"
+    privileged: true
+    volumes:
+    - ssh_data:/etc/ssh
+    ports:
+    - 2222:22
+    extra_hosts:
+    - localhost.dummy:127.0.0.1
+volumes:
+  ssh_data:

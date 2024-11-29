@@ -1,0 +1,44 @@
+---
+- name: put Dockerfile
+  template:
+    src: Dockerfile.repository
+    dest: "{{ hive_context_dir }}/Dockerfile.repository"
+- name: check docker-compose.yml
+  stat:
+    path: "{{ hive_context_dir }}/docker-compose.yml"
+  register: file_stat
+- name: put docker-compose.yml
+  template:
+    src: docker-compose.yml
+    dest: "{{ hive_context_dir }}/docker-compose.yml"
+  when: not file_stat.stat.exists
+# - name: add ports
+#   blockinfile:
+#     path: "{{ hive_context_dir }}/docker-compose.yml"
+#     inserafter: "ports:"
+#     marker: "# {mark} ANSIBLE MANAGED BLOCK ssh_ports"
+#     block: |2
+#           - 2222:22
+- name: docker compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ hive_context_dir }}"
+  become: true
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ hive_safe_repository_server }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ hive_safe_repository_server }}
+        HostName localhost
+        UserKnownHostsFile {{ hive_context_dir }}/known_hosts
+        StrictHostKeyChecking yes
+        User {{ hive_safe_admin }}
+        PasswordAuthentication no
+        IdentityFile {{ hive_safe_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+        Port 2222
+      {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}
