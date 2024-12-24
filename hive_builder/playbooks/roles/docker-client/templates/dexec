@@ -44,7 +44,7 @@ if [ -z "$num_replicas" ]; then
   error "service $1 is not found."
 fi
 if [ ${no_arg} -gt $num_replicas ]; then
-  error "the index ${no_arg} exceed the nubmer of replicas of the service $num_replicas."
+  error "the index ${no_arg} exceed the number of replicas of the service $num_replicas."
 fi
 set -eo pipefail
 docker_command=$(docker service ps "$1" --format "docker -H tcp://{{.Node}}.$suffix:2376 exec $exec_opts {{.Name}}.{{.ID}}" --filter desired-state=running --no-trunc | head -$no_arg | tail -1)

@@ -54,18 +54,21 @@ end
 
 -- create spoof rules for all entries in the given hosts file
 function addHosts(file)
-  local rules = {}
+  local conversed_rules = {}
   forEachHost(file, function(ip, hostname)
     -- 正引き
-    addAction(QNameRule(hostname), SpoofAction({ip}), {name=hostname})
+    local forward_dns_rule = AndRule({QNameRule(hostname), QTypeRule(DNSQType.A)})
+    addAction(forward_dns_rule, SpoofAction({ip}))
+    table.insert(conversed_rules, NotRule(forward_dns_rule))
+
     -- 逆引き
-    addAction(QNameRule(reverse_ip(ip)), SpoofRawAction(convert_to_raw(hostname)))
-    table.insert(rules, NotRule(QNameRule(hostname)))
-    table.insert(rules, NotRule(QNameRule(reverse_ip(ip))))
+    local reverse_dns_rule = QNameRule(reverse_ip(ip))
+    addAction(reverse_dns_rule, SpoofRawAction(convert_to_raw(hostname)))
+    table.insert(conversed_rules, NotRule(reverse_dns_rule))
   end)
   -- その他はresolv.confのDNSにプロキシ
   newServer({ address = '{{ lookup('file', '/etc/resolv.conf') | regex_findall('\\s*nameserver\\s*(.*)') | first}}', pool = 'exeternal-dns' })
-  addAction(AndRule(rules), PoolAction('external-dns'))
+  addAction(AndRule(conversed_rules), PoolAction('external-dns'))
 end
 
 return {
