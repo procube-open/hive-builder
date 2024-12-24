@@ -18,3 +18,4 @@
     block: "{{ hostvars[item].ansible_facts.ipify_public_ip }} {{ item }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
   with_items: "{{ groups['repository'] | intersect(groups[hive_stage]) | list }}"
+  when: inventory_hostname in groups['hives']

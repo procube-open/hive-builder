@@ -3,9 +3,17 @@
   stat:
     path: "{{ hive_context_dir }}/docker-compose.yml"
   register: file_stat
-- name: docker compose
+- name: compose down mother repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"
     state: "absent"
   become: true
   when: file_stat.stat.exists
+- name: remove files
+  file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - "{{ hive_context_dir }}/docker-compose.yml"
+    - "{{ hive_mother_repository_path }}"

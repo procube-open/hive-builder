@@ -1,4 +1,8 @@
 ---
+- name: get ips on hosts
+  set_fact:
+    hives_ip_list: "{{ lookup('file', hive_context_dir + '/mother-repository/hosts') | regex_findall('\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b') }}"
+  when: hive_mother_repository is defined
 - name: install tls packages
   become: True
   yum:
@@ -65,4 +69,5 @@
     hive_safe_iptables_protocol: "{{ 'tcp' if hive_tls_logging else 'udp' }}"
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) +
       [hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' +
-      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] }}"
+      (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] +
+      ( hives_ip_list | default([]) ) }}"

@@ -10,23 +10,31 @@
       tags: [ 'ssh-connection' ]
       when: hive_provider == 'kickstart'
 
-- name: get public ip of hives
+- name: get public ip
   tags: setup-hosts
   hosts: servers
   become: True
   roles:
     - role: get-public-ip
       tags: [ 'get-public-ip' ]
-      when: hive_mother_repository
+      when: hive_mother_repository is defined
 
-- name: setup hive servers
+# - name: setup hive servers
+#   tags: setup-hosts
+#   become: True
+#   hosts: mother
+#   roles:
+#     - role: hostsfile-for-mother-repository
+#       tags: ["hostsfile-for-mother-repository"]
+#       when: hive_mother_repository is defined
+- name: setup mother repository
   tags: setup-hosts
   become: True
   hosts: mother
   roles:
-    - role: hostsfile-for-mother-repository
-      tags: ["hostsfile-for-mother-repository"]
-      when: hive_mother_repository
+    - role: dnsdist
+      tags: ["dnsdist"]
+      when: hive_mother_repository is defined
 
 
 - name: setup hive servers
@@ -44,14 +52,14 @@
   roles:
     - role: hostsfile-for-hives
       tags: ["hostsfile-for-hives"]
-      when: hive_mother_repository
+      when: hive_mother_repository is defined
     - role: tls-certificate
       tags: ["tls-certificate"]
     - role: base
       tags: ["base"]
     - role: hostsfile
       tags: ["hostsfile"]
-      when: not hive_mother_repository
+      when: not hive_mother_repository is defined
     - role: ntp-client
       tags: ["ntp-client"]
       when: hive_ntp_servers is defined and hive_ntp_servers != omit
@@ -114,7 +122,7 @@
 - name: setup repository and zabbix
   hosts: repository
   gather_facts: False
-  tags: registry
+  tags: "repository"
 
   roles:
     - role: docker-compose

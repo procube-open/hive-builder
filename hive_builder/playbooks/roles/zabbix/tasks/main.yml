@@ -36,7 +36,7 @@
 
   - name: remove default Zabbix Server
     zabbix_host:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       host_name: Zabbix server
@@ -49,7 +49,7 @@
     register: zabbix_api_result
   - name: Create Hive, Repository group
     zabbix_group:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       state: present
@@ -58,7 +58,7 @@
         - Repository server
   - name: Get template links on the Linux by Zabbix agent
     zabbix_template_info:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       template_name: "{{ hive_zabbix_template | default('Linux by Zabbix agent') }}"
@@ -67,7 +67,7 @@
     register: linux_template_json
   - name: Configure macros on the Linux by Zabbix agent
     zabbix_template:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       template_name: "{{ hive_zabbix_template | default('Linux by Zabbix agent') }}"
@@ -88,7 +88,7 @@
   # 3. download and replace template XML(avoid error caused by difference of order of elements)
   - name: upload templates
     zabbix_template:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       template_xml: "{{ lookup('file', item) }}"
@@ -100,7 +100,7 @@
 
   - name: register hive hosts to zabbix
     zabbix_host:
-      server_url: http://{{ inventory_hostname }}:10052
+      server_url: http://{{ inventory_hostname }}:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
       host_name: "{{ item }}"
@@ -123,11 +123,16 @@
         - type: 1
           main: 1
           useip: 1
-          ip: "{{ hostvars[item].hive_private_ip }}"
+          ip: "{{ hostvars[item].hive_private_ip if not hive_mother_repository is defined else hostvars[item].ansible_facts.ipify_public_ip }}"
           dns: ""
           port: 10050
       state: present
     loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+  - name: Ensure group zabbix exists
+    become: True
+    group:
+      name: zabbix
+      state: present
   - name: "set permission for /var/log/messages"
     become: True
     file:

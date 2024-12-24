@@ -5,13 +5,11 @@
 - name: gather public ips
   delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
   delegate_facts: true
-  set_fact:
-    all_public_ips: "{{ all_public_ips | default([]) + [{ 'host': inventory_hostname, 'ip': hostvars[inventory_hostname].ipify_public_ip }] }}"
+  debug: var=hostvars[inventory_hostname].ipify_public_ip
   when: inventory_hostname in groups['hives']
 - name: gather public ips
   delegate_to: "{{ item }}"
   delegate_facts: true
-  set_fact:
-    all_public_ips: "{{ all_public_ips | default([]) + [{ 'host': inventory_hostname, 'ip': hostvars[inventory_hostname].ipify_public_ip }] }}"
+  debug: var=hostvars[inventory_hostname].ipify_public_ip
   when: inventory_hostname in groups['repository']
   loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"

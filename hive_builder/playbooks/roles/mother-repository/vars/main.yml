@@ -1,3 +1,4 @@
 ---
 hive_safe_admin: "admin"
 hive_safe_repository_server: "{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
+hive_mother_repository_path: "{{ hive_context_dir }}/mother-repository"

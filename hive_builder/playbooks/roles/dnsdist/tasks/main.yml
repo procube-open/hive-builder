@@ -11,6 +11,13 @@
       {{ hostvars[item].ansible_facts.ipify_public_ip + ' ' + item}}
   loop: "{{ debug_output.results | map(attribute='item') | list }}"
   register: result
+# - name: write hosts
+#   blockinfile:
+#     path: "/etc/hosts"
+#     marker: "# {mark} ANSIBLE MANAGED BLOCK extra_hosts {{ item }}"
+#     block: |
+#       {{ hostvars[item].ansible_facts.ipify_public_ip + ' ' + item}}
+#   loop: "{{ debug_output.results | map(attribute='item') | list }}"
 - name: restart mother repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"

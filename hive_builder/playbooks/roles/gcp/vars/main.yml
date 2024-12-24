@@ -6,7 +6,7 @@ hive_safe_gcp_service_account_file: "{{ hive_root_dir }}/gcp_credential.json"
 hive_safe_gcp_project: "{{ (lookup('file', hive_safe_gcp_service_account_file) | from_json).project_id }}"
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
 hive_safe_hosts: >-
-  {%- if hive_mother_repository -%} {{ groups['hives'] | intersect(groups[hive_stage])}}
+  {%- if hive_mother_repository is defined -%} {{ groups['hives'] | intersect(groups[hive_stage])}}
   {%- else -%}  {{ groups['servers'] | intersect(groups[hive_stage]) }}
   {%- endif -%}
 hive_safe_image_id: "{{ hive_vm_image_name | default('projects/almalinux-cloud/global/images/family/almalinux-9') }}"

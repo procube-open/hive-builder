@@ -37,7 +37,10 @@
 # error on docker-compose: Cannot start service zabbix-db: cannot start a stopped process: unknown
 - set_fact:
     libsecomp_version: "{{ '' if ansible_distribution_release == 'Ootpa' else '-2.5' }}"
-
+- name: get ips on hosts
+  set_fact:
+    hives_ip_list: "{{ lookup('file', hive_context_dir + '/mother-repository/hosts') | regex_findall('\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b') }}"
+  when: hive_mother_repository is defined
 - name: install docker package
   yum:
     name:
@@ -66,6 +69,8 @@
       - 2377
       - 7946
     hive_safe_iptables_protocol: tcp
+    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + ( hives_ip_list | default([]) ) }}"
+
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: docker_swarm_udp

@@ -109,7 +109,7 @@
 - name: set hostname
   hostname:
     name: "{{ inventory_hostname.split('.')[0] }}"
-  when: not inventory_hostname in groups['repository'] or not hive_mother_repository
+  when: not inventory_hostname in groups['repository'] or not hive_mother_repository is defined
 - name: check /etc/cloud/ directory
   stat:
     path: /etc/cloud
