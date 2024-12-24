@@ -68,5 +68,5 @@
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
         LogLevel FATAL
-        Port {{ hive_mother_repository.ssh_port }}
+        Port {{ hive_mother_repository.ssh_port | default(2222) }}
       {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}

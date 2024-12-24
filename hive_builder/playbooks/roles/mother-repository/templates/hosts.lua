@@ -1,3 +1,4 @@
+-- https://github.com/hhoffstaette/dnsdist-utils/blob/master/hosts.lua より関数を引用
 -- check whether a file exists and can be opened for reading
 local function file_exists(name)
   local f = io.open(name, "r")
@@ -54,21 +55,21 @@ end
 
 -- create spoof rules for all entries in the given hosts file
 function addHosts(file)
-  local conversed_rules = {}
+  local rules = {}
   forEachHost(file, function(ip, hostname)
     -- 正引き
     local forward_dns_rule = AndRule({QNameRule(hostname), QTypeRule(DNSQType.A)})
     addAction(forward_dns_rule, SpoofAction({ip}))
-    table.insert(conversed_rules, NotRule(forward_dns_rule))
+    table.insert(rules, forward_dns_rule)
 
     -- 逆引き
     local reverse_dns_rule = QNameRule(reverse_ip(ip))
     addAction(reverse_dns_rule, SpoofRawAction(convert_to_raw(hostname)))
-    table.insert(conversed_rules, NotRule(reverse_dns_rule))
+    table.insert(rules, reverse_dns_rule)
   end)
   -- その他はresolv.confのDNSにプロキシ
-  newServer({ address = '{{ lookup('file', '/etc/resolv.conf') | regex_findall('\\s*nameserver\\s*(.*)') | first}}', pool = 'exeternal-dns' })
-  addAction(AndRule(conversed_rules), PoolAction('external-dns'))
+  newServer({ address = '{{ lookup('file', '/etc/resolv.conf') | regex_findall('\\s*nameserver\\s*(.*)') | first}}', pool = 'external-dns' })
+  addAction(NotRule(OrRule(rules)), PoolAction('external-dns'))
 end
 
 return {
