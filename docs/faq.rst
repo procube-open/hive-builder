@@ -477,3 +477,19 @@ ssh接続の確認
 ::
 
     ssh -F .hive/(ステージ名)/ssh_config ホスト名
+
+
+build-infra の wait_for_connection で timed out waiting for ping module test のエラーになります
+----------------------------------------------------------------------------------------------------
+:現象: hive build-infra を実行したとき、wait_for_connection タスクで以下のエラーになる
+
+::
+
+    PLAY [wait for connectable] ******
+
+      fatal: [p-hive0.nsag-dev]: FAILED! => changed=false ******
+        elapsed: 601
+        msg: 'timed out waiting for ping module test: ''ping'''
+
+:原因: ansible の 2.17 以上のバージョンではインストール対象のサーバの Python インタプリタは 3.7 以上である必要がありますが、8系のOSの /usr/libexec/platform-python は 3.6 であり、このエラーが発生しています。
+:対応方法: ansible-core のバージョンを 2.16以前にダウングレードしてください。
