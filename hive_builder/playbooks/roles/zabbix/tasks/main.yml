@@ -123,7 +123,7 @@
         - type: 1
           main: 1
           useip: 1
-          ip: "{{ hostvars[item].hive_private_ip if not hive_mother_repository is defined else hostvars[item].ansible_facts.ipify_public_ip }}"
+          ip: "{{ hostvars[item].hive_private_ip if not hive_shared_repository is defined else hostvars[item].ansible_facts.ipify_public_ip }}"
           dns: ""
           port: 10050
       state: present

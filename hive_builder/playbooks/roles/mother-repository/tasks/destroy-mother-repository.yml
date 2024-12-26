@@ -3,7 +3,7 @@
   stat:
     path: "{{ hive_context_dir }}/docker-compose.yml"
   register: file_stat
-- name: compose down mother repository
+- name: compose down shared repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"
     state: "absent"
@@ -16,4 +16,4 @@
   become: true
   loop:
     - "{{ hive_context_dir }}/docker-compose.yml"
-    - "{{ hive_mother_repository_path }}"
+    - "{{ hive_shared_repository_path }}"

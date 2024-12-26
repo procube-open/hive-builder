@@ -5,7 +5,7 @@
   register: debug_output
 - name: write hosts
   blockinfile:
-    path: "{{ hive_context_dir }}/mother-repository/hosts"
+    path: "{{ hive_context_dir }}/shared-repository/hosts"
     marker: "# {mark} ANSIBLE MANAGED BLOCK extra_hosts {{ item }}"
     block: |
       {{ hostvars[item].ansible_facts.ipify_public_ip + ' ' + item}}
@@ -18,7 +18,7 @@
 #     block: |
 #       {{ hostvars[item].ansible_facts.ipify_public_ip + ' ' + item}}
 #   loop: "{{ debug_output.results | map(attribute='item') | list }}"
-- name: restart mother repository
+- name: restart shared repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"
     state: restarted

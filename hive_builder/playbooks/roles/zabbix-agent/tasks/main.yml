@@ -13,8 +13,8 @@
   register: download_zabbix_repo
 - name: get ips on hosts
   set_fact:
-    hives_ip_list: "{{ lookup('file', hive_context_dir + '/mother-repository/hosts') | regex_findall('\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b') }}"
-  when: hive_mother_repository is defined
+    hives_ip_list: "{{ lookup('file', hive_context_dir + '/shared-repository/hosts') | regex_findall('\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b') }}"
+  when: hive_shared_repository is defined
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: zabbix_tcp
@@ -119,7 +119,7 @@
     state: yes
     persistent: yes
   loop: "{{ hive_safe_selinux_boolean }}"
-  when: hive_safe_selinux != 'disabled' and inventory_hostname in groups['repository'] and not hive_mother_repository is defined
+  when: hive_safe_selinux != 'disabled' and inventory_hostname in groups['repository'] and not hive_shared_repository is defined
   vars:
     ansible_python_interpreter: /usr/libexec/platform-python
 - name: modify zabbix_agentd config

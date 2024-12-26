@@ -1,12 +1,12 @@
 ---
-- name: make mother-repository directory
+- name: make shared-repository directory
   file:
-    path: "{{ hive_mother_repository_path }}"
+    path: "{{ hive_shared_repository_path }}"
     state: directory
 - name: put files
   template:
     src: "{{ item }}"
-    dest: "{{ hive_mother_repository_path }}/{{ item }}"
+    dest: "{{ hive_shared_repository_path }}/{{ item }}"
   loop:
   - Dockerfile.repository
   - chown.service
@@ -14,26 +14,26 @@
   - hosts.lua
 - name: check hosts
   stat:
-    path: "{{ hive_mother_repository_path }}/hosts"
+    path: "{{ hive_shared_repository_path }}/hosts"
   register: hosts_stat
 - name: touch hosts
   file:
-    path: "{{ hive_mother_repository_path }}/hosts"
+    path: "{{ hive_shared_repository_path }}/hosts"
     state: touch
   when: not hosts_stat.stat.exists
 - name: check authorized_keys
   stat:
-    path: "{{ hive_mother_repository_path }}/authorized_keys"
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
   register: authorized_keys_stat
 - name: touch authorized_keys
   file:
-    path: "{{ hive_mother_repository_path }}/authorized_keys"
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
     state: touch
     mode: '600'
   when: not authorized_keys_stat.stat.exists
 - name: add authorized key
   blockinfile:
-    path: "{{ hive_mother_repository_path }}/authorized_keys"
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
     block: "{{ lookup('file', hive_context_dir + '/id_rsa.pub') }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{ inventory_hostname }}"
   become: true
@@ -46,7 +46,7 @@
     src: docker-compose.yml
     dest: "{{ hive_context_dir }}/docker-compose.yml"
   when: not docker_compose_stat.stat.exists
-- name: compose up mother repository
+- name: compose up shared repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"
     # build: "always"
@@ -68,5 +68,5 @@
         IdentityFile {{ hive_safe_private_key_path }}
         IdentitiesOnly yes
         LogLevel FATAL
-        Port {{ hive_mother_repository.ssh_port | default(2222) }}
+        Port {{ hive_shared_repository.ssh_port | default(2222) }}
       {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}

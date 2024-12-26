@@ -1,10 +1,10 @@
 ---
-- name: "build mother-repository"
-  import_tasks: build-mother-repository.yml
+- name: "build shared-repository"
+  import_tasks: build-shared-repository.yml
   when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
-- name: "destroy mother-repository"
-  import_tasks: destroy-mother-repository.yml
+- name: "destroy shared-repository"
+  import_tasks: destroy-shared-repository.yml
   when: hive_destroy  | default(false)
-- name: "stop mother-repository"
-  import_tasks: stop-mother-repository.yml
+- name: "stop shared-repository"
+  import_tasks: stop-shared-repository.yml
   when: hive_halt  | default(false)

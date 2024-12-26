@@ -3,4 +3,4 @@
   reboot:
     reboot_timeout: 300
   listen: require reboot
-  when: not ansible_check_mode and not (inventory_hostname in groups['repository'] and hive_mother_repository is defined)
+  when: not ansible_check_mode and not (inventory_hostname in groups['repository'] and hive_shared_repository is defined)

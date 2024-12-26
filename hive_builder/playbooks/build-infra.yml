@@ -17,8 +17,8 @@
       name: ca
     when: (not hive_destroy  | default(false)) and (not hive_halt  | default(false))
   - include_role:
-      name: mother-repository
-    when: hive_mother_repository is defined
+      name: shared-repository
+    when: hive_shared_repository is defined
 
 - name: wait for connectable
   gather_facts: False

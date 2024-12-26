@@ -17,24 +17,24 @@
   roles:
     - role: get-public-ip
       tags: [ 'get-public-ip' ]
-      when: hive_mother_repository is defined
+      when: hive_shared_repository is defined
 
 # - name: setup hive servers
 #   tags: setup-hosts
 #   become: True
 #   hosts: mother
 #   roles:
-#     - role: hostsfile-for-mother-repository
-#       tags: ["hostsfile-for-mother-repository"]
-#       when: hive_mother_repository is defined
-- name: setup mother repository
+#     - role: hostsfile-for-shared-repository
+#       tags: ["hostsfile-for-shared-repository"]
+#       when: hive_shared_repository is defined
+- name: setup shared repository
   tags: setup-hosts
   become: True
   hosts: mother
   roles:
     - role: dnsdist
       tags: ["dnsdist"]
-      when: hive_mother_repository is defined
+      when: hive_shared_repository is defined
 
 
 - name: setup hive servers
@@ -52,14 +52,14 @@
   roles:
     - role: hostsfile-for-hives
       tags: ["hostsfile-for-hives"]
-      when: hive_mother_repository is defined
+      when: hive_shared_repository is defined
     - role: tls-certificate
       tags: ["tls-certificate"]
     - role: base
       tags: ["base"]
     - role: hostsfile
       tags: ["hostsfile"]
-      when: not hive_mother_repository is defined
+      when: not hive_shared_repository is defined
     - role: ntp-client
       tags: ["ntp-client"]
       when: hive_ntp_servers is defined and hive_ntp_servers != omit

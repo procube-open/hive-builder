@@ -3,7 +3,7 @@
   stat:
     path: "{{ hive_context_dir }}/docker-compose.yml"
   register: file_stat  
-- name: compose stop mother repository
+- name: compose stop shared repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_context_dir }}"
     state: "stopped"
