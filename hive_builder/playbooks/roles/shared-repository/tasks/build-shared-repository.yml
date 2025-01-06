@@ -12,25 +12,15 @@
   - chown.service
   - dnsdist.conf
   - hosts.lua
-- name: check hosts
-  stat:
-    path: "{{ hive_shared_repository_path }}/hosts"
-  register: hosts_stat
 - name: touch hosts
   file:
     path: "{{ hive_shared_repository_path }}/hosts"
     state: touch
-  when: not hosts_stat.stat.exists
-- name: check authorized_keys
-  stat:
-    path: "{{ hive_shared_repository_path }}/authorized_keys"
-  register: authorized_keys_stat
 - name: touch authorized_keys
   file:
     path: "{{ hive_shared_repository_path }}/authorized_keys"
     state: touch
     mode: '600'
-  when: not authorized_keys_stat.stat.exists
 - name: add authorized key
   blockinfile:
     path: "{{ hive_shared_repository_path }}/authorized_keys"
@@ -39,16 +29,16 @@
   become: true
 - name: check docker-compose.yml
   stat:
-    path: "{{ hive_context_dir }}/docker-compose.yml"
+    path: "{{ hive_shared_repository_path }}/docker-compose.yml"
   register: docker_compose_stat
 - name: put docker-compose.yml
   template:
     src: docker-compose.yml
-    dest: "{{ hive_context_dir }}/docker-compose.yml"
+    dest: "{{ hive_shared_repository_path }}/docker-compose.yml"
   when: not docker_compose_stat.stat.exists
 - name: compose up shared repository
   community.docker.docker_compose_v2:
-    project_src: "{{ hive_context_dir }}"
+    project_src: "{{ hive_shared_repository_path }}"
     # build: "always"
   become: true
 - name: put ssh_config

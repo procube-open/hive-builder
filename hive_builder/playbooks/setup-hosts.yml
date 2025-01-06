@@ -12,30 +12,12 @@
 
 - name: get public ip
   tags: setup-hosts
-  hosts: servers
+  hosts: hosts
   become: True
   roles:
     - role: get-public-ip
       tags: [ 'get-public-ip' ]
       when: hive_shared_repository is defined
-
-# - name: setup hive servers
-#   tags: setup-hosts
-#   become: True
-#   hosts: mother
-#   roles:
-#     - role: hostsfile-for-shared-repository
-#       tags: ["hostsfile-for-shared-repository"]
-#       when: hive_shared_repository is defined
-- name: setup shared repository
-  tags: setup-hosts
-  become: True
-  hosts: mother
-  roles:
-    - role: dnsdist
-      tags: ["dnsdist"]
-      when: hive_shared_repository is defined
-
 
 - name: setup hive servers
   hosts: servers
@@ -50,16 +32,12 @@
       tags: [ 'always' ]
       when: ansible_facts == {}
   roles:
-    - role: hostsfile-for-hives
-      tags: ["hostsfile-for-hives"]
-      when: hive_shared_repository is defined
     - role: tls-certificate
       tags: ["tls-certificate"]
     - role: base
       tags: ["base"]
     - role: hostsfile
       tags: ["hostsfile"]
-      when: not hive_shared_repository is defined
     - role: ntp-client
       tags: ["ntp-client"]
       when: hive_ntp_servers is defined and hive_ntp_servers != omit

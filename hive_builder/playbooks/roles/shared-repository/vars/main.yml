@@ -1,4 +1,3 @@
 ---
 hive_safe_admin: "admin"
 hive_safe_repository_server: "{{ groups['repository'] | intersect(groups[hive_stage]) | first }}"
-hive_shared_repository_path: "{{ hive_context_dir }}/shared-repository"

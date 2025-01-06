@@ -1,15 +1,14 @@
 services:
   shared-repository:
     build:
-      context: "./shared-repository"
       dockerfile: Dockerfile.repository
-    container_name: "{{ hive_safe_repository_server }}"
-    hostname: "{{ hive_safe_repository_server }}"
+    container_name: "shared-repository"
+    hostname: "shared-repository"
     restart: always
     privileged: true
     volumes:
     - ssh_data:/etc/ssh
-    - {{ hive_shared_repository_path }}/hosts:/etc/dnsdist/hosts
+    - {{ hive_shared_repository_path }}/hosts:/etc/extra-hosts
     - {{ hive_shared_repository_path }}/authorized_keys:/home/admin/.ssh/authorized_keys
     ports:
     - {{ hive_shared_repository.ssh_port | default(2222) }}:22

@@ -92,7 +92,7 @@ LogFileSize=0
 # Default:
 # Server=
 
-Server=localhost,{% if hives_ip_list is defined and inventory_hostname in groups['repository'] %}{{ (hives_ip_list | join(',')) }}
+Server=localhost,{% if repository_ip_list is defined and inventory_hostname in groups['repository'] %}{{ (repository_ip_list | join(',')) }}
 {% elif inventory_hostname in groups['repository'] %}{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) }}
 {% else %} {{ (groups['repository'] | intersect(groups[hive_stage]) | first) }}{% endif %}
 
@@ -135,7 +135,7 @@ Server=localhost,{% if hives_ip_list is defined and inventory_hostname in groups
 # Default:
 # ServerActive=
 
-ServerActive={{ groups['repository'] | intersect(groups[hive_stage]) | first }}:10051
+ServerActive={{ (groups['repository'] | intersect(groups[hive_stage]) | first) if not shared_repository is defined or not inventory_hostname in groups['repository'] else 'shared-repository' }}:10051
 
 ### Option: Hostname
 #	Unique, case sensitive hostname.
