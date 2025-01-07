@@ -32,9 +32,9 @@ do
 done
 shift $((OPTIND - 1))
 
-export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}:2376
+export DOCKER_HOST="${DOCKER_HOST:-{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}}:2376"
 export DOCKER_TLS=1
-suffix={{ hive_name }}
+suffix="${HIVE_NAME:-{{ hive_name }}}"
 {% raw %}
 # followin code cause error when name can be matching for multiple serivce
 # (ex. name=dhcp is matching for dhcp and dhcpdb)
