@@ -40,11 +40,11 @@
     instance_type: "{{ hostvars[aws_host].hive_instance_type }}"
     key_name: "{{ hive_aws_key_name | default('hive-bulder-' + hive_name) }}"
     volumes: "{{ hive_safe_disks }}"
-    network:
-      assign_public_ip: False
+    network_interfaces:
+    - assign_public_ip: False
       private_ip_address: "{{ hostvars[aws_host].hive_private_ip }}"
     wait: yes
-    security_group: default
+    security_group: "{{ hive_safe_group.group_id }}"
     termination_protection: no
     tags:
       Project: "{{ hive_name }}"

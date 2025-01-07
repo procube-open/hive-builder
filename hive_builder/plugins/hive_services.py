@@ -193,7 +193,7 @@ class Service:
             # we prepare volume at build-volume phase
             prepared_volume = {'name': volume['source'], 'driver': volume['driver']}
             if 'driver_opts' in volume:
-              prepared_volume['dirver_options'] = volume['driver_opts']
+              prepared_volume['driver_options'] = volume['driver_opts']
             self.add_volume(inventory, prepared_volume, 'volumes', self.available_on)
           if 'drbd' in volume:
             if 'driver' in volume:
