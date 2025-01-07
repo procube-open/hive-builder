@@ -73,3 +73,15 @@
   shell: update-ca-trust
   when: inventory_hostname not in groups['mother'] and ca_certs.changed
   notify: update CA cert
+- name: create link for shared-repository
+  when: hive_shared_repository is defined and inventory_hostname in groups['repository']
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  loop:
+    - src: "{{ hive_safe_tls_dir }}/certs/{{ hive_safe_tls_hostname }}_cert.pem"
+      dest: "{{ hive_safe_tls_dir }}/certs/{{ inventory_hostname }}_cert.pem"
+    - src: "{{ hive_safe_tls_dir }}/private/{{ hive_safe_tls_hostname }}_key.pem"
+      dest: "{{ hive_safe_tls_dir }}/private/{{ inventory_hostname }}_key.pem"
+

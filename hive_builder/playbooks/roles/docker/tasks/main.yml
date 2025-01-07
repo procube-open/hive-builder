@@ -39,14 +39,9 @@
     libsecomp_version: "{{ '' if ansible_distribution_release == 'Ootpa' else '-2.5' }}"
 - name: get ip list of repository
   when: hive_shared_repository is defined
-  block:
-  - set_fact:
-      repository_ip_list: []
-  - set_fact:
-      repository_ip_list: "{{ repository_ip_list + [item.split(' ')[0]] }}"
-    when: item.split(' ')[1] in groups['repository']
-    loop: "{{ lookup('file', hive_shared_repository_path + '/hosts').splitlines() }}"
-  - debug: var=repository_ip_list
+  include_vars:
+    file: "{{ hive_shared_repository_path }}/hosts.yml"
+    name: loaded_ip_addresses
   
 - name: install docker package
   yum:
@@ -76,7 +71,7 @@
       - 2377
       - 7946
     hive_safe_iptables_protocol: tcp
-    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + ( repository_ip_list | default([]) ) }}"
+    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + ( [ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first )]] | default([]) ) }}"
 
 - import_tasks: iptables.yml
   vars:

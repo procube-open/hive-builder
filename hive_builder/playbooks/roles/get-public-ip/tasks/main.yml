@@ -19,18 +19,25 @@
 - name: write hosts
   when: inventory_hostname in groups['mother']
   block:
-  - debug:
-      var: "hostvars[item].ansible_facts.ipify_public_ip"
+  - set_fact:
+      ip_addresses: {}
+  - set_fact:
+      ip_addresses: "{{ ip_addresses | combine({ item: hostvars[item].ansible_facts.ipify_public_ip }) }}"
     loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
-    register: debug_output
   - name: write hosts
     blockinfile:
       path: "{{ hive_shared_repository_path }}/hosts"
       marker: "# {mark} ANSIBLE MANAGED BLOCK extra_hosts {{ item }}"
       block: |
-        {{ hostvars[item].ansible_facts.ipify_public_ip + ' ' + item }}
-    loop: "{{ debug_output.results | map(attribute='item') | list }}"
+        {{ (ip_addresses[item] if item in groups['hives'] else '127.0.0.1') + ' ' + item }}
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
     register: write_result
+  - name: write hosts.yml
+    blockinfile:
+      path: "{{ hive_shared_repository_path }}/hosts.yml"
+      block: |
+        {{ ip_addresses | to_nice_yaml }}
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ hive_name }}"
   - name: restart shared repository
     community.docker.docker_compose_v2:
       project_src: "{{ hive_shared_repository_path }}"

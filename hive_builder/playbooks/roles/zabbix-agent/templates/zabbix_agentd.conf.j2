@@ -92,7 +92,7 @@ LogFileSize=0
 # Default:
 # Server=
 
-Server=localhost,{% if repository_ip_list is defined and inventory_hostname in groups['repository'] %}{{ (repository_ip_list | join(',')) }}
+Server=localhost,{% if loaded_ip_addresses is defined and inventory_hostname in groups['repository'] %}{{ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first)] }}
 {% elif inventory_hostname in groups['repository'] %}{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) }}
 {% else %} {{ (groups['repository'] | intersect(groups[hive_stage]) | first) }}{% endif %}
 

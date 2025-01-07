@@ -12,15 +12,35 @@
   - chown.service
   - dnsdist.conf
   - hosts.lua
+- name: check hosts
+  stat:
+    path: "{{ hive_shared_repository_path }}/hosts"
+  register: hosts_stat
 - name: touch hosts
   file:
     path: "{{ hive_shared_repository_path }}/hosts"
     state: touch
+  when: not hosts_stat.stat.exists
+- name: check hosts.yml
+  stat:
+    path: "{{ hive_shared_repository_path }}/hosts.yml"
+  register: hosts_yml_stat
+- name: touch hosts.yml
+  file:
+    state: touch
+    path: "{{ hive_shared_repository_path }}/hosts.yml"
+  when: not hosts_yml_stat.stat.exists
+- name: check authorized_keys
+  stat:
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
+  register: authorized_keys_stat
 - name: touch authorized_keys
   file:
     path: "{{ hive_shared_repository_path }}/authorized_keys"
     state: touch
     mode: '600'
+  become: True
+  when: not authorized_keys_stat.stat.exists
 - name: add authorized key
   blockinfile:
     path: "{{ hive_shared_repository_path }}/authorized_keys"

@@ -42,3 +42,23 @@
     dest: "{{ hive_safe_ca_dir }}/cakey.pem"
     mode: 0644
   when: hive_ca_key is defined
+
+- name: create link for shared-repository
+  when: hive_shared_repository is defined
+  block:
+  - name: create CA directory
+    file:
+      path: "{{ hive_context_dir }}/ca"
+      state: directory
+      mode: 0775
+    when: hive_shared_repository is defined
+  - name: create link
+    file:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      state: link
+    loop:
+      - src: "{{ hive_safe_ca_dir }}/cacert.pem"
+        dest: "{{ hive_context_dir }}/ca/cacert.pem"
+      - src: "{{ hive_safe_ca_dir }}/cakey.pem"
+        dest: "{{ hive_context_dir }}/ca/cakey.pem"

@@ -60,12 +60,10 @@
 - name: get ip list of hives
   when: hive_shared_repository is defined
   block:
-  - set_fact:
-      hives_ip_list: []
-  - set_fact:
-      hives_ip_list: "{{ hives_ip_list + [item.split(' ')[0]] }}"
-    when: item.split(' ')[1] in groups['hives']
-    loop: "{{ lookup('file', hive_shared_repository_path + '/hosts').splitlines() }}"
+  - name: get ip list
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
 
 - import_tasks: iptables.yml
   vars:
@@ -76,4 +74,4 @@
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) +
       [hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 4) | ipaddr('address') + '/' +
       (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) if hive_internal_cidr is defined else '172.20.0.0/16'] +
-      ( hives_ip_list | default([]) ) }}"
+      ( loaded_ip_addresses.values() | list | default([]) ) }}"

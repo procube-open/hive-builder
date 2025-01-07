@@ -23,6 +23,11 @@
 - vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
   block:
+  - name: get ip list of repository
+    when: hive_shared_repository is defined
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
   - name: login to external repository
     docker_login:
       registry: "{{ item.repository | default(omit) }}"
@@ -132,7 +137,7 @@
         - type: 1
           main: 1
           useip: 1
-          ip: "{{ hostvars[item].hive_private_ip if not hive_shared_repository is defined else my_dict[item] }}"
+          ip: "{{ hostvars[item].hive_private_ip if not hive_shared_repository is defined else loaded_ip_addresses[item] }}"
           dns: ""
           port: 10050
       state: present

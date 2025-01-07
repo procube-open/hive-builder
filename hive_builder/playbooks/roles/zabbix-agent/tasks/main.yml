@@ -14,12 +14,10 @@
 - name: get ip list of repository
   when: hive_shared_repository is defined
   block:
-  - set_fact:
-      repository_ip_list: []
-  - set_fact:
-      repository_ip_list: "{{ repository_ip_list + [item.split(' ')[0]] }}"
-    when: item.split(' ')[1] in groups['repository']
-    loop: "{{ lookup('file', hive_shared_repository_path + '/hosts').splitlines() }}"
+  - name: get ip list
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: zabbix_tcp
@@ -28,7 +26,7 @@
     hive_safe_iptables_protocol: tcp
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + 
     [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] +
-    ( repository_ip_list | default([]) ) }}"
+    ( [ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first )]] | default([]) ) }}"
 - name: yum install
   yum:
     state: installed
@@ -139,20 +137,20 @@
 # for support multiple version of zabbix-agent
 - name: check /etc/zabbix_agentd.conf
   stat:
-    path:  /etc/zabbix/zabbix_agentd.conf
+    path:  /etc/zabbix_agentd.conf
   register: conf_result
 - name: remove /etc/zabbix_agentd.conf
   file: 
     path: /etc/zabbix_agentd.conf
     state: absent
-  when: not conf_result.stat.islnk
+  when: conf_result.stat.islnk is defined and not conf_result.stat.islnk
   become: true
 - name: create zabbix_agentd.conf link
   file:
     src: /etc/zabbix/zabbix_agentd.conf
     dest: /etc/zabbix_agentd.conf
     state: link
-  when: not conf_result.stat.islnk
+  when: conf_result.stat.islnk is defined and not conf_result.stat.islnk
 
 - name: create /etc/zabbix/zabbix_agentd.d
   file:
