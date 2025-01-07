@@ -84,7 +84,7 @@
       direction: Inbound
     - name: published_ports_tcp
       protocol: Tcp
-      destination_port_range: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
+      destination_port_range: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports}}"
       priority: 200
       access: Allow
       direction: Inbound

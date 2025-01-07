@@ -2,7 +2,7 @@
 # Service Acccount Email only works with Machine Account-based authentication
 hive_safe_azure_resourcegroup: "{{ hive_name }}"
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
-hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+hive_safe_hosts: "{{ ( groups['hives'] | intersect(groups[hive_stage]) ) if hive_shared_repository is defined else ( groups['servers'] | intersect(groups[hive_stage]) ) }}"
 # sku for latest version is 8.0 2020-07-24 08:28:00
 # in https://azuremarketplace.microsoft.com/en-us/marketplace/apps/openlogic.centos-lvm?tab=PlansAndPrice
 hive_safe_default_azure_image:
