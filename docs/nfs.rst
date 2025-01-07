@@ -16,7 +16,7 @@ NFSを使用したクラスタ構成では、コンテナを収容している�
 事前に用意したNFSサーバを利用する場合
 ----------------------------------------
 別途事前に用意したNFSサーバを利用する場合、volumeの定義のdriver属性にlocalを指定してください。
-また、driver_options 属性で NFS をマウントするために以下の属性を指定してください。
+また、driver_opts 属性で NFS をマウントするために以下の属性を指定してください。
 
 ============  =========================================================
 属性名        説明
@@ -36,7 +36,7 @@ o             マウントオプションを指定してください。 addr オ
       target: /var/lib/mysql
       type: volume
       driver: local
-      driver_options:
+      driver_opts:
         type: nfs
         device: ":/shared"
         o: "addr=192.168.0.10,hard,timeo=600,retrans=3,rsize=1048576,wsize=1048576,resvport,async"

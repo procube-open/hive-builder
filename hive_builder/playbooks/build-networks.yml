@@ -11,7 +11,7 @@
     docker_network:
       name: "{{ item }}"
       driver: "overlay"
-      dirver_options: "{{ hostvars[item].hive_driver_opts | default(omit) }}"
+      driver_options: "{{ hostvars[item].hive_driver_opts | default(omit) }}"
       ipam_driver: "{{ hostvars[item].hive_ipam.driver | default(omit) }}"
       ipam_config: >-
         {%- if hostvars[item].hive_ipam.config is defined -%}
