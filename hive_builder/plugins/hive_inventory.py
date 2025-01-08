@@ -51,14 +51,10 @@ DOCUMENTATION = r'''
           description: whether repository node is placed on mother server.
           type: dict
           suboptions:
+            context_dir:
+              description: context directory
             ssh_port:
               description: The port number forwarded to the port where sshd is listening
-            zabbix_server_port:
-              description: The port number forwarded to the port where zabbix server is listening
-            zabbix_web_port:
-              description: The port number forwarded to the port where zabbix web server is listening
-            registry_port:
-              description: The port number forwarded to the port where registry server is listening
         cidr:
           description: cidr of vpc
           required: true
