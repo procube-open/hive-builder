@@ -175,7 +175,7 @@ class Service:
         volumes = [
             {'source': '', 'target': '/run', 'type': 'tmpfs'},
             {'source': '', 'target': '/tmp', 'type': 'tmpfs'},
-            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup', 'readonly': True}
+            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup'}
         ]
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
