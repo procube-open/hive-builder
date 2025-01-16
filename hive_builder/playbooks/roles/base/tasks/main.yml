@@ -206,3 +206,15 @@
       EnvironmentFile=-/etc/environment
     dest: /usr/lib/systemd/system/dnf-makecache.service.d/override.conf
   when: check_http_proxy.rc == 0
+
+- name: check /sys/fs/cgroup option
+  shell: mount | grep /sys/fs/cgroup | awk '{print $6}'
+  register: mount_options
+  changed_when: false
+- name: remove nsdelegate option from options
+  lineinfile:
+    path: /etc/fstab
+    line: "cgroup2 /sys/fs/cgroup cgroup2 {{ mount_options.stdout | regex_replace(',nsdelegate', '') | regex_replace('[\\(\\)]', '') }} 0 0"
+    state: present
+  when: "'nsdelegate' in mount_options.stdout"
+  notify: require reboot

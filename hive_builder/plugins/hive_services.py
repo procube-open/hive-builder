@@ -177,6 +177,10 @@ class Service:
             {'source': '', 'target': '/tmp', 'type': 'tmpfs'},
             {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup'}
         ]
+        cap_add = self.options.get('cap_add', [])
+        if 'NET_ADMIN' not in cap_add:
+          cap_add.append('NET_ADMIN')
+          inventory.set_variable(self.name, 'hive_cap_add', cap_add)
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
           raise AnsibleParserError(f'we do not support short syntax {text_type(volume)} in volume at service {self.name}')
