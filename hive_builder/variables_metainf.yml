@@ -235,11 +235,11 @@ roles_path:
   description: roles path for ansible-playbook
   name_in_ansible_cfg: roles_path
   default: "{root_dir}/roles:{playbooks_dir}/builtin_roles:{context_dir}/roles"
-collections_path:
-  desctiption: collections path for ansible-playbook
+collections_paths:
+  desctiption: collections paths for ansible-playbook
   type: directory
-  name_in_ansible_cfg: collections_path
-  default: "{context_dir}/collections"
+  name_in_ansible_cfg: collections_paths
+  default: "{root_dir}/.collections:{context_dir}/collections"
 no_format:
   description: if true, hive_safe_drbd_with_disk set false
   name_in_ansible: hive_no_format
