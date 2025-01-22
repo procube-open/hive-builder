@@ -1,4 +1,7 @@
 ---
+- name: Build hosts file
+  when: not hive_shared_repository is defined
+  block:
   - name: "Build hosts file"
     become: True
     blockinfile:
@@ -8,3 +11,38 @@
       block: "{{ hostvars[item].hive_private_ip }} {{ item }}"
       marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
     with_items: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+
+- name: Build hosts file for using shared repository
+  when: hive_shared_repository is defined and inventory_hostname in groups['hives']
+  block:
+  - name: write hives ip
+    become: True
+    blockinfile:
+      dest: /etc/hosts
+      insertafter: BOF
+      state: "present"
+      block: "{{ hostvars[item].hive_private_ip }} {{ item }}"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+    with_items: "{{ groups['hives'] | intersect(groups[hive_stage]) | list }}"
+  - name: get ip list
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
+  - name: write repository ip
+    become: True
+    blockinfile:
+      dest: /etc/hosts
+      insertafter: BOF
+      state: "present"
+      block: "{{ loaded_ip_addresses[item] }} {{ item }}"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ loaded_ip_addresses[item] }}"
+    with_items: "{{ groups['repository'] | intersect(groups[hive_stage]) | list }}"
+  - name: write shared repository ip
+    become: True
+    blockinfile:
+      dest: /etc/hosts
+      insertafter: BOF
+      state: "present"
+      block: "{{ loaded_ip_addresses[item] }} shared-repository"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK shared-repository"
+    with_items: "{{ groups['repository'] | intersect(groups[hive_stage]) | list }}"

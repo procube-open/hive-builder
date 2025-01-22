@@ -1,0 +1,10 @@
+---
+- name: "build shared-repository"
+  import_tasks: build-shared-repository.yml
+  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+- name: "destroy shared-repository"
+  import_tasks: destroy-shared-repository.yml
+  when: hive_destroy  | default(false)
+- name: "stop shared-repository"
+  import_tasks: stop-shared-repository.yml
+  when: hive_halt  | default(false)

@@ -1,0 +1,46 @@
+---
+- name: get server ip
+  when: inventory_hostname in groups['servers']
+  block:
+  - name: get public ip
+    community.general.ipify_facts:
+  - debug: var=ipify_public_ip
+  - name: gather public ips
+    delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
+    delegate_facts: true
+    debug: var=hostvars[inventory_hostname].ipify_public_ip
+    when: inventory_hostname in groups['hives']
+  - name: gather public ips
+    delegate_to: "{{ item }}"
+    delegate_facts: true
+    debug: var=hostvars[inventory_hostname].ipify_public_ip
+    when: inventory_hostname in groups['repository']
+    loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+- name: write hosts
+  when: inventory_hostname in groups['mother']
+  block:
+  - set_fact:
+      ip_addresses: {}
+  - set_fact:
+      ip_addresses: "{{ ip_addresses | combine({ item: hostvars[item].ansible_facts.ipify_public_ip }) }}"
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+  - name: write hosts
+    blockinfile:
+      path: "{{ hive_shared_repository_path }}/hosts"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK extra_hosts {{ item }}"
+      block: |
+        {{ (ip_addresses[item] if item in groups['hives'] else '127.0.0.1') + ' ' + item }}
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+    register: write_result
+  - name: write hosts.yml
+    blockinfile:
+      path: "{{ hive_shared_repository_path }}/hosts.yml"
+      block: |
+        {{ ip_addresses | to_nice_yaml }}
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ hive_name }}"
+  - name: restart shared repository
+    community.docker.docker_compose_v2:
+      project_src: "{{ hive_shared_repository_path }}"
+      state: restarted
+    become: true
+    when: write_result is changed

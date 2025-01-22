@@ -1,0 +1,40 @@
+FROM almalinux:9.5
+
+# パッケージを最新の状態に更新
+RUN dnf update -y
+
+# OpenSSH サーバーと必要なパッケージをインストール
+RUN dnf install -y rng-tools
+RUN dnf install -y openssh-server passwd sudo
+RUN dnf install -y epel-release
+RUN dnf install -y dnsdist bind-utils
+# SSH 接続に必要な設定
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+# RUN sed -i 's/#LogLevel INFO/LogLevel DEBUG/' /etc/ssh/sshd_config
+
+# 管理ユーザー admin を作成
+RUN useradd admin \
+    && echo 'admin:password' | chpasswd \
+    && usermod -aG wheel admin \
+    && echo 'admin ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# SSH の公開鍵認証を有効化
+RUN mkdir /home/admin/.ssh \
+    && chmod 700 /home/admin/.ssh \
+    && chown admin:admin /home/admin/.ssh
+RUN touch /home/admin/.ssh/authorized_keys
+RUN chmod 600 /home/admin/.ssh/authorized_keys
+
+# dnsdistの設定
+COPY ./dnsdist.conf /etc/dnsdist/dnsdist.conf
+COPY ./hosts.lua /etc/dnsdist/hosts.lua
+
+# サービスを有効化
+COPY ./chown.service /etc/systemd/system/chown.service
+RUN systemctl enable chown.service
+RUN systemctl enable sshd.service
+RUN systemctl enable rngd.service
+RUN systemctl enable dnsdist.service
+
+# コンテナ起動時に systemd を実行
+CMD ["/sbin/init"]

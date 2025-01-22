@@ -1,5 +1,5 @@
 ---
-hive_safe_zabbix_subnet: "{% if hive_internal_cidr is defined %}{{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 7) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }}{% else %}172.19.0.0/16{% endif %}"
+hive_safe_zabbix_subnet: "{% if hive_internal_cidr is defined %}{{ hive_internal_cidr | ipaddr((hive_internal_cidr | ipaddr('size')) / 8 * 7) | ipaddr('address') + '/' + (((hive_internal_cidr | ipaddr('prefix')) + 3) | string) }}{% else %}172.21.0.0/16{% endif %}"
 hive_safe_ca_dir: "{{ hive_context_dir }}/ca"
 hive_safe_tls_dir: "{%if inventory_hostname in groups['mother']%}{{ hive_context_dir}}/tls{%else%}/etc/pki/tls{%endif%}"
 hive_safe_selinux_boolean:

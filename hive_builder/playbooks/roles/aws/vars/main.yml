@@ -1,7 +1,7 @@
 ---
 # Service Acccount Email only works with Machine Account-based authentication
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
-hive_safe_hosts: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+hive_safe_hosts: "{{ ( groups['hives'] | intersect(groups[hive_stage]) ) if hive_shared_repository is defined else ( groups['servers'] | intersect(groups[hive_stage]) ) }}"
 hive_safe_image_id: "{{ hostvars[aws_host].hive_vm_image_name | default('ami-02f2cac4a2cf9384a') }}"
 # Version hisotry memo
 # old image ami-0f310fced6141e627 used by until 2.2.4
@@ -27,7 +27,7 @@ hive_safe_inbound_rules: |-
   {{ hive_ec2_group_rules }}
   {% else %}
   {%   set outputs = [{'proto':'all', 'group_name': 'default'}] %}
-  {%   for port in [hive_safe_sshd_port] + hive_published_ports_tcp %}
+  {%   for port in [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports%}
   {%     set _ = outputs.append({'proto':'tcp', 'to_port': port, 'from_port': port, 'cidr_ip': '0.0.0.0/0'})%}
   {%   endfor %}
   {%   for port in hive_published_ports_udp %}

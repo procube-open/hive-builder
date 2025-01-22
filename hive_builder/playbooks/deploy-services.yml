@@ -107,7 +107,8 @@
     register: hive_safe_container_info
     loop: "{{ hive_safe_ps.results | map(attribute='stdout_lines') | flatten | map('from_json') | list }}"
     when: not (hive_destroy  | default(false))
-
+  - set_fact:
+      hive_repository_server: "{{ ( groups['repository'] | intersect(groups[hive_stage]) | first ) if not hive_shared_repository is defined else 'shared-repository' }}"
   - name: deploy service
     docker_swarm_service:
       name: "{{ item }}"
@@ -116,7 +117,16 @@
       cap_drop: "{{ hostvars[item].hive_cap_drop | default(omit) }}"
       restart_config: "{{ hostvars[item].hive_restart_config | default(omit) }}"
       stop_grace_period: "{{ hostvars[item].hive_stop_grace_period | default(omit) }}"
-      logging: "{{ hostvars[item].hive_logging | default({'driver': 'syslog', 'options': {'syslog-address': 'udp://' + (groups['repository'] | intersect(groups[hive_stage]) | first) + ':' + (hive_safe_syslog_port | string), 'syslog-facility': 'local0', 'tag': item} }) }}"
+      logging: "{{ hostvars[item].hive_logging | default({
+        'driver': 'syslog',
+        'options': {
+          'syslog-address': ('tcp+tls' if hive_tls_logging else 'udp') + '://' + hive_repository_server + ':' + (hive_safe_syslog_port | string),
+          'syslog-facility': 'local0',
+          'tag': item,
+          'syslog-tls-ca-cert': (hive_home_dir + '/.docker/ca.pem') if hive_tls_logging else omit,
+          'syslog-tls-cert': (hive_home_dir + '/.docker/cert.pem') if hive_tls_logging else omit,
+          'syslog-tls-key': (hive_home_dir + '/.docker/key.pem') if hive_tls_logging else omit
+      } }) }}"
       image: >-
         {% set hive_safe_autovars = {'target_image': False} %}
         {%- if hostvars[item].hive_image_name is defined -%}

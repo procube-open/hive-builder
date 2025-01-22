@@ -32,9 +32,9 @@ do
 done
 shift $((OPTIND - 1))
 
-export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}:2376
+export DOCKER_HOST="${DOCKER_HOST:-{{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}}:2376"
 export DOCKER_TLS=1
-suffix={{ hive_name }}
+suffix="${HIVE_NAME:-{{ hive_name }}}"
 {% raw %}
 # followin code cause error when name can be matching for multiple serivce
 # (ex. name=dhcp is matching for dhcp and dhcpdb)
@@ -44,7 +44,7 @@ if [ -z "$num_replicas" ]; then
   error "service $1 is not found."
 fi
 if [ ${no_arg} -gt $num_replicas ]; then
-  error "the index ${no_arg} exceed the nubmer of replicas of the service $num_replicas."
+  error "the index ${no_arg} exceed the number of replicas of the service $num_replicas."
 fi
 set -eo pipefail
 docker_command=$(docker service ps "$1" --format "docker -H tcp://{{.Node}}.$suffix:2376 exec $exec_opts {{.Name}}.{{.ID}}" --filter desired-state=running --no-trunc | head -$no_arg | tail -1)

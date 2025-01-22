@@ -1,0 +1,11 @@
+---
+- name: check docker-compose.yml
+  stat:
+    path: "{{ hive_shared_repository_path }}/docker-compose.yml"
+  register: file_stat  
+- name: compose stop shared repository
+  community.docker.docker_compose_v2:
+    project_src: "{{ hive_shared_repository_path }}"
+    state: "stopped"
+  become: true
+  when: file_stat.stat.exists

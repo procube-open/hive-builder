@@ -11,13 +11,22 @@
   retries: 10
   delay: 5
   register: download_zabbix_repo
+- name: get ip list of repository
+  when: hive_shared_repository is defined
+  block:
+  - name: get ip list
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
 - import_tasks: iptables.yml
   vars:
     hive_safe_iptables_name: zabbix_tcp
     hive_safe_iptables_dports:
       - 10050
     hive_safe_iptables_protocol: tcp
-    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] }}"
+    hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + 
+    [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] +
+    ( [ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first )]] | default([]) ) }}"
 - name: yum install
   yum:
     state: installed
@@ -98,13 +107,22 @@
     file: /usr/share/selinux/devel/Makefile
   become: true
   when: hive_safe_selinux != 'disabled'
-- name: set SELinux boolean for zabbix agent
+- name: set SELinux boolean for zabbix agent (hives)
   seboolean:
     name: "{{ item }}"
     state: yes
     persistent: yes
   loop: "{{ hive_safe_selinux_boolean }}"
-  when: hive_safe_selinux != 'disabled'
+  when: hive_safe_selinux != 'disabled' and inventory_hostname in groups['hives']
+  vars:
+    ansible_python_interpreter: /usr/libexec/platform-python
+- name: set SELinux boolean for zabbix agent (repository)
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  loop: "{{ hive_safe_selinux_boolean }}"
+  when: hive_safe_selinux != 'disabled' and inventory_hostname in groups['repository'] and not hive_shared_repository is defined
   vars:
     ansible_python_interpreter: /usr/libexec/platform-python
 - name: modify zabbix_agentd config
@@ -112,9 +130,32 @@
     src=zabbix_agentd.conf.j2
     dest='/etc/zabbix/zabbix_agentd.conf'
     owner=root
-    group=root
+    group=zabbix
     mode=0644
   notify: zabbix-agent configured
+
+# for support multiple version of zabbix-agent
+- name: check /etc/zabbix_agentd.conf
+  stat:
+    path:  /etc/zabbix_agentd.conf
+  register: conf_result
+- name: remove /etc/zabbix_agentd.conf
+  file: 
+    path: /etc/zabbix_agentd.conf
+    state: absent
+  when: conf_result.stat.islnk is defined and not conf_result.stat.islnk
+  become: true
+- name: create zabbix_agentd.conf link
+  file:
+    src: /etc/zabbix/zabbix_agentd.conf
+    dest: /etc/zabbix_agentd.conf
+    state: link
+  when: conf_result.stat.islnk is defined and not conf_result.stat.islnk
+
+- name: create /etc/zabbix/zabbix_agentd.d
+  file:
+    path: /etc/zabbix/zabbix_agentd.d
+    state: directory
 - name: put zabbix_agentd userparameter definition from template
   template:
     src: "{{ item.src }}"

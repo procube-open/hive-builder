@@ -3,7 +3,7 @@ services:
     image: registry:2
     container_name: registry
     ports:
-      - "{{hive_private_ip}}:{{hive_registry_port | default(5000)}}:5000"
+      - "{{hive_registry_port | default(5000)}}:5000"
     environment:
       REGISTRY_STORAGE_DELETE_ENABLED : 'True'
       REGISTRY_AUTH: htpasswd

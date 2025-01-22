@@ -37,7 +37,7 @@
     network: "{{ gcp_vpc }}"
     allowed:
     - ip_protocol: tcp
-      ports: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp }}"
+      ports: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
     - ip_protocol: icmp
     - ip_protocol: udp
       ports: "{{ hive_published_ports_udp }}"

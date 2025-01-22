@@ -1,0 +1,17 @@
+---
+- name: install tls packages
+  become: True
+  yum:
+    state: present
+    name:
+      - rsyslog-openssl
+      - rsyslog-gnutls
+      - gnutls-utils
+  when: hive_tls_logging
+- name: "install rsyslog config file"
+  become: True
+  template:
+    src: docker.conf
+    dest: /etc/rsyslog.d/
+    mode: 0755
+  notify: update rsyslog config

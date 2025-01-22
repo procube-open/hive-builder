@@ -1,0 +1,11 @@
+[Unit]
+Description=chown volume service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/chown admin:admin /home/admin/.ssh/authorized_keys
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

@@ -10,6 +10,15 @@
       tags: [ 'ssh-connection' ]
       when: hive_provider == 'kickstart'
 
+- name: get public ip
+  tags: setup-hosts
+  hosts: hosts
+  become: True
+  roles:
+    - role: get-public-ip
+      tags: [ 'get-public-ip' ]
+      when: hive_shared_repository is defined
+
 - name: setup hive servers
   hosts: servers
   become: True
@@ -79,10 +88,19 @@
     - role: zabbix-agent
       tags: ["zabbix-agent"]
 
+- name: setup rsyslogd for hives
+  gather_facts: True
+  hosts: hives
+  
+  roles:
+    - role: rsyslogd-client
+      tags: ["rsyslogd-client"]
+      when: hive_tls_logging
+
 - name: setup repository and zabbix
   hosts: repository
   gather_facts: False
-  tags: registry
+  tags: "repository"
 
   roles:
     - role: docker-compose

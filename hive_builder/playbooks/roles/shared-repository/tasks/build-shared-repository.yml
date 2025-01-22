@@ -1,0 +1,82 @@
+---
+- name: make shared-repository directory
+  file:
+    path: "{{ hive_shared_repository_path }}"
+    state: directory
+- name: put files
+  template:
+    src: "{{ item }}"
+    dest: "{{ hive_shared_repository_path }}/{{ item }}"
+  loop:
+  - Dockerfile.repository
+  - chown.service
+  - dnsdist.conf
+  - hosts.lua
+- name: check hosts
+  stat:
+    path: "{{ hive_shared_repository_path }}/hosts"
+  register: hosts_stat
+- name: touch hosts
+  file:
+    path: "{{ hive_shared_repository_path }}/hosts"
+    state: touch
+  when: not hosts_stat.stat.exists
+- name: check hosts.yml
+  stat:
+    path: "{{ hive_shared_repository_path }}/hosts.yml"
+  register: hosts_yml_stat
+- name: touch hosts.yml
+  file:
+    state: touch
+    path: "{{ hive_shared_repository_path }}/hosts.yml"
+  when: not hosts_yml_stat.stat.exists
+- name: check authorized_keys
+  stat:
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
+  register: authorized_keys_stat
+- name: touch authorized_keys
+  file:
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
+    state: touch
+    mode: '600'
+  become: True
+  when: not authorized_keys_stat.stat.exists
+- name: add authorized key
+  blockinfile:
+    path: "{{ hive_shared_repository_path }}/authorized_keys"
+    block: "{{ lookup('file', hive_context_dir + '/id_rsa.pub') }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ inventory_hostname }}"
+  become: true
+- name: check docker-compose.yml
+  stat:
+    path: "{{ hive_shared_repository_path }}/docker-compose.yml"
+  register: docker_compose_stat
+- name: put docker-compose.yml
+  template:
+    src: docker-compose.yml
+    dest: "{{ hive_shared_repository_path }}/docker-compose.yml"
+  when: not docker_compose_stat.stat.exists
+- name: compose up shared repository
+  community.docker.docker_compose_v2:
+    project_src: "{{ hive_shared_repository_path }}"
+    # build: "always"
+  become: true
+- name: put ssh_config
+  blockinfile:
+    dest: "{{ hive_context_dir }}/ssh_config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ hive_safe_repository_server }}"
+    state: present
+    create: yes
+    mode: 0644
+    block: |
+      Host {{ hive_safe_repository_server }}
+        HostName localhost
+        UserKnownHostsFile {{ hive_context_dir }}/known_hosts
+        StrictHostKeyChecking yes
+        User {{ hive_safe_admin }}
+        PasswordAuthentication no
+        IdentityFile {{ hive_safe_private_key_path }}
+        IdentitiesOnly yes
+        LogLevel FATAL
+        Port {{ hive_shared_repository.ssh_port | default(2222) }}
+      {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}

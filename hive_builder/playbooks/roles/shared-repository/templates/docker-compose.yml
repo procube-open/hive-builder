@@ -1,0 +1,22 @@
+services:
+  shared-repository:
+    build:
+      dockerfile: Dockerfile.repository
+    container_name: "shared-repository"
+    hostname: "shared-repository"
+    restart: always
+    privileged: true
+    volumes:
+    - ssh_data:/etc/ssh
+    - {{ hive_shared_repository_path }}/hosts:/etc/extra-hosts
+    - {{ hive_shared_repository_path }}/authorized_keys:/home/admin/.ssh/authorized_keys
+    ports:
+    - {{ hive_shared_repository.ssh_port | default(2222) }}:22
+    - {{ hive_shared_repository.zabbix_server_port | default(10052) }}:10052
+    - {{ hive_shared_repository.zabbix_web_port | default(10051) }}:10051
+    - {{ hive_shared_repository.zabbix_agent_port | default(10050) }}:10050
+    - {{ hive_shared_repository.registry_port | default(5000) }}:{{ hive_registry_port | default(5000) }}
+    - {{ hive_shared_repository.syslog_port | default(hive_safe_syslog_port) }}:{{ hive_safe_syslog_port }}
+    dns: 127.0.0.1
+volumes:
+  ssh_data:
