@@ -87,6 +87,7 @@
       - conntrack-tools
       - bash-completion
       - rsyslog
+      - rsyslog-logrotate
       - python3-libselinux
 - name: install selinux packages
   yum:
