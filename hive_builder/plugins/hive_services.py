@@ -117,7 +117,7 @@ IMAGE_PARAMS = ['from', 'roles', 'env', 'stop_signal', 'user', 'working_dir', 's
                 'command', 'privileged', 'expose', 'pull_on', 'pull_from']
 SERVICE_PARAMS_COPY = ['backup_scripts', 'command', 'dns', 'endpoint_mode', 'entrypoint', 'environment', 'healthcheck',
                        'hosts', 'ignore_error', 'initialize_roles', 'labels', 'logging', 'monitor_error', 'mode', 'networks', 'placement', 'replicas',
-                       'restart_config', 'stop_grace_period','standalone', 'user', 'working_dir']
+                       'restart_config', 'stop_grace_period','standalone', 'user', 'working_dir', 'cap_add', 'cap_drop']
 NETWORK_PARAMS = ['driver', 'ipam', 'driver_opts']
 SERVICE_PARAMS = SERVICE_PARAMS_COPY + ['volumes', 'image', 'ports', 'available_on']
 VOLUME_PARAMS = ['target', 'type', 'source', 'readonly']
@@ -175,8 +175,12 @@ class Service:
         volumes = [
             {'source': '', 'target': '/run', 'type': 'tmpfs'},
             {'source': '', 'target': '/tmp', 'type': 'tmpfs'},
-            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup', 'readonly': True}
+            {'source': '/sys/fs/cgroup', 'target': '/sys/fs/cgroup'}
         ]
+        cap_add = self.options.get('cap_add', [])
+        if 'NET_ADMIN' not in cap_add:
+          cap_add.append('NET_ADMIN')
+          inventory.set_variable(self.name, 'hive_cap_add', cap_add)
       for volume in volumes_value:
         if type(volume) == AnsibleUnicode:
           raise AnsibleParserError(f'we do not support short syntax {text_type(volume)} in volume at service {self.name}')
