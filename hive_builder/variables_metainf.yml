@@ -221,11 +221,11 @@ vagrant_box_name:
 stdout_callback:
   name_in_ansible_cfg: stdout_callback
   description: "formatting ansible-playbook output"
-  default: yaml
+  default: default
 callback_enabled:
   name_in_ansible_cfg: callback_enabled
   description: "white list for callback plugin"
-  default: yaml
+  default: default
 bin_ansible_callbacks:
   default: True
   tupe: boolean
@@ -235,10 +235,10 @@ roles_path:
   description: roles path for ansible-playbook
   name_in_ansible_cfg: roles_path
   default: "{root_dir}/roles:{playbooks_dir}/builtin_roles:{context_dir}/roles"
-collections_paths:
-  desctiption: collections paths for ansible-playbook
+collections_path:
+  desctiption: collections path for ansible-playbook
   type: directory
-  name_in_ansible_cfg: collections_paths
+  name_in_ansible_cfg: collections_path
   default: "{root_dir}/.collections:{context_dir}/collections"
 no_format:
   description: if true, hive_safe_drbd_with_disk set false
