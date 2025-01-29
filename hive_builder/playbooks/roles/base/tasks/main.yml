@@ -89,6 +89,13 @@
       - rsyslog
       - rsyslog-logrotate
       - python3-libselinux
+- name: setup pip.conf
+  copy:
+    dest: /etc/pip.conf
+    content: |
+      [global]
+      trusted-host = pypi.org files.pythonhosted.org pypi.python.org
+  when: hive_http_proxy is defined or hive_vagrant_proxy is defined
 - name: install selinux packages
   yum:
     state: present
