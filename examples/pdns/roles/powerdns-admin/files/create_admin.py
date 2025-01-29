@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 import sys
 from powerdnsadmin import create_app
 from powerdnsadmin.models.user import User

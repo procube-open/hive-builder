@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # this module is downloaded from https://raw.githubusercontent.com/robparrott/ansible-vagrant/master/library/vagrant
 #  2019/06/17 Mitsuru Nakakawaji <mitsuru@procube.jp>
