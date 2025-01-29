@@ -7,6 +7,10 @@ vagrant_dev: "{{ hive_dev }}"
 {%if hive_bridge is defined %}
 vagrant_bridge: "{{ hive_bridge }}"
 {%endif%}
+{%if hive_vagrant_proxy is defined %}
+HTTP_PROXY: "{{ hive_vagrant_proxy }}"
+NO_PROXY:  "{{ (['localhost', '127.0.0.1'] + hive_safe_servers + hive_safe_services) | join(',')}}"
+{%endif%}
 hive_root_dir: "{{ hive_root_dir }}"
 hive_context_dir: "{{ hive_context_dir }}"
 vagrant_hosts:

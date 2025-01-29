@@ -11,10 +11,10 @@ Vagrant.configure("2") do |config|
   #   config.disksize.size = "#{vars['disk_size']}GB"
   # end
   _dir = "#{vars['hive_context_dir']}"
-  if Vagrant.has_plugin?("vagrant-proxyconf") and ENV.include?('HTTP_PROXY') and ENV['HTTP_PROXY'].length > 0
-    config.proxy.http = ENV['HTTP_PROXY']
-    config.proxy.https = ENV['HTTPS_PROXY']
-    config.proxy.no_proxy = ENV['NO_PROXY']
+  if Vagrant.has_plugin?("vagrant-proxyconf") and vars.include?('HTTP_PROXY') and vars['HTTP_PROXY'].length > 0
+    config.proxy.http = vars['HTTP_PROXY']
+    config.proxy.https = vars['HTTP_PROXY']
+    config.proxy.no_proxy = vars['NO_PROXY']
   end
 
   vars['vagrant_hosts'].each do |value|
