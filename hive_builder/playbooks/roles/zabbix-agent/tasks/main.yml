@@ -26,7 +26,7 @@
     hive_safe_iptables_protocol: tcp
     hive_safe_iptables_sources: "{{ (groups['servers'] | intersect(groups[hive_stage]) | map('extract', hostvars, 'hive_private_ip') | list) + 
     [hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')] +
-    ( [ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first )]] | default([]) ) }}"
+    ( [ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first )]] if loaded_ip_addresses is defined else [] ) }}"
 - name: yum install
   yum:
     state: installed
