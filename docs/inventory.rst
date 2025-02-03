@@ -281,7 +281,7 @@ shared_repository が設定されている場合、レポジトリサーバは�
 共有レポジトリサーバから他のhive群のサービスに接続するためには、以下のように環境変数を指定してコマンドを実行してください。
 ::
   
-  DOCKER_HOST=s-hive0.dev1 HIVE_NAME=dev1 dsh mongo
+  DOCKER_HOST=s-hive0.dev1:2376 HIVE_NAME=dev1 dsh mongo
 
 この例では、dev1 という名前の hive 群の mongo サービスに接続します。
 
