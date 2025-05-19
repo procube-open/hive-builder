@@ -493,3 +493,11 @@ build-infra の wait_for_connection で timed out waiting for ping module test �
 
 :原因: ansible の 2.17 以上のバージョンではインストール対象のサーバの Python インタプリタは 3.7 以上である必要がありますが、8系のOSの /usr/libexec/platform-python は 3.6 であり、このエラーが発生しています。
 :対応方法: ansible-core のバージョンを 2.16以前にダウングレードしてください。
+
+
+build-volumes の wait sync before format で ansibleからの応答がなくなります。
+----------------------------------------------------------------------------------------------------
+:現象: 複数サービスに跨ってマウントされている drbdボリュームに対して、それぞれのサービス定義内で異なるサイズで build-volumes を行うと、wait sync before format タスクのタイミングで応答がなくなる
+
+:原因: 不明
+:対応方法: 全てのボリューム定義で同一のサイズで記述してください。
