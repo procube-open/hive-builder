@@ -13,11 +13,11 @@
     reset_build_overrides: ""
 - set_fact:
     # --change 'ENTRYPOINT []' does not set null, so set ["/bin/sh","-c","exec \"$@\"","--"]
-    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hive_entrypoint is defined %}{{ hive_entrypoint | to_json }}{% elif orig_config.Entrypoint == none %}[\"/bin/sh\",\"-c\",\"exec \\\"$@\\\"\",\"--\"]{% else %}{{ orig_config.Entrypoint | to_json }}{% endif %}'"
+    reset_build_overrides: "{{reset_build_overrides}} --change 'ENTRYPOINT {% if hive_entrypoint is defined %}{{ hive_entrypoint | to_json }}{% elif orig_config.Entrypoint is defined and orig_config.Entrypoint != none %}{{ orig_config.Entrypoint | to_json }}{% else %}[\"/bin/sh\",\"-c\",\"exec \\\"$@\\\"\",\"--\"]{% endif %}'"
   when: not (hive_standalone | default(False))
 - set_fact:
     # --change CMD cannot set null, so set []
-    reset_build_overrides: "{{reset_build_overrides}} --change 'CMD {% if hive_command is defined %}{{ hive_command | to_json }}{% elif orig_config.Cmd == none %}[]{% else %}{{ orig_config.Cmd | to_json }}{% endif %}'"
+    reset_build_overrides: "{{reset_build_overrides}} --change 'CMD {% if hive_command is defined %}{{ hive_command | to_json }}{% elif orig_config.Cmd is defined and orig_config.Cmd != none %}{{ orig_config.Cmd | to_json }}{% else %}[]{% endif %}'"
   when: not (hive_standalone | default(False))
 - set_fact:
     # --change WORKDIR cannot set "", so set /
