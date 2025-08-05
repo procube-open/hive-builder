@@ -29,15 +29,30 @@
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
     state: present
 
-- name: create firewall for published_port
+- name: create firewall for ssh
   gcp_compute_firewall:
     name: "{{ hive_firewall_name | default( 'ssh-' + hive_name ) }}"
-    description: "Allow internal traffic on the {{ hive_safe_vpc_name }} network"
+    description: "Allow SSH traffic"
+    source_ranges: "{{ (hive_gcp_ssh_source_range | default('0.0.0.0/0')).split(',') | map('trim') | list }}"
+    network: "{{ gcp_vpc }}"
+    allowed:
+      - ip_protocol: 'tcp'
+        ports:
+          - "{{ hive_safe_sshd_port }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: present
+
+- name: create firewall for published_port
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'inbound-' + hive_name ) }}"
+    description: "Allow inbound traffic for published_port"
     source_ranges: "0.0.0.0/0"
     network: "{{ gcp_vpc }}"
     allowed:
     - ip_protocol: tcp
-      ports: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
+      ports: "{{ hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
     - ip_protocol: icmp
     - ip_protocol: udp
       ports: "{{ hive_published_ports_udp }}"
