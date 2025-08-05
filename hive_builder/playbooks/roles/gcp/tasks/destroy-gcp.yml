@@ -48,9 +48,16 @@
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
     state: absent
-- name: delete firewall for ssh and icmp
+- name: delete firewall for ssh
   gcp_compute_firewall:
     name: "{{ hive_firewall_name | default( 'ssh-' + hive_name ) }}"
+    project: "{{ hive_safe_gcp_project }}"
+    auth_kind: "{{ hive_safe_gcp_auth_kind }}"
+    service_account_file: "{{ hive_safe_gcp_service_account_file }}"
+    state: absent
+- name: delete firewall for published_port
+  gcp_compute_firewall:
+    name: "{{ hive_firewall_name | default( 'inbound-' + hive_name ) }}"
     project: "{{ hive_safe_gcp_project }}"
     auth_kind: "{{ hive_safe_gcp_auth_kind }}"
     service_account_file: "{{ hive_safe_gcp_service_account_file }}"
