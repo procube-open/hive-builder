@@ -33,7 +33,7 @@
   gcp_compute_firewall:
     name: "{{ hive_firewall_name | default( 'ssh-' + hive_name ) }}"
     description: "Allow SSH traffic"
-    source_ranges: "{{ hive_gcp_ssh_source_range.split(',') | map('trim') | list }}"
+    source_ranges: "{{ (hive_gcp_ssh_source_range | default('0.0.0.0/0')).split(',') | map('trim') | list }}"
     network: "{{ gcp_vpc }}"
     allowed:
       - ip_protocol: 'tcp'
