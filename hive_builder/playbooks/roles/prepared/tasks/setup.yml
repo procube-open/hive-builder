@@ -1,4 +1,6 @@
 ---
+- debug:
+    msg: "hive_safe_hosts={{ hive_safe_hosts }}"
 - name: put ssh_config
   blockinfile:
     dest: "{{ hive_context_dir }}/ssh_config"
@@ -20,4 +22,3 @@
   loop: "{{ hive_safe_hosts }}"
   loop_control:
     loop_var: setup_host
-

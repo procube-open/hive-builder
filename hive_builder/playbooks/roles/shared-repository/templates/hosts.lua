@@ -68,7 +68,7 @@ function addHosts(file)
     table.insert(rules, reverse_dns_rule)
   end)
   -- その他はresolv.confのDNSにプロキシ
-  newServer({ address = '{{ lookup('file', '/etc/resolv.conf') | regex_findall('\\s*nameserver\\s*(.*)') | first}}', pool = 'external-dns' })
+  newServer({ address = '{{ hive_shared_repository.dns_address | default(lookup('file', '/etc/resolv.conf') | regex_findall('\\s*nameserver\\s*(.*)') | first) }}', pool = 'external-dns' })
   addAction(NotRule(OrRule(rules)), PoolAction('external-dns'))
 end
 

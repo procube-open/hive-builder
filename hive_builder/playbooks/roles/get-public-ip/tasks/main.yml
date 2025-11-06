@@ -1,21 +1,28 @@
 ---
 - name: get server ip
-  when: inventory_hostname in groups['servers']
+  when: inventory_hostname in groups['servers'] and hive_provider not in ['vagrant', 'prepared', 'kickstart']
   block:
   - name: get public ip
     community.general.ipify_facts:
   - debug: var=ipify_public_ip
-  - name: gather public ips
+  - name: gather hive ips
     delegate_to: "{{ groups['mother'] | intersect(groups[hive_stage]) | first }}"
     delegate_facts: true
     debug: var=hostvars[inventory_hostname].ipify_public_ip
     when: inventory_hostname in groups['hives']
-  - name: gather public ips
+  - name: gather repository ips
     delegate_to: "{{ item }}"
     delegate_facts: true
     debug: var=hostvars[inventory_hostname].ipify_public_ip
     when: inventory_hostname in groups['repository']
     loop: "{{ groups['hives'] | intersect(groups[hive_stage]) }}"
+- name: get private ip
+  when: inventory_hostname in groups['servers'] and hive_provider in ['vagrant', 'prepared', 'kickstart']
+  block:
+  - name: set private ip as public ip
+    set_fact:
+      private_ip: "{{ hive_private_ip }}"
+  - debug: var=private_ip
 - name: write hosts
   when: inventory_hostname in groups['mother']
   block:
@@ -24,6 +31,11 @@
   - set_fact:
       ip_addresses: "{{ ip_addresses | combine({ item: hostvars[item].ansible_facts.ipify_public_ip }) }}"
     loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+    when: hostvars[item].ansible_facts.ipify_public_ip is defined
+  - set_fact:
+      ip_addresses: "{{ ip_addresses | combine({ item: hostvars[item].private_ip }) }}"
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) }}"
+    when: hostvars[item].private_ip is defined
   - name: write hosts
     blockinfile:
       path: "{{ hive_shared_repository_path }}/hosts"

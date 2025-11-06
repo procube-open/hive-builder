@@ -20,9 +20,11 @@
       dest: "{{ hive_home_dir }}/registry/docker-compose.yml"
 
 - block:
-  - name: install passlib
+  - name: install passlib and bcrypt
     pip:
-      name: passlib
+      name:
+        - passlib
+        - bcrypt==4.0.1 #passlibの更新が停止しており、最新では動作しないためバージョンを固定
       state: present
       virtualenv: "{{ hive_home_dir }}/docker"
   - name: make htpasswd file

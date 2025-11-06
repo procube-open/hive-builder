@@ -226,5 +226,5 @@
     path: /etc/fstab
     line: "cgroup2 /sys/fs/cgroup cgroup2 {{ mount_options.stdout | regex_replace(',nsdelegate', '') | regex_replace('[\\(\\)]', '') }} 0 0"
     state: present
-  when: "'nsdelegate' in mount_options.stdout"
+  when: "'nsdelegate' in mount_options.stdout and inventory_hostname in groups['hives']"
   notify: require reboot

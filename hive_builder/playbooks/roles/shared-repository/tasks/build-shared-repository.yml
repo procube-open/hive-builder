@@ -72,7 +72,7 @@
       Host {{ hive_safe_repository_server }}
         HostName localhost
         UserKnownHostsFile {{ hive_context_dir }}/known_hosts
-        StrictHostKeyChecking yes
+        StrictHostKeyChecking no
         User {{ hive_safe_admin }}
         PasswordAuthentication no
         IdentityFile {{ hive_safe_private_key_path }}

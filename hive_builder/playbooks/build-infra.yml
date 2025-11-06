@@ -32,7 +32,7 @@
       ansible_host: "{{ hive_private_ip }}"
       ansible_user: "root"
       ansible_ssh_pass: "{{ hive_root_password }}"
-    when: hive_root_password is defined
+    when: hive_root_password is defined and not (hive_shared_repository is defined and inventory_hostname in groups['repository'])
     block:
     - name: add admin group
       group:
