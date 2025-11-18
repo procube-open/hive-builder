@@ -6,5 +6,6 @@
 	"tlscert": "/etc/pki/tls/certs/{{ inventory_hostname }}_cert.pem",
 	"tlskey": "/etc/pki/tls/private/{{ inventory_hostname }}_key.pem",
 {%if hive_registry_mirror is defined %}    "registry-mirrors": ["{{ hive_registry_mirror }}"],{%endif%}
-  "iptables": true
+{%if inventory_hostname in groups['repository'] and hive_shared_repository is defined %}  "storage-driver": "vfs",
+{%endif%}  "iptables": true
 }

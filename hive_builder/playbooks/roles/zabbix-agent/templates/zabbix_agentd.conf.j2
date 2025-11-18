@@ -92,8 +92,8 @@ LogFileSize=0
 # Default:
 # Server=
 
-Server=localhost,{% if loaded_ip_addresses is defined and inventory_hostname in groups['repository'] %}{{ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first)] }}
-{% elif inventory_hostname in groups['repository'] %}{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) }}
+Server=localhost,{% if loaded_ip_addresses is defined and inventory_hostname in groups['repository'] %}{{ loaded_ip_addresses[(groups['repository'] | intersect(groups[hive_stage]) | first)] }},{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}
+{% elif inventory_hostname in groups['repository'] %}{{ (hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address')) }},{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}
 {% else %} {{ (groups['repository'] | intersect(groups[hive_stage]) | first) }}{% endif %}
 
 ### Option: ListenPort
@@ -135,7 +135,7 @@ Server=localhost,{% if loaded_ip_addresses is defined and inventory_hostname in 
 # Default:
 # ServerActive=
 
-ServerActive={{ (groups['repository'] | intersect(groups[hive_stage]) | first) if not shared_repository is defined or not inventory_hostname in groups['repository'] else 'shared-repository' }}:10051
+ServerActive={% if inventory_hostname in groups['repository'] and hive_shared_repository is defined %}{{ hive_safe_zabbix_subnet | ipaddr(1) | ipaddr('address') }}{% else %}{{ (groups['repository'] | intersect(groups[hive_stage]) | first) }}{% endif %}:10051
 
 ### Option: Hostname
 #	Unique, case sensitive hostname.
@@ -144,7 +144,7 @@ ServerActive={{ (groups['repository'] | intersect(groups[hive_stage]) | first) i
 #
 # Mandatory: no
 # Default:
-Hostname={{ inventory_hostname }}
+Hostname={% if inventory_hostname in groups['repository'] and hive_shared_repository is defined %}shared-repository{% else %}{{ inventory_hostname }}{% endif %}
 
 ### Option: HostnameItem
 #	Item used for generating Hostname if it is undefined. Ignored if Hostname is defined.

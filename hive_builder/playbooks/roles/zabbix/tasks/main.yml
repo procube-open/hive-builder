@@ -117,7 +117,7 @@
       server_url: http://localhost:{{ hive_safe_zabbix_port }}
       login_user: admin
       login_password: zabbix
-      host_name: "{{ item }}"
+      host_name: "{% if item in groups['repository'] and hive_shared_repository is defined %}shared-repository{% else %}{{ item }}{% endif %}"
       host_groups:
       - Linux servers
       link_templates: >-
@@ -137,7 +137,7 @@
         - type: 1
           main: 1
           useip: 1
-          ip: "{{ hostvars[item].hive_private_ip if not hive_shared_repository is defined else loaded_ip_addresses[item] }}"
+          ip: "{% if item in groups['repository'] and hive_shared_repository is defined %}{{ hive_safe_zabbix_subnet | ipaddr(1) | ipaddr('address') }}{% elif hive_shared_repository is defined %}{{ loaded_ip_addresses[item] }}{% else %}{{ hostvars[item].hive_private_ip }}{% endif %}"
           dns: ""
           port: 10050
       state: present

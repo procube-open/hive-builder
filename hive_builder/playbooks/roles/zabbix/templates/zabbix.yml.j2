@@ -5,7 +5,6 @@ services:
     environment:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       DB_SERVER_HOST: "zabbix-db"
-      MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
@@ -23,7 +22,6 @@ services:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       PHP_TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       DB_SERVER_HOST: "zabbix-db"
-      MYSQL_ROOT_PASSWORD: "{{lookup('password', hive_context_dir + '/registry_password length=15 chars=ascii_letters,digits')}}"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
