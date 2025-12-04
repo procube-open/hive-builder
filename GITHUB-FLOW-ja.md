@@ -74,9 +74,9 @@ git add -A
 ```shell
 git commit -m 'コミット内容の記述'
 ```
-コミット内容の記述は短い文章でコミットの内容を記述してください。例えば、bonding された NIC に対応する機能を commit する場合は、以下のようなコマンドになります。
+コミット内容の記述は短い文章でコミットの内容を記述してください。例えば、bonding された NIC に対応する機能を commit する場合は、以下のようなコマンドになります。RC版をリリースする場合には、 "[[PRERELEASE]]" を入れてください。
 ```shell
-git commit -m 'support bonding NIC'
+git commit -m '[[PRERELEASE]] support bonding NIC'
 ```
 
 ## 5. push
