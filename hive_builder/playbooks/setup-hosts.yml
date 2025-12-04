@@ -60,7 +60,7 @@
       tags: ["docker"]
     - role: drbd
       tags: ["drbd"]
-      when: hive_mirrored_disk_size is defined
+      when: hive_mirrored_disk_size is defined or hive_provider in ['kickstart', 'prepared']
     - role: docker-client
       tags: ["docker-client"]
     - role: docker-client-proxy
