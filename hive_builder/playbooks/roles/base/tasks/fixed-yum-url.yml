@@ -18,6 +18,20 @@
   - CentOS-Stream-Extras.repo
   # almalinux
   - almalinux.repo
+  # almalinux 9
+  - almalinux-appstream.repo
+  - almalinux-baseos.repo
+  - almalinux-crb.repo
+  - almalinux-extras.repo
+  - almalinux-highavailability.repo
+  - almalinux-nfv.repo
+  - almalinux-plus.repo
+  - almalinux-resilientstorage.repo
+  - almalinux-rt.repo
+  - almalinux-saphana.repo
+  - almalinux-sap.repo
+  - epel.repo
+  - epel-testing.repo
 - name: Disable yum-fastestmirror
   lineinfile: >
     dest="/etc/yum/pluginconf.d/fastestmirror.conf"
