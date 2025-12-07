@@ -3,17 +3,19 @@
   hosts: servers
   become: True
   tags: setup-hosts
+  gather_facts: False
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile={{ hive_context_dir }}/known_hosts"
   roles:
     - role: ssh-connection
       tags: [ 'ssh-connection' ]
-      when: hive_provider == 'kickstart'
+      when: hive_provider in ['kickstart', 'prepared']
 
 - name: get public ip
   tags: setup-hosts
   hosts: hosts
   become: True
+  gather_facts: False
   roles:
     - role: get-public-ip
       tags: [ 'get-public-ip' ]
