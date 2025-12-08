@@ -1,0 +1,20 @@
+policy_module(hive, 1.0)
+
+require {
+type kernel_generic_helper_t;
+type proc_t;
+class file { open read };
+}
+
+#============= kernel_generic_helper_t ==============
+allow kernel_generic_helper_t proc_t:file { open read };
+
+optional {
+    require {
+        type drbd_var_run_t;
+        class dir search;
+        class lnk_file read;
+    }
+    allow kernel_generic_helper_t drbd_var_run_t:dir search;
+    allow kernel_generic_helper_t drbd_var_run_t:lnk_file read;
+}

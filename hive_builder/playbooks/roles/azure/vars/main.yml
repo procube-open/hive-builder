@@ -6,9 +6,9 @@ hive_safe_hosts: "{{ ( groups['hives'] | intersect(groups[hive_stage]) ) if hive
 # sku for latest version is 8.0 2020-07-24 08:28:00
 # in https://azuremarketplace.microsoft.com/en-us/marketplace/apps/openlogic.centos-lvm?tab=PlansAndPrice
 hive_safe_default_azure_image:
-  offer: RHEL
-  publisher: RedHat
-  sku: '9_4'
+  offer: almalinux-x86_64
+  publisher: almalinux
+  sku: '10-gen2'
   version: latest
 # available disk type is Standard_LRS, StandardSSD_LRS, Premium_LRS
 hive_safe_managed_disk_type: Premium_LRS

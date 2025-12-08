@@ -392,8 +392,8 @@ inventory/hive.yml の internal_cidr の値を変更してください。
 
 ::
 
-    (cd zabbix; docker-compose down)
-    (cd registry; docker-compose down)
+    (cd zabbix; docker compose down)
+    (cd registry; docker compose down)
 
 5. setup-hosts フェーズの実行
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

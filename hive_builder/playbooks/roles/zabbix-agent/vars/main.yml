@@ -7,7 +7,6 @@ hive_safe_selinux_boolean:
   - domain_can_mmap_files
   - daemons_dump_core
   - nis_enabled
-  - zabbix_run_sudo
 hive_safe_selinux_boolean_amzn:
   - authlogin_nsswitch_use_ldap
   - daemons_dump_core

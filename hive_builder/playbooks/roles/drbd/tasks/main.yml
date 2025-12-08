@@ -1,4 +1,18 @@
 ---
+- name: copy selinux module for zabbix-agent
+  copy:
+    src: hive.te
+    dest: /root/hive.te
+  register: result_hive_zabbix_agent_policy
+  when: hive_safe_selinux != 'disabled'
+- name: install selinux module for zabbix-agent
+  make:
+    chdir: /root
+    target: load
+    file: /usr/share/selinux/devel/Makefile
+  become: true
+  when: hive_safe_selinux != 'disabled'
+
 - name: check kernel version
   shell: uname -r
   register: uname_result
@@ -14,7 +28,7 @@
     url: >-
       {{ hive_drbd_download_url | default(
         'https://github.com/procube-open/drbd9-rpm/releases/download/'
-        + 'Latests/drbd-9.2.12-v9.29.0-5.14.0-503.15.1.el9_5.x86_64'
+        + 'Latests/drbd-9.2.15-v9.29.0-6.12.0-124.8.1.el10_1.x86_64'
         + '.tar.gz') }}
     dest: /root/drbd9-rpm.tar.gz
 - name: extract drbd rpm files

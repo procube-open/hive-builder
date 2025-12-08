@@ -57,19 +57,49 @@
 
 - name: update kernel for drbd (implicit)
   yum:
-    name: "kernel-5.14.0-427.22.1.el9*"
+    name:
+      - "kernel-6.12.0-124.8.1.el10*"
+      - "kernel-modules-extra-6.12.0-124.8.1.el10*"
     disable_excludes: main
     state: latest
   when: hive_kernel_version is not defined 
     and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
     and inventory_hostname in groups['hives']
   notify: require reboot
+- name: find installed kernel path (implicit)
+  find:
+    paths: /boot
+    patterns: "vmlinuz-6.12.0-124.8.1.el10*"
+  register: found_kernel_implicit
+  when: hive_kernel_version is not defined 
+    and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
+    and inventory_hostname in groups['hives']
+- name: set default kernel (implicit)
+  command: grubby --set-default "{{ found_kernel_implicit.files[0].path }}"
+  when: hive_kernel_version is not defined 
+    and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
+    and inventory_hostname in groups['hives']
+    and found_kernel_implicit.matched > 0
+  notify: require reboot
 - name: update kernel for drbd (explicit)
   yum:
-    name: "kernel-{{ hive_kernel_version }}"
+    name:
+      - "kernel-{{ hive_kernel_version }}"
+      - "kernel-modules-extra-{{ hive_kernel_version }}"
     disable_excludes: main
     state: latest
   when: hive_kernel_version is defined and inventory_hostname in groups['hives']
+  notify: require reboot
+- name: find installed kernel path (explicit)
+  find:
+    paths: /boot
+    patterns: "vmlinuz-{{ hive_kernel_version }}*"
+  register: found_kernel_explicit
+  when: hive_kernel_version is defined and inventory_hostname in groups['hives']
+- name: set default kernel (explicit)
+  command: grubby --set-default "{{ found_kernel_explicit.files[0].path }}"
+  when: hive_kernel_version is defined and inventory_hostname in groups['hives']
+    and found_kernel_explicit.matched > 0
   notify: require reboot
 - name: install packages
   yum:

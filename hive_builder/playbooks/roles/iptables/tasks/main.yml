@@ -2,9 +2,9 @@
 # common utiility packages.
 
 - name: install packages
-  yum: name=iptables-services state=present
+  yum: name=iptables-services state=present disable_excludes=all
 - name: install packages
-  yum: name=iptables state=present
+  yum: name=iptables state=present disable_excludes=all
 - name: disable firewalld
   yum: name=firewalld state=removed
 - name: create HIVE-SERVICE chain in iptables config file

@@ -15,7 +15,7 @@
 #     cause error: Unsupported parameters for (docker_login) module: email.
 #       email: "{{ hive_safe_email }}"
 # move "login to external repository" task for repository server to zabbix role in setup-hosts phase
-# to avoid toomanyrequests error occur when docker-compose up
+# to avoid toomanyrequests error occur when docker compose up
 - name: build images
   hosts: images
   gather_facts: False
