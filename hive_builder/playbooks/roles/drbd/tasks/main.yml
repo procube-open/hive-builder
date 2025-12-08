@@ -54,6 +54,7 @@
   loop: "{{ hive_safe_mirrored_disk_devices }}"
   loop_control:
     loop_var: disk
+  when: not (hive_no_mirrored_devices | default(False))
 
 - name: set net.ipv4.tcp_rmem
   sysctl:
