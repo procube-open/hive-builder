@@ -501,3 +501,14 @@ build-volumes の wait sync before format で ansibleからの応答がなくな
 
 :原因: 不明
 :対応方法: 全てのボリューム定義で同一のサイズで記述してください。
+
+"Failed to resolve typeattributeset statement..." エラーが発生する。
+----------------------------------------------------------------------------------------------------
+:現象: setup-hosts の "drbd : install selinux module for zabbix-agent"タスクで "Failed to resolve typeattributeset statement... " のエラーが発生する。
+:原因: Alma Linux 9 に対して Alma Linux 10 用の hive-builder を使用されている可能性があります。
+:対応方法: 以下のコマンドで Alam Linux 9 用の hive-builder をインストールしてご利用ください。
+
+::
+    pip install "hive-builder<3.9"
+
+サーバはクリアインストールされることをお勧めします。
