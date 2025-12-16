@@ -5,6 +5,7 @@ on:
       - '**'
     branches-ignore:
       - master
+      - forOS9
 jobs:
   version-up-main:
     runs-on: ubuntu-latest
