@@ -53,9 +53,8 @@
   register: registry_password_stat
 - name: add registry_password
   copy:
-    content: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=15') }}"
+    content: "{{ lookup('password', '/dev/null length=15') }}"
     dest: "{{ hive_shared_repository_path }}/registry_password"
-    mode: '600'
   become: true
   when: not registry_password_stat.stat.exists
 - name: add symbolic link of registry_password
