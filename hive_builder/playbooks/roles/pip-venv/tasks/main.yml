@@ -19,11 +19,11 @@
   yum:
     state: present
     name:
-      - python{{ hive_safe_python_revision | split('.') | join('') }}
-      - python{{ hive_safe_python_revision | split('.') | join('') }}-libs
-      - python{{ hive_safe_python_revision | split('.') | join('') }}-devel
-      - python{{ hive_safe_python_revision | split('.') | join('') }}-pip
-      - python{{ hive_safe_python_revision | split('.') | join('') }}-setuptools
+      - python{{ hive_safe_python_revision }}
+      - python{{ hive_safe_python_revision }}-libs
+      - python{{ hive_safe_python_revision }}-devel
+      - python{{ hive_safe_python_revision }}-pip
+      - python{{ hive_safe_python_revision }}-setuptools
 - name: upgrade pip
   become: False
   pip:
