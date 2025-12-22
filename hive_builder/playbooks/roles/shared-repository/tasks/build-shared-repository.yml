@@ -47,6 +47,22 @@
     block: "{{ lookup('file', hive_context_dir + '/id_rsa.pub') }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{ inventory_hostname }}"
   become: true
+- name: check registry_password
+  stat:
+    path: "{{ hive_shared_repository_path }}/registry_password"
+  register: registry_password_stat
+- name: add registry_password
+  copy:
+    content: "{{ lookup('password', '/dev/null length=15') }}"
+    dest: "{{ hive_shared_repository_path }}/registry_password"
+  become: true
+  when: not registry_password_stat.stat.exists
+- name: add symbolic link of registry_password
+  file:
+    src: "{{ hive_shared_repository_path }}/registry_password"
+    dest: "{{ hive_context_dir }}/registry_password"
+    state: link
+  become: true
 - name: check docker-compose.yml
   stat:
     path: "{{ hive_shared_repository_path }}/docker-compose.yml"
