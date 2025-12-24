@@ -69,8 +69,8 @@ mother マシン側のプロキシサーバを利用する場合、プロキシ�
 
 以下のコマンドでオフラインキャッシュサーバのソースコードを取得してください。git の混乱を避けるためにプロジェクトのルートディレクトリとは別のディレクトリに取得してください。
 ただし、mother マシンに docker のサーバがインストールされている必要があります。
-また ansible-core、 docker、 docker-compose モジュールがインストールされた  python の仮想環境を作成し、その仮想環境内で ansible-playbook を実行してください。
-hive-builder 用にインストールされた仮想環境を使用する場合 ``` pip install docker-compose docker ``` でモジュールを追加してください。
+また ansible-core、 docker モジュールがインストールされた  python の仮想環境を作成し、その仮想環境内で ansible-playbook を実行してください。
+hive-builder 用にインストールされた仮想環境を使用する場合 ``` pip install docker ``` でモジュールを追加してください。
 credentials.yml.example を参考に、credentials.yml を作成してください。なお NetSoarer 製品を使用しない場合は、nssdc_client_cert と nssdc_client_key の部分は修正する必要はありません。
 
 ::
@@ -80,7 +80,7 @@ credentials.yml.example を参考に、credentials.yml を作成してくださ�
     cd offline-cache
     export HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス>
     echo export HIVE_CONTEXT_DIR=<hiveのコンテキストディレクトリのパス> >> ~/.bashrc
-    docker-compose up -d
+    docker compose up -d
     ln -s $HIVE_CONTEXT_DIR/collections ~/.ansible/collections/
     ansible-playbook -i squid,registry, -e @credentials.yml setup.yml
 

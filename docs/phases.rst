@@ -62,10 +62,6 @@ setup-hosts コマンドでは -T オプションで適用する role を限定�
       - docker
       - PyPI
       - docker python API
-    * - docker-compose
-      - docker-compose
-      - PyPI
-      - docker-compose コマンド
     * - drbd
       - drbd
       - procube-open/drbd-rpm(2)
@@ -351,10 +347,6 @@ zabbix-agent をインストールします。
 --------------------------
 二番目に実行される "setup repository and zabbix" という名称の PLAY ではリポジトリサーバに共通の role を適用します。
 以下に各 role について説明します。
-
-docker-compose role
-^^^^^^^^^^^^^^^^^^^^^^^
-docker-compose をインストールします。
 
 zabbix role
 ^^^^^^^^^^^^^^^^^^^^^^^

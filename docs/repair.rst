@@ -37,8 +37,8 @@ hive ssh でリポジトリサーバにログインし、以下のコマンド�
 
   hive ssh
   cd registry
-  docker-compose down -v
-  docker-compose up -d
+  docker compose down -v
+  docker compose up -d
   logout
   hive build-images
 
