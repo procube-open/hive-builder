@@ -185,5 +185,8 @@
         {% endif %}
         {{ hive_safe_autovars.force_update }}
       state: "{% if hive_destroy  | default(false) %}absent{% else %}present{% endif %}"
+      limits:
+        cpus: "{{ hostvars[item].hive_cpu_limit | default(omit) }}"
+        memory: "{{ hostvars[item].hive_mem_limit | default(omit) }}"
     loop: "{{ hive_safe_services }}"
     register: swarm_service
