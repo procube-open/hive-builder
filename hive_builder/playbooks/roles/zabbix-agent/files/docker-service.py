@@ -253,6 +253,116 @@ def failed_innerservice_count(clients, logger, service_name):
   return 99
 
 
+def service_stats(clients, logger, service_name, metric_type):
+  """Get CPU and memory stats for a Docker Swarm service"""
+  try:
+    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
+    if len(sl) != 1:
+      logger.error(f'fail to get service {service_name} count of service={len(sl)}')
+      return 0
+    
+    total_cpu = 0
+    total_memory = 0
+    total_memory_percent = 0
+    total_memory_limit = 0
+    container_count = 0
+    
+    for task in sl[0].tasks():
+      if task.get('DesiredState') == 'running':
+        status = task.get('Status')
+        if status.get('State') == 'running':
+          logger.debug(f'found running task on {task.get("NodeID")}')
+          container_id = task.get('Status', {}).get('ContainerStatus', {}).get('ContainerID', '')
+          if len(container_id) == 0:
+            logger.error(f'fail to get container ID for service "{service_name}" on node "{task.get("NodeID")}"')
+            continue
+          
+          try:
+            container = clients[task.get('NodeID')].containers.get(container_id)
+            # Get stats (non-streaming, no decode parameter)
+            stats = container.stats(stream=False)
+            
+            # Calculate CPU percentage
+            precpu_stats = stats.get('precpu_stats', {})
+            cpu_stats = stats.get('cpu_stats', {})
+            
+            precpu_usage = precpu_stats.get('cpu_usage', {}).get('total_usage', 0)
+            cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
+            precpu_system = precpu_stats.get('system_cpu_usage', 0)
+            cpu_system = cpu_stats.get('system_cpu_usage', 0)
+            
+            cpu_delta = cpu_usage - precpu_usage
+            system_delta = cpu_system - precpu_system
+            cpu_count = cpu_stats.get('online_cpus', len(cpu_stats.get('cpu_usage', {}).get('percpu_usage', [1])))
+            
+            if system_delta > 0 and cpu_delta > 0:
+              cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
+            else:
+              cpu_percent = 0.0
+            
+            # Get memory stats
+            mem_usage = stats['memory_stats'].get('usage', 0)
+            mem_limit = stats['memory_stats'].get('limit', 1)
+            mem_percent = (mem_usage / mem_limit * 100.0) if mem_limit > 0 else 0.0
+            
+            total_cpu += cpu_percent
+            total_memory += mem_usage
+            total_memory_percent += mem_percent
+            total_memory_limit += mem_limit
+            container_count += 1
+            
+          except Exception as e:
+            logger.error(f'fail to get stats for container {container_id}: {e}')
+            continue
+    
+    if container_count == 0:
+      return 0
+    
+    if metric_type == 'cpu':
+      return round(total_cpu / container_count, 2)
+    elif metric_type == 'memory':
+      return int(total_memory / container_count)
+    elif metric_type == 'memory_percent':
+      return round(total_memory_percent / container_count, 2)
+    elif metric_type == 'memory_limit':
+      return int(total_memory_limit / container_count)
+    else:
+      logger.error(f'unknown metric type: {metric_type}')
+      return 0
+      
+  except Exception as e:
+    logger.exception(f'fail to get stats for service "{service_name}": {e}')
+  return 0
+
+
+def replicas_count(client, logger, service_name, count_type):
+  """Get running or desired replica count for a service"""
+  try:
+    for service in client.services.list():
+      if service.name == service_name:
+        logger.debug(f'found service: {service_name}')
+        desired_count = 0
+        running_count = 0
+        for task in service.tasks():
+          if task.get('DesiredState') == 'running':
+            desired_count += 1
+            status = task.get('Status')
+            if status.get('State') == 'running':
+              running_count += 1
+        
+        if count_type == 'running':
+          return running_count
+        elif count_type == 'desired':
+          return desired_count
+        else:
+          logger.error(f'unknown count type: {count_type}')
+          return 0
+    logger.error(f'service {service_name} is not found')
+  except Exception as e:
+    logger.exception(f'fail to get replica count for "{service_name}": {e}')
+  return 0
+
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('servers', metavar='Server', nargs='+',
@@ -264,8 +374,12 @@ def main():
                      help="discover inner-services in a standalone type container and print zabbix discover data format json.", action="store_true")
   group.add_argument("--uptime", help="print least uptime for the service.", metavar='service')
   group.add_argument("--replicas", help="print available running task persentage for the service.", metavar='service')
+  group.add_argument("--stats", help="print CPU or memory stats for the service.", metavar='service')
+  group.add_argument("--replica-count", help="print running or desired replica count for the service.", metavar='service')
   parser.add_argument("--inner", help="name of inner service for standalone container.", metavar='inner')
   parser.add_argument("--dispose", help="number of cache entry refreleshed.", metavar='nDispose', type=int, default=0)
+  parser.add_argument("--metric", help="metric type for stats: cpu, memory, memory_percent, memory_limit", metavar='metric')
+  parser.add_argument("--count-type", help="count type for replica-count: running, desired", metavar='count_type')
   group.add_argument("--failed-innerservice-count",
                      help="count number of failed serivces in standalone type container and print", metavar='service')
   args = parser.parse_args()
@@ -303,6 +417,16 @@ def main():
       print(json.dumps(service_uptime(next(iter(clients.values())), logger, args.uptime)))
   elif args.replicas:
     print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
+  elif args.stats:
+    if not args.metric:
+      logger.error('--metric is required for --stats')
+      return
+    print(json.dumps(service_stats(clients, logger, args.stats, args.metric)))
+  elif args.replica_count:
+    if not args.count_type:
+      logger.error('--count-type is required for --replica-count')
+      return
+    print(json.dumps(replicas_count(next(iter(clients.values())), logger, args.replica_count, args.count_type)))
   elif args.failed_innerservice_count:
     print(json.dumps(failed_innerservice_count(clients, logger, args.failed_innerservice_count)))
   else:

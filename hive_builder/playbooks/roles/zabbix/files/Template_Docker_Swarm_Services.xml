@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.0</version>
+    <date>2025-12-23T00:00:00Z</date>
+    <groups>
+        <group>
+            <name>Templates/Applications</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>Docker Swarm Services</template>
+            <name>Docker Swarm Services</name>
+            <description>Template for monitoring Docker Swarm services (CPU, Memory, Replicas)</description>
+            <groups>
+                <group>
+                    <name>Templates/Applications</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>Docker Swarm</name>
+                </application>
+            </applications>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>Docker Swarm Service Resources Discovery</name>
+                    <key>docker.swarm.service.discovery</key>
+                    <delay>300</delay>
+                    <description>Discover Docker Swarm services running on this node</description>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: CPU usage</name>
+                            <key>docker.swarm.service.cpu[{#SERVICE_NAME}]</key>
+                            <delay>60</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <value_type>FLOAT</value_type>
+                            <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Average CPU usage percentage for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: Memory usage</name>
+                            <key>docker.swarm.service.memory[{#SERVICE_NAME}]</key>
+                            <delay>60</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Memory usage in bytes for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: Memory usage percentage</name>
+                            <key>docker.swarm.service.memory.percent[{#SERVICE_NAME}]</key>
+                            <delay>60</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <value_type>FLOAT</value_type>
+                            <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Memory usage percentage for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: Memory limit</name>
+                            <key>docker.swarm.service.memory.limit[{#SERVICE_NAME}]</key>
+                            <delay>300</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Memory limit for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: Running replicas</name>
+                            <key>docker.swarm.service.replicas.running[{#SERVICE_NAME}]</key>
+                            <delay>60</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Number of running replicas for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Service {#SERVICE_NAME}: Desired replicas</name>
+                            <key>docker.swarm.service.replicas.desired[{#SERVICE_NAME}]</key>
+                            <delay>60</delay>
+                            <history>7d</history>
+                            <trends>90d</trends>
+                            <applications>
+                                <application>
+                                    <name>Docker Swarm</name>
+                                </application>
+                            </applications>
+                            <description>Desired number of replicas for service {#SERVICE_NAME}</description>
+                        </item_prototype>
+                    </item_prototypes>
+                    <trigger_prototypes>
+                        <trigger_prototype>
+                            <expression>{Docker Swarm Services:docker.swarm.service.cpu[{#SERVICE_NAME}].avg(5m)}&gt;80</expression>
+                            <name>Service {#SERVICE_NAME}: High CPU usage (over 80% for 5m)</name>
+                            <priority>WARNING</priority>
+                            <description>The service {#SERVICE_NAME} has high CPU usage</description>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Docker Swarm Services:docker.swarm.service.memory.percent[{#SERVICE_NAME}].avg(5m)}&gt;90</expression>
+                            <name>Service {#SERVICE_NAME}: High memory usage (over 90% for 5m)</name>
+                            <priority>WARNING</priority>
+                            <description>The service {#SERVICE_NAME} has high memory usage</description>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Docker Swarm Services:docker.swarm.service.replicas.running[{#SERVICE_NAME}].last()}&lt;{Docker Swarm Services:docker.swarm.service.replicas.desired[{#SERVICE_NAME}].last()}</expression>
+                            <name>Service {#SERVICE_NAME}: Replica count mismatch</name>
+                            <priority>HIGH</priority>
+                            <description>The service {#SERVICE_NAME} has fewer running replicas than desired</description>
+                        </trigger_prototype>
+                    </trigger_prototypes>
+                    <graph_prototypes>
+                        <graph_prototype>
+                            <name>Service {#SERVICE_NAME}: CPU usage</name>
+                            <graph_items>
+                                <graph_item>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Docker Swarm Services</host>
+                                        <key>docker.swarm.service.cpu[{#SERVICE_NAME}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                        <graph_prototype>
+                            <name>Service {#SERVICE_NAME}: Memory usage</name>
+                            <ymin_type_1>FIXED</ymin_type_1>
+                            <graph_items>
+                                <graph_item>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Docker Swarm Services</host>
+                                        <key>docker.swarm.service.memory[{#SERVICE_NAME}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>F63100</color>
+                                    <item>
+                                        <host>Docker Swarm Services</host>
+                                        <key>docker.swarm.service.memory.limit[{#SERVICE_NAME}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                        <graph_prototype>
+                            <name>Service {#SERVICE_NAME}: Replicas</name>
+                            <graph_items>
+                                <graph_item>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Docker Swarm Services</host>
+                                        <key>docker.swarm.service.replicas.running[{#SERVICE_NAME}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>2774A4</color>
+                                    <item>
+                                        <host>Docker Swarm Services</host>
+                                        <key>docker.swarm.service.replicas.desired[{#SERVICE_NAME}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                    </graph_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+        </template>
+    </templates>
+</zabbix_export>

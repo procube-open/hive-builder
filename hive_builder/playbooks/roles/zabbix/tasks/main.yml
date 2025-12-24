@@ -111,6 +111,7 @@
       - hive-server.xml
       - hive-server-selinux.xml
       - Template_App_systemd_Services.xml
+      - Template_Docker_Swarm_Services.xml
 
   - name: register hive hosts to zabbix
     zabbix_host:
@@ -124,6 +125,7 @@
         {%- set templates = [hive_zabbix_template | default('Linux by Zabbix agent')] -%}
         {%- if item in groups['repository'] -%}
           {%- set _ = templates.append('Hive Repository Server') -%}
+          {%- set _ = templates.append('Docker Swarm Services') -%}
         {%- endif -%}
         {%- if item in groups['hives'] -%}
           {%- set _ = templates.append('Hive Server') -%}
