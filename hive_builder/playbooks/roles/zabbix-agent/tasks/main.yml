@@ -165,9 +165,9 @@
     mode: 0644
   loop:
     - src: docker-volume.j2
-      dest: docker-volume.conf
+      dest: docker-volume-{{ hive_name }}.conf
     - src: docker-service.j2
-      dest: docker-service.conf
+      dest: docker-service-{{ hive_name }}.conf
   notify: zabbix-agent configured
   when: "'repository' in group_names"
 - name: add cache builder for zabbix agent service

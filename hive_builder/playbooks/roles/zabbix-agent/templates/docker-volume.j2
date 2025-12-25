@@ -1,2 +1,2 @@
-UserParameter=user.discovery.docker-volume,sh -c "export DOCKER_HOST={{ groups['hives'] | intersect(groups[hive_stage]) | first }}:2376;export DOCKER_TLS_VERIFY=1;/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-volume-discover.py"
-UserParameter=docker-volume[*],sh -c "dexec -n $1 df $2 | awk 'NR==2{ sub(/.$/,\"\",\$$5);print \$$5;}'"
+UserParameter=user.discovery.docker-volume.{{ hive_name }},sh -c "export DOCKER_HOST={{ groups['hives'] | intersect(groups[hive_stage]) | first }}:2376;export DOCKER_TLS_VERIFY=1;/var/lib/zabbix/docker/bin/python;export HIVE_NAME={{ hive_name }};/var/lib/zabbix/docker-volume-discover.py"
+UserParameter=docker-volume.{{ hive_name }}[*],sh -c "export DOCKER_HOST={{ groups['hives'] | intersect(groups[hive_stage]) | first }}:2376;export DOCKER_TLS_VERIFY=1;export HIVE_NAME={{ hive_name }};dexec -n $1 df $2 | awk 'NR==2{ sub(/.$/,\"\",\$$5);print \$$5;}'"

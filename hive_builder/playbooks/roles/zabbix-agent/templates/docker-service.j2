@@ -1,16 +1,16 @@
-UserParameter=user.discovery.docker-service,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=user.discovery.docker-standalone-service,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-standalone {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker-service-uptime[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker-service-replicas[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replicas $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=user.discovery.docker-innerservice,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-innerservice {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker-innerservice-uptime[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 --inner $2 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker-failed-innerservice-count[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --failed-innerservice-count $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=user.discovery.docker-service.{{ hive_name }},/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=user.discovery.docker-standalone-service.{{ hive_name }},/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-standalone {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker-service-uptime.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker-service-replicas.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replicas $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=user.discovery.docker-innerservice.{{ hive_name }},/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover-innerservice {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker-innerservice-uptime.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --uptime $1 --inner $2 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker-failed-innerservice-count.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --failed-innerservice-count $1 {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
 
 # Docker Swarm service monitoring (CPU, Memory, Replicas)
-UserParameter=docker.swarm.service.cpu[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric cpu {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.memory[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.memory.percent[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory_percent {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.memory.limit[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory_limit {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.replicas.running[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replica-count $1 --count-type running {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.replicas.desired[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replica-count $1 --count-type desired {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
-UserParameter=docker.swarm.service.discovery,/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.cpu.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric cpu {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.memory.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.memory.percent.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory_percent {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.memory.limit.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --stats $1 --metric memory_limit {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.replicas.running.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replica-count $1 --count-type running {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.replicas.desired.{{ hive_name }}[*],/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --replica-count $1 --count-type desired {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
+UserParameter=docker.swarm.service.discovery.{{ hive_name }},/var/lib/zabbix/docker/bin/python /var/lib/zabbix/docker-service.py --discover {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }}
