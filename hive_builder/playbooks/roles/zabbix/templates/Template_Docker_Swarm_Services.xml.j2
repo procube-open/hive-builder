@@ -23,15 +23,16 @@
                 </application>
             </applications>
             <discovery_rules>
+{% for hive in hive_names %}
                 <discovery_rule>
-                    <name>Docker Swarm Service Resources Discovery</name>
-                    <key>docker.swarm.service.discovery</key>
+                    <name>Docker Swarm Service Resources Discovery {{ hive }}</name>
+                    <key>docker.swarm.service.discovery.{{ hive }}</key>
                     <delay>300</delay>
-                    <description>Discover Docker Swarm services running on this node</description>
+                    <description>Discover Docker Swarm services running on this node ({{ hive }})</description>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: CPU usage</name>
-                            <key>docker.swarm.service.cpu[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: CPU usage ({{ hive }})</name>
+                            <key>docker.swarm.service.cpu.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>60</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -42,11 +43,11 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Average CPU usage percentage for service {#SERVICE_NAME}</description>
+                            <description>Average CPU usage percentage for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: Memory usage</name>
-                            <key>docker.swarm.service.memory[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Memory usage ({{ hive }})</name>
+                            <key>docker.swarm.service.memory.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>60</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -56,11 +57,11 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Memory usage in bytes for service {#SERVICE_NAME}</description>
+                            <description>Memory usage in bytes for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: Memory usage percentage</name>
-                            <key>docker.swarm.service.memory.percent[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Memory usage percentage ({{ hive }})</name>
+                            <key>docker.swarm.service.memory.percent.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>60</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -71,11 +72,11 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Memory usage percentage for service {#SERVICE_NAME}</description>
+                            <description>Memory usage percentage for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: Memory limit</name>
-                            <key>docker.swarm.service.memory.limit[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Memory limit ({{ hive }})</name>
+                            <key>docker.swarm.service.memory.limit.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>300</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -85,11 +86,11 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Memory limit for service {#SERVICE_NAME}</description>
+                            <description>Memory limit for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: Running replicas</name>
-                            <key>docker.swarm.service.replicas.running[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Running replicas ({{ hive }})</name>
+                            <key>docker.swarm.service.replicas.running.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>60</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -98,11 +99,11 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Number of running replicas for service {#SERVICE_NAME}</description>
+                            <description>Number of running replicas for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                         <item_prototype>
-                            <name>Service {#SERVICE_NAME}: Desired replicas</name>
-                            <key>docker.swarm.service.replicas.desired[{#SERVICE_NAME}]</key>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Desired replicas ({{ hive }})</name>
+                            <key>docker.swarm.service.replicas.desired.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>60</delay>
                             <history>7d</history>
                             <trends>90d</trends>
@@ -111,51 +112,51 @@
                                     <name>Docker Swarm</name>
                                 </application>
                             </applications>
-                            <description>Desired number of replicas for service {#SERVICE_NAME}</description>
+                            <description>Desired number of replicas for service {{ '{#SERVICE_NAME}' }} ({{ hive }})</description>
                         </item_prototype>
                     </item_prototypes>
                     <trigger_prototypes>
                         <trigger_prototype>
-                            <expression>{Docker Swarm Services:docker.swarm.service.cpu[{#SERVICE_NAME}].avg(5m)}&gt;80</expression>
-                            <name>Service {#SERVICE_NAME}: High CPU usage (over 80% for 5m)</name>
+                            <expression>{Docker Swarm Services:docker.swarm.service.cpu.{{ hive }}[{{ '{#SERVICE_NAME}' }}].avg(5m)}&gt;80</expression>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: High CPU usage (over 80% for 5m) ({{ hive }})</name>
                             <priority>WARNING</priority>
-                            <description>The service {#SERVICE_NAME} has high CPU usage</description>
+                            <description>The service {{ '{#SERVICE_NAME}' }} has high CPU usage ({{ hive }})</description>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <expression>{Docker Swarm Services:docker.swarm.service.memory.percent[{#SERVICE_NAME}].avg(5m)}&gt;90</expression>
-                            <name>Service {#SERVICE_NAME}: High memory usage (over 90% for 5m)</name>
+                            <expression>{Docker Swarm Services:docker.swarm.service.memory.percent.{{ hive }}[{{ '{#SERVICE_NAME}' }}].avg(5m)}&gt;90</expression>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: High memory usage (over 90% for 5m) ({{ hive }})</name>
                             <priority>WARNING</priority>
-                            <description>The service {#SERVICE_NAME} has high memory usage</description>
+                            <description>The service {{ '{#SERVICE_NAME}' }} has high memory usage ({{ hive }})</description>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <expression>{Docker Swarm Services:docker.swarm.service.replicas.running[{#SERVICE_NAME}].last()}&lt;{Docker Swarm Services:docker.swarm.service.replicas.desired[{#SERVICE_NAME}].last()}</expression>
-                            <name>Service {#SERVICE_NAME}: Replica count mismatch</name>
+                            <expression>{Docker Swarm Services:docker.swarm.service.replicas.running.{{ hive }}[{{ '{#SERVICE_NAME}' }}].last()}&lt;{Docker Swarm Services:docker.swarm.service.replicas.desired.{{ hive }}[{{ '{#SERVICE_NAME}' }}].last()}</expression>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Replica count mismatch ({{ hive }})</name>
                             <priority>HIGH</priority>
-                            <description>The service {#SERVICE_NAME} has fewer running replicas than desired</description>
+                            <description>The service {{ '{#SERVICE_NAME}' }} has fewer running replicas than desired ({{ hive }})</description>
                         </trigger_prototype>
                     </trigger_prototypes>
                     <graph_prototypes>
                         <graph_prototype>
-                            <name>Service {#SERVICE_NAME}: CPU usage</name>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: CPU usage ({{ hive }})</name>
                             <graph_items>
                                 <graph_item>
                                     <color>1A7C11</color>
                                     <item>
                                         <host>Docker Swarm Services</host>
-                                        <key>docker.swarm.service.cpu[{#SERVICE_NAME}]</key>
+                                        <key>docker.swarm.service.cpu.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                                     </item>
                                 </graph_item>
                             </graph_items>
                         </graph_prototype>
                         <graph_prototype>
-                            <name>Service {#SERVICE_NAME}: Memory usage</name>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Memory usage ({{ hive }})</name>
                             <ymin_type_1>FIXED</ymin_type_1>
                             <graph_items>
                                 <graph_item>
                                     <color>1A7C11</color>
                                     <item>
                                         <host>Docker Swarm Services</host>
-                                        <key>docker.swarm.service.memory[{#SERVICE_NAME}]</key>
+                                        <key>docker.swarm.service.memory.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                                     </item>
                                 </graph_item>
                                 <graph_item>
@@ -163,19 +164,19 @@
                                     <color>F63100</color>
                                     <item>
                                         <host>Docker Swarm Services</host>
-                                        <key>docker.swarm.service.memory.limit[{#SERVICE_NAME}]</key>
+                                        <key>docker.swarm.service.memory.limit.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                                     </item>
                                 </graph_item>
                             </graph_items>
                         </graph_prototype>
                         <graph_prototype>
-                            <name>Service {#SERVICE_NAME}: Replicas</name>
+                            <name>Service {{ '{#SERVICE_NAME}' }}: Replicas ({{ hive }})</name>
                             <graph_items>
                                 <graph_item>
                                     <color>1A7C11</color>
                                     <item>
                                         <host>Docker Swarm Services</host>
-                                        <key>docker.swarm.service.replicas.running[{#SERVICE_NAME}]</key>
+                                        <key>docker.swarm.service.replicas.running.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                                     </item>
                                 </graph_item>
                                 <graph_item>
@@ -183,13 +184,14 @@
                                     <color>2774A4</color>
                                     <item>
                                         <host>Docker Swarm Services</host>
-                                        <key>docker.swarm.service.replicas.desired[{#SERVICE_NAME}]</key>
+                                        <key>docker.swarm.service.replicas.desired.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                                     </item>
                                 </graph_item>
                             </graph_items>
                         </graph_prototype>
                     </graph_prototypes>
                 </discovery_rule>
+{% endfor %}
             </discovery_rules>
         </template>
     </templates>
