@@ -2,6 +2,7 @@
 
 export DOCKER_HOST={{ groups['first_hive'] | intersect(groups[hive_stage]) | first }}:2376
 export DOCKER_TLS=1
+export HIVE_NAME={{ hive_name }}
 
 {% set hive_safe_backup_scripts = hostvars[hive_safe_target].hive_backup_scripts %}
 function backup_{{ hive_safe_target }}() {
