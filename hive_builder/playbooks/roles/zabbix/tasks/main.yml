@@ -100,6 +100,28 @@
   # 1. first delete the template
   # 2. upload by ansible
   # 3. download and replace template XML(avoid error caused by difference of order of elements)
+  - name: generate hive-repository-server.xml from template
+    set_fact:
+      hive_repository_server_xml: "{{ lookup('template', 'hive-repository-server.xml.j2') }}"
+    vars:
+      hive_names: "{{ hive_zabbix_hive_names | default([hive_name]) }}"
+  - name: upload hive-repository-server template
+    zabbix_template:
+      server_url: http://localhost:{{ hive_safe_zabbix_port }}
+      login_user: admin
+      login_password: zabbix
+      template_xml: "{{ hive_repository_server_xml }}"
+  - name: generate Template_Docker_Swarm_Services.xml from template
+    set_fact:
+      docker_swarm_services_xml: "{{ lookup('template', 'Template_Docker_Swarm_Services.xml.j2') }}"
+    vars:
+      hive_names: "{{ hive_zabbix_hive_names | default([hive_name]) }}"
+  - name: upload Docker Swarm Services template
+    zabbix_template:
+      server_url: http://localhost:{{ hive_safe_zabbix_port }}
+      login_user: admin
+      login_password: zabbix
+      template_xml: "{{ docker_swarm_services_xml }}"
   - name: upload templates
     zabbix_template:
       server_url: http://localhost:{{ hive_safe_zabbix_port }}
@@ -107,11 +129,9 @@
       login_password: zabbix
       template_xml: "{{ lookup('file', item) }}"
     loop:
-      - hive-repository-server.xml
       - hive-server.xml
       - hive-server-selinux.xml
       - Template_App_systemd_Services.xml
-      - Template_Docker_Swarm_Services.xml
 
   - name: register hive hosts to zabbix
     zabbix_host:

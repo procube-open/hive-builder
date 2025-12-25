@@ -49,14 +49,15 @@
                 </item>
             </items>
             <discovery_rules>
+{% for hive in hive_names %}
                 <discovery_rule>
-                    <name>Docker Inner-service discovery</name>
-                    <key>user.discovery.docker-innerservice</key>
+                    <name>Docker Inner-service discovery {{ hive }}</name>
+                    <key>user.discovery.docker-innerservice.{{ hive }}</key>
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Docker Inner-service uptime {#INNER}@{#SERVICE_NAME}</name>
-                            <key>docker-innerservice-uptime[{#SERVICE_NAME},{#INNER}]</key>
+                            <name>Docker Inner-service uptime {{ '{#INNER}' }}@{{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
+                            <key>docker-innerservice-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#INNER}' }}]</key>
                             <delay>5m</delay>
                             <applications>
                                 <application>
@@ -66,7 +67,7 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#1)}&lt;28800</expression>
-                                    <name>Service {#INNER} in container {#SERVICE_NAME} restarted</name>
+                                    <name>Service {{ '{#INNER}' }} in container {{ '{#SERVICE_NAME}' }} restarted ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
@@ -74,13 +75,13 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
-                    <name>Docker Swarm Service discovery</name>
-                    <key>user.discovery.docker-service</key>
+                    <name>Docker Swarm Service discovery {{ hive }}</name>
+                    <key>user.discovery.docker-service.{{ hive }}</key>
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Docker Swarm Service replicas {#SERVICE_NAME}</name>
-                            <key>docker-service-replicas[{#SERVICE_NAME}]</key>
+                            <name>Docker Swarm Service replicas {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
+                            <key>docker-service-replicas.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <applications>
                                 <application>
                                     <name>Docker</name>
@@ -89,14 +90,14 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#1)}&lt;100</expression>
-                                    <name>Service {#SERVICE_NAME} replicas running percetage less than 100</name>
+                                    <name>Service {{ '{#SERVICE_NAME}' }} replicas running percetage less than 100 ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
                         </item_prototype>
                         <item_prototype>
-                            <name>Docker Swarm Service uptime {#SERVICE_NAME}</name>
-                            <key>docker-service-uptime[{#SERVICE_NAME}]</key>
+                            <name>Docker Swarm Service uptime {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
+                            <key>docker-service-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>5m</delay>
                             <applications>
                                 <application>
@@ -106,7 +107,7 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#1)}&lt;28800</expression>
-                                    <name>Service {#SERVICE_NAME} restarted</name>
+                                    <name>Service {{ '{#SERVICE_NAME}' }} restarted ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
@@ -114,13 +115,13 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
-                    <name>Docker Swarm Standalone Service discovery</name>
-                    <key>user.discovery.docker-standalone-service</key>
+                    <name>Docker Swarm Standalone Service discovery {{ hive }}</name>
+                    <key>user.discovery.docker-standalone-service.{{ hive }}</key>
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Docker Failed Innerservice count in {#SERVICE_NAME}</name>
-                            <key>docker-failed-innerservice-count[{#SERVICE_NAME}]</key>
+                            <name>Docker Failed Innerservice count in {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
+                            <key>docker-failed-innerservice-count.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <applications>
                                 <application>
                                     <name>Docker</name>
@@ -129,7 +130,7 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#1)}&gt;0</expression>
-                                    <name>At least one of the services in standalone type container {#SERVICE_NAME} is in a failed state</name>
+                                    <name>At least one of the services in standalone type container {{ '{#SERVICE_NAME}' }} is in a failed state ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
@@ -137,13 +138,13 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
-                    <name>Volume usage discovery</name>
-                    <key>user.discovery.docker-volume</key>
+                    <name>Volume usage discovery {{ hive }}</name>
+                    <key>user.discovery.docker-volume.{{ hive }}</key>
                     <delay>1h</delay>
                     <item_prototypes>
                         <item_prototype>
-                            <name>Docker volume {#NAME} in {#SERVICE_NAME}</name>
-                            <key>docker-volume[{#SERVICE_NAME},{#PATH}]</key>
+                            <name>Docker volume {{ '{#NAME}' }} in {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
+                            <key>docker-volume.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#PATH}' }}]</key>
                             <delay>10m</delay>
                             <units>%</units>
                             <applications>
@@ -154,13 +155,14 @@
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <expression>{last(#3)}&gt;90</expression>
-                                    <name>Exceed 90% Docker volume {#NAME} in {#SERVICE_NAME} usage</name>
+                                    <name>Exceed 90% Docker volume {{ '{#NAME}' }} in {{ '{#SERVICE_NAME}' }} usage ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
                         </item_prototype>
                     </item_prototypes>
                 </discovery_rule>
+{% endfor %}
             </discovery_rules>
         </template>
     </templates>
