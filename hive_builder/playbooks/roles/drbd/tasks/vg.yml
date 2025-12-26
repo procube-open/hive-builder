@@ -13,8 +13,11 @@
   loop: "{{ disk.device_order }}"
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
   failed_when: False
+# Select device with no partitions (empty disk for DRBD), fallback to first device with partitions defined
 - set_fact:
-    hive_safe_mirrored_device: "{{ hive_safe_devices.results | selectattr('partitions','defined') |first }}"
+    hive_safe_mirrored_device: >-
+      {{ (hive_safe_devices.results | selectattr('partitions','defined') | selectattr('partitions', 'equalto', []) | list | first | default(None)) or
+         (hive_safe_devices.results | selectattr('partitions','defined') | first) }}
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 # from https://askubuntu.com/questions/201164/proper-alignment-of-partitions-on-an-advanced-format-hdd-using-parted
 # Parted is just being overly conservative. The usual practice these days is to align partitions
