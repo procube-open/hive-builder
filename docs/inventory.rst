@@ -256,6 +256,16 @@ shared_repository が設定されている場合、レポジトリサーバは�
 監視したいhive群のcontext_dir に同一のものを指定することで、同一の共有レポジトリサーバを参照することができます。
 ただし、一つのマザーに複数の共有レポジトリサーバを構築することはできません。
 
+**変数設定**
+shared-repositoryを使用する場合、inventory/group_vars/all.ymlにhive_zabbix_hive_names変数を設定する必要があります。
+例えば、 dev1, dev2 という名前のhive群を共有レポジトリサーバで監視する場合、以下のように設定します。
+::
+
+  # zabbix
+  hive_zabbix_hive_names:
+    - dev1
+    - dev2  
+
 **port の割当**
 
 外部との通信に使用するポートはそれぞれ以下の通りです。
