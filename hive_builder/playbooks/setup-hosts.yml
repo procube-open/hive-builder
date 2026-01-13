@@ -60,9 +60,6 @@
       when: hive_ssh_source_ips is defined
     - role: docker
       tags: ["docker"]
-    - role: drbd
-      tags: ["drbd"]
-      when: hive_mirrored_disk_size is defined or hive_provider in ['kickstart', 'prepared']
     - role: docker-client
       tags: ["docker-client"]
     - role: docker-client-proxy
@@ -123,6 +120,9 @@
   roles:
     - role: swarm
       tags: ["swarm"]
+    - role: drbd
+      tags: ["drbd"]
+      when: hive_mirrored_disk_size is defined or hive_provider in ['kickstart', 'prepared']
     - role: reboot
       tags: ["reboot"]
 
