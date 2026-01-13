@@ -3,6 +3,7 @@
   file:
     path: "{{ hive_shared_repository_path }}"
     state: directory
+  notify: restart shared repository
 - name: put files
   template:
     src: "{{ item }}"
@@ -12,6 +13,7 @@
   - chown.service
   - dnsdist.conf
   - hosts.lua
+  notify: restart shared repository
 - name: check hosts
   stat:
     path: "{{ hive_shared_repository_path }}/hosts"
@@ -21,6 +23,7 @@
     path: "{{ hive_shared_repository_path }}/hosts"
     state: touch
   when: not hosts_stat.stat.exists
+  notify: restart shared repository
 - name: check hosts.yml
   stat:
     path: "{{ hive_shared_repository_path }}/hosts.yml"
@@ -30,6 +33,7 @@
     state: touch
     path: "{{ hive_shared_repository_path }}/hosts.yml"
   when: not hosts_yml_stat.stat.exists
+  notify: restart shared repository
 - name: check authorized_keys
   stat:
     path: "{{ hive_shared_repository_path }}/authorized_keys"
@@ -41,12 +45,14 @@
     mode: '600'
   become: True
   when: not authorized_keys_stat.stat.exists
+  notify: restart shared repository
 - name: add authorized key
   blockinfile:
     path: "{{ hive_shared_repository_path }}/authorized_keys"
     block: "{{ lookup('file', hive_context_dir + '/id_rsa.pub') }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK {{ inventory_hostname }}"
   become: true
+  notify: restart shared repository
 - name: check registry_password
   stat:
     path: "{{ hive_shared_repository_path }}/registry_password"
@@ -57,12 +63,14 @@
     dest: "{{ hive_shared_repository_path }}/registry_password"
   become: true
   when: not registry_password_stat.stat.exists
+  notify: restart shared repository
 - name: add symbolic link of registry_password
   file:
     src: "{{ hive_shared_repository_path }}/registry_password"
     dest: "{{ hive_context_dir }}/registry_password"
     state: link
   become: true
+  notify: restart shared repository
 - name: check docker-compose.yml
   stat:
     path: "{{ hive_shared_repository_path }}/docker-compose.yml"
@@ -72,11 +80,14 @@
     src: docker-compose.yml
     dest: "{{ hive_shared_repository_path }}/docker-compose.yml"
   when: not docker_compose_stat.stat.exists
+  notify: restart shared repository
 - name: compose up shared repository
   community.docker.docker_compose_v2:
     project_src: "{{ hive_shared_repository_path }}"
     # build: "always"
   become: true
+  register: compose_up_result
+- meta: flush_handlers
 - name: put ssh_config
   blockinfile:
     dest: "{{ hive_context_dir }}/ssh_config"

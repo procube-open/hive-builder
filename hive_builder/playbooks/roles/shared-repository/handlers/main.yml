@@ -1,0 +1,7 @@
+---
+- name: restart shared repository
+  community.docker.docker_compose_v2:
+    project_src: "{{ hive_shared_repository_path }}"
+    state: restarted
+  become: true
+  when: not compose_up_result.changed
