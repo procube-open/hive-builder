@@ -216,7 +216,17 @@
       EnvironmentFile=-/etc/environment
     dest: /usr/lib/systemd/system/dnf-makecache.service.d/override.conf
   when: check_http_proxy.rc == 0
-
+- name: check dnf-automatic.timer status
+  ansible.builtin.systemd_service:
+    name: dnf-automatic.timer
+  register: timer_status
+  ignore_errors: true
+- name: make dnf-automatic.timer stop & disable
+  ansible.builtin.systemd:
+    name: dnf-automatic.timer
+    state: stopped
+    enabled: false
+  when: timer_status.status is defined
 - name: check /sys/fs/cgroup option
   shell: mount | grep /sys/fs/cgroup | awk '{print $6}'
   register: mount_options

@@ -111,22 +111,23 @@
     owner: root
     group: root
     mode: 0644
-- name: check file 11-gce-network-security.conf
-  stat:
-    path: /etc/sysctl.d/11-gce-network-security.conf
-  register: gce_network_conf
-- name: "set kernel parameter for ip forwarding at gcp instance"
+- name: Find gce network security sysctl file
+  find:
+    paths: /etc/sysctl.d
+    patterns: "*-gce-network-security.conf"
+  register: gce_sysctl_file_found
+- name: Set kernel parameter for ip forwarding at gcp instance
   lineinfile:
     regexp: "{{ item }}=[01]"
     line: "{{ item }}=1"
-    path: /etc/sysctl.d/11-gce-network-security.conf
+    path: "{{ gce_sysctl_file_found.files[0].path }}"
     state: present
   with_items:
     - net.ipv4.ip_forward
     - net.ipv4.conf.all.send_redirects
     - net.ipv4.conf.default.send_redirects
   notify: require reboot
-  when: gce_network_conf.stat.exists
+  when: gce_sysctl_file_found.matched > 0
 - name: add config RestartSec - create dir
   file:
     dest: /usr/lib/systemd/system/docker.service.d
