@@ -75,15 +75,15 @@
     tag_mapping_json: "{{ dict() if lookup('first_found', dict(files=[hive_context_dir + '/tag-mapping.json'], skip=true)) == []
       else lookup('file',hive_context_dir + '/tag-mapping.json') | from_json}}"
     hive_safe_proxy_setting:
-      HTTP_PROXY: "{{ ansible_env.HTTP_PROXY | default('') }}"
-      http_proxy: "{{ ansible_env.http_proxy  | default('') }}"
-      HTTPS_PROXY: "{{ ansible_env.HTTPS_PROXY | default('') }}"
-      https_proxy: "{{ ansible_env.https_proxy  | default('') }}"
-      NO_PROXY: "{{ ansible_env.NO_PROXY | default('') }}"
-      no_proxy: "{{ ansible_env.no_proxy  | default('') }}"
+      HTTP_PROXY: "{{ ansible_env.HTTP_PROXY | default(omit) }}"
+      http_proxy: "{{ ansible_env.http_proxy  | default(omit) }}"
+      HTTPS_PROXY: "{{ ansible_env.HTTPS_PROXY | default(omit) }}"
+      https_proxy: "{{ ansible_env.https_proxy  | default(omit) }}"
+      NO_PROXY: "{{ ansible_env.NO_PROXY | default(omit) }}"
+      no_proxy: "{{ ansible_env.no_proxy  | default(omit) }}"
       PIP_CERT: "{{ '/etc/cacert_pip.pem' if hive_http_proxy is defined else omit }}"
-      PIP_INDEX_URL: "{{ ansible_env.PIP_INDEX_URL | default('') }}"
-      PIP_TRUSTED_HOST: "{{ ansible_env.PIP_TRUSTED_HOST | default('') }}"
+      PIP_INDEX_URL: "{{ ansible_env.PIP_INDEX_URL | default(omit) }}"
+      PIP_TRUSTED_HOST: "{{ ansible_env.PIP_TRUSTED_HOST | default(omit) }}"
 
   tasks:
   - name: get containers for the serivce
