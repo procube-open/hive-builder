@@ -45,7 +45,7 @@ options:
   strict_ssl_checking:
     description:
     - Disables strict certificate checking
-    default: false
+    default: true
 author: "Thomas Krahn (@nosmoht)"
 '''
 
@@ -61,7 +61,6 @@ EXAMPLES = '''
     pdns_host: powerdns.example.cm
     pdns_port: 8080
     pdns_api_key: topsecret
-
 # Ensure a zone is absent
 - powerdns_zone:
     name: old-zone.internal.example.com
@@ -71,7 +70,11 @@ EXAMPLES = '''
     pdns_api_key: topsecret
 '''
 
-import requests # noqa
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 
 class PowerDNSError(Exception):
@@ -83,8 +86,7 @@ class PowerDNSError(Exception):
 
 
 class PowerDNSClient:
-    def __init__(self, module, host, port, prot, api_key, verify):
-        self.module = module
+    def __init__(self, host, port, prot, api_key, verify):
         self.url = '{prot}://{host}:{port}/api/v1'.format(prot=prot, host=host, port=port)
         self.session = requests.Session()
         self.session.headers.update({'X-API-Key': api_key})
@@ -94,9 +96,9 @@ class PowerDNSClient:
         if req.status_code in [200, 201, 204]:
             if req.text:
                 try:
-                    return json.loads(req.text)
+                    return req.json()
                 except Exception as e:
-                    print(e)  # same as yield
+                    print(e) # same as yield
             return dict()
         elif req.status_code == 404:
             error_message = 'Not found'
@@ -108,14 +110,18 @@ class PowerDNSClient:
                             message=error_message)
 
     def _get_request_error_message(self, data):
-        request_json = data.json()
-        if 'error' in request_json:
-            request_error = request_json.get('error')
-        elif 'errors' in request_json:
-            request_error = request_json.get('errors')
-        else:
-            request_error = 'DONT KNOW'
-        return request_error
+        try:
+            request_json = data.json()
+            if 'error' in request_json:
+                request_error = request_json.get('error')
+            elif 'errors' in request_json:
+                request_error = request_json.get('errors')
+            else:
+                request_error = 'No error message found'
+            return request_error
+        except Exception:
+          pass
+        return data.text
 
     def _get_zones_url(self, server):
         return '{url}/servers/{server}/zones'.format(url=self.url, server=server)
@@ -124,7 +130,6 @@ class PowerDNSClient:
         return '{url}/{name}'.format(url=self._get_zones_url(server), name=name)
 
     def get_zone(self, server, name):
-        self.module.debug('HTTP GET {url}'.format(url=self._get_zone_url(server, name)))
         req = self.session.get(url=self._get_zone_url(server, name))
         if req.status_code == 422 or req.status_code == 404:  # zone does not exist
             return None
@@ -157,7 +162,6 @@ def ensure(module, pdns_client):
     server = module.params['server']
     state = module.params['state']
     try:
-        module.debug('get_zone({server},{name})')
         zone = pdns_client.get_zone(server, name)
     except PowerDNSError as e:
         module.fail_json(
@@ -169,9 +173,7 @@ def ensure(module, pdns_client):
                 zone = dict(name=name, kind=kind, nameservers=nameservers, masters=masters)
                 if module.check_mode:
                     module.exit_json(changed=True, zone=zone)
-                module.debug('create_zone({server},{name})')
                 pdns_client.create_zone(server, zone)
-                module.debug('get_zone({server},{name})')
                 return True, pdns_client.get_zone(server, name)
             except PowerDNSError as e:
                 module.fail_json(
@@ -220,7 +222,11 @@ def main():
         ),
         supports_check_mode=True,
     )
-    pdns_client = PowerDNSClient(module, host=module.params['pdns_host'],
+
+    if not HAS_REQUESTS:
+        module.fail_json(msg="requests must be installed to use this module.")
+
+    pdns_client = PowerDNSClient(host=module.params['pdns_host'],
                                  port=module.params['pdns_port'],
                                  prot=module.params['pdns_prot'],
                                  api_key=module.params['pdns_api_key'],
@@ -234,7 +240,7 @@ def main():
 
 
 # import module snippets
-from ansible.module_utils.basic import AnsibleModule, json # noqa
+from ansible.module_utils.basic import *
 
 if __name__ == '__main__':
     main()
