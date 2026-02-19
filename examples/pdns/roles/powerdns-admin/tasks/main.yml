@@ -1,18 +1,11 @@
 - name: install create admin script
   copy: src=create_admin.py dest=/app/ mode=0775
-# support proxy environment
-# avoid fail to helthcheck CMD wget, caused by the busybox version wget do not support no_proxy
-# we use GNU version wget
-# https://github.com/gliderlabs/docker-alpine/issues/259
-- name: install GNU version wget
-  apk:
-    name: wget
 - name: build initial database
   shell: |
     export SQLALCHEMY_DATABASE_URI=sqlite:////app/data/padmin.sqlite
     set -xe
     cd /app
-    mkdir data
+    mkdir -p data
     entrypoint.sh flask db upgrade
     entrypoint.sh ./create_admin.py "{{hostvars['pdnsadmin'].db_password}}"
     chown pda:pda -R data

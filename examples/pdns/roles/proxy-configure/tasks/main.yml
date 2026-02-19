@@ -1,10 +1,13 @@
 ---
 - name: install docker api and jinja2
-  pip:
-    name:
+  command:
+    argv:
+      - /usr/local/bin/python
+      - -m
+      - pip
+      - install
       - docker
       - jinja2
       - six
-    state: present
 - name: install configure
   copy: src=proxy-configure dest=/usr/sbin mode=0775

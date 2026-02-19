@@ -4,7 +4,7 @@ services:
   powerdns:
     image: procube/powerdns:latest
     environment:
-      MYSQL_PASSWORD: "{{db_password}}"
+      MYSQL_PASSWORD: "{{ db_password }}"
       MYSQL_HOST: pdnsdb
       MYSQL_DNSSEC: "yes"
       MYSQL_CHECK_INTERVAL: "10"
@@ -17,27 +17,25 @@ services:
     - "--webserver-allow-from=0.0.0.0/0"
     ports:
     - "53:53/tcp"
-    - "8081"
     - "53:53/udp"
     initialize_roles:
     - python-aptk
     - powerdns-init
-    replicas: 2
   pdnsdb:
     image:
       from: "mariadb:10.4"
       roles:
       - python-aptk
       - powerdns-initdb
-    endpoint_mode: dnsrr
     environment:
-      MYSQL_ROOT_PASSWORD: "{{db_password}}"
+      MYSQL_ROOT_PASSWORD: "{{ db_password }}"
       MYSQL_USER: powerdns
-      MYSQL_PASSWORD: "{{db_password}}"
+      MYSQL_PASSWORD: "{{ db_password }}"
       MYSQL_DATABASE: powerdns
       # maridb container spend long time to initialize timezone info of the database.
       # it can be skip by following envinronment variable.
       # MYSQL_INITDB_SKIP_TZINFO: "yes"
+    endpoint_mode: dnsrr
     volumes:
     - source: pdnsdb_data
       target: /var/lib/mysql
@@ -48,25 +46,16 @@ services:
         available_on:
         - production
         - staging
-    backup_scripts:
-    - name: pdnsdb
-      backup_command: "mysqldump -u powerdns -p{{db_password}} powerdns -r /root/today.sql"
-      restore_command: "echo source /root/today.sql | mysql -B -u powerdns -p{{db_password}} -D powerdns"
-      backup_file: /root/today.sql
-      restore_file: /root/today.sql
-      ext: sql
-      cleanup_days_before: 3
   pdnsadmin:
     image:
       from: ngoduykhanh/powerdns-admin:0.2.2
       roles:
-      - hive-trust-ca
       - powerdns-admin
-    endpoint_mode: dnsrr
     environment:
       SQLALCHEMY_DATABASE_URI: "sqlite:////app/data/padmin.sqlite"
       GUINCORN_TIMEOUT: "60"
       GUNICORN_WORKERS: "2"
+    endpoint_mode: dnsrr
     volumes:
     - source: pdnsadmin_data
       target: /app/data
@@ -77,14 +66,6 @@ services:
         available_on:
         - production
         - staging
-    labels:
-      published_fqdn: "pdnsadmin.{{ hive_name }}.{{ domain }}"
-    monitor_error:
-      - Error
-      - Exception
-    ignore_error:
-      - "Error handling request /(favicon.ico|echo.php)"
-      - "ERROR - Exception on /(favicon.ico|echo.php)"
   proxy:
     image: "procube/nginx:latest"
     ports:
