@@ -111,6 +111,6 @@
         IdentitiesOnly yes
         LogLevel FATAL
       {% if hive_http_proxy is defined %}  RemoteForward {{ hive_http_proxy_port }} {{ hive_http_proxy }}{% endif %}
-  loop: "{{ groups['servers'] | intersect(groups[hive_stage] )}}"
+  loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | sort}}"
   loop_control:
     loop_var: setup_host
