@@ -21,8 +21,8 @@ resource {{ hive_safe_volume.name }} {
     # following setting does not resolve stall problem
     # disk-timeout 100;
   }
-{% for host in groups['hives'] | intersect(groups[hive_stage]) %}
-  on {{ host }} {
+{% for host in groups['hives'] | intersect(groups[hive_stage]) | sort %}
+  on {{ host.split('.') | first }} {
     address   {{ hostvars[host].hive_private_ip }}:{{ 7000 + hive_safe_volume.drbd.device_id }};
     node-id   {{ loop.index0 }};
 {% if (hive_safe_volume.drbd.diskless is not defined or host not in hive_safe_volume.drbd.diskless) and not (hostvars[host].hive_no_mirrored_device | default(False)) %}
@@ -35,7 +35,7 @@ resource {{ hive_safe_volume.name }} {
   }
 {% endfor %}
   connection-mesh {
-    hosts {{ groups['hives'] | intersect(groups[hive_stage]) | join(' ') }};
+    hosts {{ groups['hives'] | intersect(groups[hive_stage]) | sort | map('split', '.') | map('first') | join(' ') }};
     net {
         max-buffers    16000;
         max-epoch-size 16000;
