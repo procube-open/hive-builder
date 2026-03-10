@@ -4,17 +4,28 @@
 # Copyright (c) 2018 Procube Co., Ltd.
 
 import docker
+import fcntl
 import logging
 from logging import handlers
 import json
+from json import JSONDecodeError
 import os
 import argparse
+import hashlib
 from datetime import datetime
 from time import time
 import re
+from contextlib import contextmanager, nullcontext
 # logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
-CACHE_FILE_DIR = '/var/lib/zabbix'
+CACHE_FILE_DIR = '/tmp/hive-builder-zabbix-cache'
+
+
+def get_reference_client(clients, logger):
+  client = next(iter(clients.values()), None)
+  if client is None:
+    logger.error('no reachable docker swarm nodes are available')
+  return client
 
 
 # python 3.6 does not support fromisoformat
@@ -24,6 +35,8 @@ def fromisoformat(str):
 
 
 def service_uptime(client, logger, service_name):
+  if client is None:
+    return 0
   try:
     for service in client.services.list():
       logger.debug(f'traverse services in {service.name}')
@@ -48,6 +61,8 @@ def service_uptime(client, logger, service_name):
 
 
 def replicas(client, logger, service_name):
+  if client is None:
+    return 0
   try:
     for service in client.services.list():
       logger.debug(f'traverse services in {service.name}')
@@ -69,6 +84,8 @@ def replicas(client, logger, service_name):
 
 
 def discover(client, logger, standalone=False):
+  if client is None:
+    return
   try:
     for service in client.services.list():
       logger.debug(f'found services : {service.name}')
@@ -86,82 +103,158 @@ def read_blacklist():
     return []
 
 
-def discover_innerservice(clients, logger, nDispose):
+def ensure_cache_dir(logger):
+  try:
+    os.makedirs(CACHE_FILE_DIR, mode=0o777, exist_ok=True)
+    os.chmod(CACHE_FILE_DIR, 0o777)
+    return True
+  except OSError as e:
+    logger.warning(f'failed to prepare cache directory "{CACHE_FILE_DIR}": {e}')
+  return False
+
+
+def build_cache_path(servers):
+  cache_key = hashlib.sha256('\n'.join(sorted(set(servers))).encode('utf-8')).hexdigest()[:16]
+  return CACHE_FILE_DIR + f'/discover_innerservice_cache_{cache_key}.json'
+
+
+@contextmanager
+def cache_lock(lock_path):
+  lock_file = open(lock_path, 'a+')
+  try:
+    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+    yield
+  finally:
+    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    lock_file.close()
+
+
+def load_cache(logger, cache_path):
+  if not os.path.exists(cache_path):
+    return {}
+
+  try:
+    with open(cache_path) as f:
+      content = f.read().strip()
+    if len(content) == 0:
+      logger.warning(f'cache file is empty: {cache_path}')
+      return {}
+    cache = json.loads(content)
+    if isinstance(cache, dict):
+      return cache
+    logger.warning(f'cache file does not contain object data: {cache_path}')
+  except (JSONDecodeError, OSError) as e:
+    logger.warning(f'failed to load cache file "{cache_path}": {e}')
+  return {}
+
+
+def save_cache(logger, cache_path, cache):
+  tmp_path = cache_path + f'.{os.getpid()}.tmp'
+  try:
+    with open(tmp_path, 'w') as f:
+      json.dump(cache, f, indent=2)
+      f.flush()
+      os.fsync(f.fileno())
+    os.replace(tmp_path, cache_path)
+  except OSError as e:
+    logger.warning(f'failed to save cache file "{cache_path}": {e}')
+    try:
+      if os.path.exists(tmp_path):
+        os.remove(tmp_path)
+    except OSError:
+      pass
+
+
+def discover_innerservice(clients, logger, nDispose, servers):
   blacklist = read_blacklist()
   cache = dict()
-  cache_path = CACHE_FILE_DIR + '/discover_innerservice_cache.json'
-  if os.path.exists(cache_path):
-    with open(cache_path) as f:
-      cache = json.load(f)
-    cache_list = sorted(cache.items(), key=lambda x: x[1]['mtime'])
-    # LRU: remove first nDispose items from cache
-    del cache_list[:nDispose]
-    cache = dict(cache_list)
-  try:
-    for service in next(iter(clients.values())).services.list():
-      labels = service.attrs.get('Spec', {}).get('Labels', {})
-      if labels.get('HIVE_STANDALONE', "False") == 'True':
-        logger.debug(f'traverse inner services in standalone container : {service.name}')
-        innerservices = set()
-        if service.name in cache:
-          logger.debug(f'cache hit for service : {service.name}')
-          innerservices = set(cache[service.name]['services'])
-        else:
-          for task in service.tasks():
-            if task.get('DesiredState') == 'running':
-              status = task.get('Status')
-              if status.get('State') == 'running':
-                logger.debug(f'found runinig task on {task.get("NodeID")}')
-                container_id = task.get('Status', {}).get('ContainerStatus', {}).get('ContainerID', '')
-                if len(container_id) == 0:
-                  logger.error(f'fail to get container ID for service "{service.name}" on node "{task.get("NodeID")}"')
-                  return
-                container = clients[task.get('NodeID')].containers.get(container_id)
-                (rc, data) = container.exec_run(
-                    'systemctl list-unit-files --type service --no-pager --no-legend',
-                    user='root')
-                decoded_data = ''
-                try:
-                  decoded_data = data.decode('utf-8')
-                except Exception:
-                  pass
-                if rc != 0:
-                  logger.error(f'fail to execute list-units on node "{task.get("NodeID")}": {decoded_data}')
-                  return
-                for l in decoded_data.splitlines():
-                  sname = l.split()[0]
-                  status = l.split()[1]
-                  if status == 'enabled' and ('@' not in sname) and not any(map(lambda pattern: pattern.match(sname), blacklist)):
-                    (rc, data) = container.exec_run(
-                        'systemctl show -p Type ' + sname, user='root')
-                    decoded_data = ''
-                    try:
-                      decoded_data = data.decode('utf-8')
-                    except Exception:
-                      pass
-                    if rc != 0:
-                      logger.error(f'fail to execute show -p Type {sname} in service "{service.name}" on node "{task.get("NodeID")}": {decoded_data}')
-                      return
-                    key_value = decoded_data.split('=')
-                    logger.debug(f'type of innner service {sname} of service "{service.name}" on node "{task.get("NodeID")}" is "{key_value[1]}"')
-                    if len(key_value) != 2 or key_value[0] != 'Type':
-                      logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p Type {sname}' +
-                                   f' in "{service.name}" on node "{task.get("NodeID")}"')
-                      return -1
-                    if key_value[1] not in ['oneshot', 'dbus'] and sname not in innerservices:
-                      innerservices.add(sname)
-          cache[service.name] = {'services': list(innerservices), 'mtime': time()}
-        for sname in innerservices:
-          yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}
-  except Exception as e:
-    logger.exception(f'fail to get inner se$rvices: {e}')
-  with open(cache_path, 'w') as f:
-    json.dump(cache, f, indent=2)
+  reference_client = get_reference_client(clients, logger)
+  if reference_client is None:
+    return
+  use_cache = ensure_cache_dir(logger)
+  if not use_cache:
+    logger.warning('cache is disabled because cache directory is not writable')
+  cache_path = build_cache_path(servers)
+  lock_path = cache_path + '.lock'
+  if use_cache:
+    lock_context = cache_lock(lock_path)
+  else:
+    lock_context = nullcontext()
+  with lock_context:
+    if os.path.exists(cache_path):
+      cache = load_cache(logger, cache_path)
+      cache_list = sorted(cache.items(), key=lambda x: x[1]['mtime'])
+      # LRU: remove first nDispose items from cache
+      del cache_list[:nDispose]
+      cache = dict(cache_list)
+    try:
+      for service in reference_client.services.list():
+        labels = service.attrs.get('Spec', {}).get('Labels', {})
+        if labels.get('HIVE_STANDALONE', "False") == 'True':
+          logger.debug(f'traverse inner services in standalone container : {service.name}')
+          innerservices = set()
+          if service.name in cache:
+            logger.debug(f'cache hit for service : {service.name}')
+            innerservices = set(cache[service.name]['services'])
+          else:
+            for task in service.tasks():
+              if task.get('DesiredState') == 'running':
+                status = task.get('Status')
+                if status.get('State') == 'running':
+                  logger.debug(f'found runinig task on {task.get("NodeID")}')
+                  container_id = task.get('Status', {}).get('ContainerStatus', {}).get('ContainerID', '')
+                  if len(container_id) == 0:
+                    logger.error(f'fail to get container ID for service "{service.name}" on node "{task.get("NodeID")}"')
+                    return
+                  container = clients[task.get('NodeID')].containers.get(container_id)
+                  (rc, data) = container.exec_run(
+                      'systemctl list-unit-files --type service --no-pager --no-legend',
+                      user='root')
+                  decoded_data = ''
+                  try:
+                    decoded_data = data.decode('utf-8')
+                  except Exception:
+                    pass
+                  if rc != 0:
+                    logger.error(f'fail to execute list-units on node "{task.get("NodeID")}": {decoded_data}')
+                    return
+                  for l in decoded_data.splitlines():
+                    sname = l.split()[0]
+                    status = l.split()[1]
+                    if status == 'enabled' and ('@' not in sname) and not any(map(lambda pattern: pattern.match(sname), blacklist)):
+                      (rc, data) = container.exec_run(
+                          'systemctl show -p Type ' + sname, user='root')
+                      decoded_data = ''
+                      try:
+                        decoded_data = data.decode('utf-8')
+                      except Exception:
+                        pass
+                      if rc != 0:
+                        logger.error(f'fail to execute show -p Type {sname} in service "{service.name}" on node "{task.get("NodeID")}": {decoded_data}')
+                        return
+                      key_value = decoded_data.split('=')
+                      logger.debug(f'type of innner service {sname} of service "{service.name}" on node "{task.get("NodeID")}" is "{key_value[1]}"')
+                      if len(key_value) != 2 or key_value[0] != 'Type':
+                        logger.error(f'fail to parse output "{decoded_data}" of command systemctl show -p Type {sname}' +
+                                     f' in "{service.name}" on node "{task.get("NodeID")}"')
+                        return -1
+                      if key_value[1] not in ['oneshot', 'dbus'] and sname not in innerservices:
+                        innerservices.add(sname)
+            cache[service.name] = {'services': list(innerservices), 'mtime': time()}
+          for sname in innerservices:
+            yield {'{#SERVICE_NAME}': service.name, '{#INNER}': sname.replace('@', '%')}
+    except Exception as e:
+      logger.exception(f'fail to get inner se$rvices: {e}')
+    if use_cache:
+      save_cache(logger, cache_path, cache)
 
 
 def service_uptime_innerservice(clients, logger, service_name, inner):
+  reference_client = get_reference_client(clients, logger)
+  if reference_client is None:
+    return -1
   try:
-    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
+    sl = [s for s in reference_client.services.list(filters={'name': service_name}) if s.name == service_name]
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return -1
@@ -215,8 +308,11 @@ def service_uptime_innerservice(clients, logger, service_name, inner):
 
 def failed_innerservice_count(clients, logger, service_name):
   blacklist = read_blacklist()
+  reference_client = get_reference_client(clients, logger)
+  if reference_client is None:
+    return 99
   try:
-    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
+    sl = [s for s in reference_client.services.list(filters={'name': service_name}) if s.name == service_name]
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return -1
@@ -255,8 +351,11 @@ def failed_innerservice_count(clients, logger, service_name):
 
 def service_stats(clients, logger, service_name, metric_type):
   """Get CPU and memory stats for a Docker Swarm service"""
+  reference_client = get_reference_client(clients, logger)
+  if reference_client is None:
+    return 0
   try:
-    sl = [s for s in next(iter(clients.values())).services.list(filters={'name': service_name}) if s.name == service_name]
+    sl = [s for s in reference_client.services.list(filters={'name': service_name}) if s.name == service_name]
     if len(sl) != 1:
       logger.error(f'fail to get service {service_name} count of service={len(sl)}')
       return 0
@@ -404,19 +503,21 @@ def main():
     else:
       logger.error(f'fail to get node id for server {server}')
 
+  reference_client = get_reference_client(clients, logger)
+
   if args.discover:
-    print(json.dumps(dict(data=[v for v in discover(next(iter(clients.values())), logger)])))
+    print(json.dumps(dict(data=[v for v in discover(reference_client, logger)])))
   elif args.discover_standalone:
-    print(json.dumps(dict(data=[v for v in discover(next(iter(clients.values())), logger, standalone=True)])))
+    print(json.dumps(dict(data=[v for v in discover(reference_client, logger, standalone=True)])))
   elif args.discover_innerservice:
-    print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger, args.dispose)])))
+    print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger, args.dispose, args.servers)])))
   elif args.uptime:
     if args.inner:
       print(json.dumps(service_uptime_innerservice(clients, logger, args.uptime, args.inner.replace('%', '@'))))
     else:
-      print(json.dumps(service_uptime(next(iter(clients.values())), logger, args.uptime)))
+      print(json.dumps(service_uptime(reference_client, logger, args.uptime)))
   elif args.replicas:
-    print(json.dumps(replicas(next(iter(clients.values())), logger, args.replicas)))
+    print(json.dumps(replicas(reference_client, logger, args.replicas)))
   elif args.stats:
     if not args.metric:
       logger.error('--metric is required for --stats')
@@ -426,7 +527,7 @@ def main():
     if not args.count_type:
       logger.error('--count-type is required for --replica-count')
       return
-    print(json.dumps(replicas_count(next(iter(clients.values())), logger, args.replica_count, args.count_type)))
+    print(json.dumps(replicas_count(reference_client, logger, args.replica_count, args.count_type)))
   elif args.failed_innerservice_count:
     print(json.dumps(failed_innerservice_count(clients, logger, args.failed_innerservice_count)))
   else:

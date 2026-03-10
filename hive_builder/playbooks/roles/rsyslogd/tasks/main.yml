@@ -15,6 +15,14 @@
     state: directory
     mode: 0755
 
+- name: get ip list of hives
+  when: hive_shared_repository is defined
+  block:
+  - name: get ip list
+    include_vars:
+      file: "{{ hive_shared_repository_path }}/hosts.yml"
+      name: loaded_ip_addresses
+
 - name: "install rsyslog config file"
   become: True
   template:
@@ -44,14 +52,6 @@
     path: /etc/rsyslog-services.d/
     state: directory
     mode: 0775
-
-- name: get ip list of hives
-  when: hive_shared_repository is defined
-  block:
-  - name: get ip list
-    include_vars:
-      file: "{{ hive_shared_repository_path }}/hosts.yml"
-      name: loaded_ip_addresses
 
 - import_tasks: iptables.yml
   vars:
