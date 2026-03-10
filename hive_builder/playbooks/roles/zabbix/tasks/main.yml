@@ -28,6 +28,11 @@
     include_vars:
       file: "{{ hive_shared_repository_path }}/hosts.yml"
       name: loaded_ip_addresses
+  - name: derive hive names on shared repository
+    when: hive_shared_repository is defined
+    set_fact:
+      hive_safe_zabbix_hive_names: >-
+        {{ ((loaded_ip_addresses.keys() | select('search', '\\.') | map('regex_replace', '^.*\\.', '') | list) + [hive_name]) | unique | sort }}
   - name: login to external repository
     docker_login:
       registry: "{{ item.repository | default(omit) }}"
@@ -104,7 +109,7 @@
     set_fact:
       hive_repository_server_xml: "{{ lookup('template', 'hive-repository-server.xml.j2') }}"
     vars:
-      hive_names: "{{ hive_zabbix_hive_names | default([hive_name]) }}"
+      hive_names: "{{ hive_safe_zabbix_hive_names | default(hive_zabbix_hive_names | default([hive_name])) }}"
   - name: upload hive-repository-server template
     zabbix_template:
       server_url: http://localhost:{{ hive_safe_zabbix_port }}
@@ -115,7 +120,7 @@
     set_fact:
       docker_swarm_services_xml: "{{ lookup('template', 'Template_Docker_Swarm_Services.xml.j2') }}"
     vars:
-      hive_names: "{{ hive_zabbix_hive_names | default([hive_name]) }}"
+      hive_names: "{{ hive_safe_zabbix_hive_names | default(hive_zabbix_hive_names | default([hive_name])) }}"
   - name: upload Docker Swarm Services template
     zabbix_template:
       server_url: http://localhost:{{ hive_safe_zabbix_port }}
