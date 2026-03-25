@@ -12,6 +12,7 @@
       name: "{{ item }}"
       driver: "overlay"
       driver_options: "{{ hostvars[item].hive_driver_opts | default(omit) }}"
+      attachable: "{{ hostvars[item].hive_network_attachable | default(true) }}"
       ipam_driver: "{{ hostvars[item].hive_ipam.driver | default(omit) }}"
       ipam_config: >-
         {%- if hostvars[item].hive_ipam.config is defined -%}
@@ -26,4 +27,3 @@
     register: create_network_result
     until: not create_network_result.failed
     retries: 5
-
