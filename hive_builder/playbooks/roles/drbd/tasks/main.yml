@@ -13,11 +13,6 @@
   become: true
   when: hive_safe_selinux != 'disabled'
 
-- name: check kernel version
-  shell: uname -r
-  register: uname_result
-  check_mode: False
-  changed_when: False
 # Ansible module unarchive supports extracting files from URL.
 # But there is not a way how to increase timeout in case of network
 # issues. Module get_url has default timeout 10 seconds for URL requests
@@ -27,9 +22,12 @@
   get_url:
     url: >-
       {{ hive_drbd_download_url | default(
-        'https://github.com/procube-open/drbd9-rpm/releases/download/'
-        + 'Latests/drbd-9.2.15-v9.29.0-6.12.0-124.8.1.el10_1.x86_64'
-        + '.tar.gz') }}
+        'https://github.com/procube-open/drbd9-rpm-automated/releases/download/'
+        ~ 'drbd-9.3.2-v9.34.0-'
+        ~ (ansible_kernel | trim)
+        ~ '/drbd-9.3.2-v9.34.0-'
+        ~ (ansible_kernel | trim)
+        ~ '.tar.gz') }}
     dest: /root/drbd9-rpm.tar.gz
 - name: extract drbd rpm files
   unarchive:
