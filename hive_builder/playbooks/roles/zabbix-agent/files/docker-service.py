@@ -15,10 +15,18 @@ import hashlib
 from datetime import datetime
 from time import time
 import re
+import uuid
+import sys
 from contextlib import contextmanager, nullcontext
 # logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
 CACHE_FILE_DIR = '/tmp/hive-builder-zabbix-cache'
+STATS_CACHE_FILE = CACHE_FILE_DIR + '/service_stats_cache.json'
+STATS_CACHE_FRESHNESS_SEC = 55  # delay=60秒より少し短く設定
+PROCESS_TIMING_LOG_FILE = CACHE_FILE_DIR + '/process_timing.csv'
+METRICS_TIMING_LOG_FILE = CACHE_FILE_DIR + '/metrics_timing.csv'
+SERVICES_SNAPSHOT_CACHE_FILE = CACHE_FILE_DIR + '/services_snapshot_cache.json'
+SERVICES_SNAPSHOT_FRESHNESS_SEC = 15  # docker service ls/ps相当、全サービスで共有する短めの間隔
 
 
 def get_reference_client(clients, logger):
@@ -34,50 +42,43 @@ def fromisoformat(str):
   return datetime.strptime(re.sub(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}).*$', r'\1', str), '%Y-%m-%dT%H:%M:%S.%f')
 
 
-def service_uptime(client, logger, service_name):
-  if client is None:
+def service_uptime(clients, logger, service_name):
+  tasks = get_tasks_for_service(clients, logger, service_name)
+  if tasks is None:
+    logger.error(f'service {service_name} is not found')
     return 0
   try:
-    for service in client.services.list():
-      logger.debug(f'traverse services in {service.name}')
-      if service.name == service_name:
-        logger.debug(f'found service: {service_name}')
-        min = -1
-        for task in service.tasks():
-          logger.debug(task.get('DesiredState'))
-          if task.get('DesiredState') == 'running':
-            status = task.get('Status')
-            if status.get('State') == 'running':
-              logger.debug(f'found runinig task start_time={status.get("Timestamp")}')
-              # s_uptime = int((datetime.now() - datetime.fromisoformat(status.get('Timestamp'))).total_seconds())
-              s_uptime = int((datetime.utcnow() - fromisoformat(status.get('Timestamp'))).total_seconds())
-              if min == -1 or s_uptime < min:
-                min = s_uptime
-        return min
-    logger.error(f'service {service_name} is not found')
+    min = -1
+    for task in tasks:
+      logger.debug(task.get('DesiredState'))
+      if task.get('DesiredState') == 'running' and task.get('State') == 'running':
+        timestamp = task.get('Timestamp')
+        if not timestamp:
+          continue
+        logger.debug(f'found runinig task start_time={timestamp}')
+        s_uptime = int((datetime.utcnow() - fromisoformat(timestamp)).total_seconds())
+        if min == -1 or s_uptime < min:
+          min = s_uptime
+    return min
   except Exception as e:
     logger.exception(f'fail to get uptime for "{service_name}": {e}')
   return 0
 
 
-def replicas(client, logger, service_name):
-  if client is None:
+def replicas(clients, logger, service_name):
+  tasks = get_tasks_for_service(clients, logger, service_name)
+  if tasks is None:
+    logger.error(f'service {service_name} is not found')
     return 0
   try:
-    for service in client.services.list():
-      logger.debug(f'traverse services in {service.name}')
-      if service.name == service_name:
-        logger.debug(f'found service: {service_name}')
-        desired_count = 0
-        running_count = 0
-        for task in service.tasks():
-          if task.get('DesiredState') == 'running':
-            desired_count += 1
-            status = task.get('Status')
-            if status.get('State') == 'running':
-              running_count += 1
-        return running_count * 100 / desired_count if desired_count > 0 else 0
-    logger.error(f'service {service_name} is not found')
+    desired_count = 0
+    running_count = 0
+    for task in tasks:
+      if task.get('DesiredState') == 'running':
+        desired_count += 1
+        if task.get('State') == 'running':
+          running_count += 1
+    return running_count * 100 / desired_count if desired_count > 0 else 0
   except Exception as e:
     logger.exception(f'fail to get replicas for "{service_name}": {e}')
   return 0
@@ -349,120 +350,196 @@ def failed_innerservice_count(clients, logger, service_name):
   return 99
 
 
-def service_stats(clients, logger, service_name, metric_type):
-  """Get CPU and memory stats for a Docker Swarm service"""
+def refresh_services_snapshot(reference_client, logger):
+  """docker service ls / docker service ps 相当を全サービス分まとめて1回で取得する"""
+  snapshot = {}
+  for service in reference_client.services.list():
+    tasks_info = []
+    for task in service.tasks():
+      status = task.get('Status', {})
+      tasks_info.append({
+        'DesiredState': task.get('DesiredState'),
+        'State': status.get('State'),
+        'NodeID': task.get('NodeID'),
+        'ContainerID': status.get('ContainerStatus', {}).get('ContainerID', ''),
+        'Timestamp': status.get('Timestamp'),
+      })
+    snapshot[service.name] = tasks_info
+  return snapshot
+
+
+def get_tasks_for_service(clients, logger, service_name):
+  """全サービス共有のスナップショットキャッシュから、対象サービスの全タスク情報を取得する(service_stats/replicas/uptimeで共有)"""
   reference_client = get_reference_client(clients, logger)
   if reference_client is None:
+    return None
+
+  use_cache = ensure_cache_dir(logger)
+  lock_path = SERVICES_SNAPSHOT_CACHE_FILE + '.lock'
+  lock_context = cache_lock(lock_path) if use_cache else nullcontext()
+  with lock_context:
+    cache = load_cache(logger, SERVICES_SNAPSHOT_CACHE_FILE) if use_cache else {}
+    now = time()
+    if not cache or (now - cache.get('mtime', 0)) >= SERVICES_SNAPSHOT_FRESHNESS_SEC:
+      try:
+        snapshot = refresh_services_snapshot(reference_client, logger)
+      except Exception as e:
+        logger.exception(f'fail to refresh services snapshot: {e}')
+        snapshot = cache.get('snapshot')
+        if snapshot is None:
+          return None
+      else:
+        cache = {'snapshot': snapshot, 'mtime': now}
+        if use_cache:
+          save_cache(logger, SERVICES_SNAPSHOT_CACHE_FILE, cache)
+    else:
+      logger.debug('services snapshot cache hit')
+  return cache.get('snapshot', {}).get(service_name)
+
+
+def compute_service_stats(clients, logger, service_name):
+  """Docker APIに実際に問い合わせて4種類のメトリクスをまとめて計算する"""
+  tasks = get_tasks_for_service(clients, logger, service_name)
+  if tasks is None:
+    logger.error(f'fail to get service {service_name}')
+    return None
+
+  total_cpu = 0
+  total_memory = 0
+  total_memory_percent = 0
+  total_memory_limit = 0
+  container_count = 0
+
+  for task in tasks:
+    if task.get('DesiredState') != 'running' or task.get('State') != 'running':
+      continue
+    container_id = task.get('ContainerID')
+    if not container_id:
+      continue
+    node_id = task.get('NodeID')
+    logger.debug(f'found running task on {node_id}')
+
+    try:
+      # containers.get()(docker inspect相当)を経由せず、低レベルAPIで直接statsだけ呼ぶ
+      stats = clients[node_id].api.stats(container_id, stream=False)
+
+      # Calculate CPU percentage
+      precpu_stats = stats.get('precpu_stats', {})
+      cpu_stats = stats.get('cpu_stats', {})
+
+      precpu_usage = precpu_stats.get('cpu_usage', {}).get('total_usage', 0)
+      cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
+      precpu_system = precpu_stats.get('system_cpu_usage', 0)
+      cpu_system = cpu_stats.get('system_cpu_usage', 0)
+
+      cpu_delta = cpu_usage - precpu_usage
+      system_delta = cpu_system - precpu_system
+      cpu_count = cpu_stats.get('online_cpus', len(cpu_stats.get('cpu_usage', {}).get('percpu_usage', [1])))
+
+      if system_delta > 0 and cpu_delta > 0:
+        cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
+      else:
+        cpu_percent = 0.0
+
+      # Get memory stats
+      mem_usage = stats['memory_stats'].get('usage', 0)
+      mem_limit = stats['memory_stats'].get('limit', 1)
+      mem_percent = (mem_usage / mem_limit * 100.0) if mem_limit > 0 else 0.0
+
+      total_cpu += cpu_percent
+      total_memory += mem_usage
+      total_memory_percent += mem_percent
+      total_memory_limit += mem_limit
+      container_count += 1
+
+    except Exception as e:
+      logger.error(f'fail to get stats for container {container_id}: {e}')
+      continue
+
+  if container_count == 0:
+    return None
+
+  return {
+    'cpu': round(total_cpu / container_count, 2),
+    'memory': int(total_memory / container_count),
+    'memory_percent': round(total_memory_percent / container_count, 2),
+    'memory_limit': int(total_memory_limit / container_count),
+  }
+
+
+def service_stats(clients, logger, service_name, metric_type):
+  """Get CPU and memory stats for a Docker Swarm service"""
+  use_cache = ensure_cache_dir(logger)
+  lock_path = STATS_CACHE_FILE + '.lock'
+  metrics = None
+
+  lock_context = cache_lock(lock_path) if use_cache else nullcontext()
+  with lock_context:
+    cache = load_cache(logger, STATS_CACHE_FILE) if use_cache else {}
+    entry = cache.get(service_name)
+    now = time()
+    if entry is not None and (now - entry.get('mtime', 0)) < STATS_CACHE_FRESHNESS_SEC:
+      logger.debug(f'stats cache hit for service : {service_name}')
+      metrics = entry.get('metrics')
+    else:
+      metrics = compute_service_stats(clients, logger, service_name)
+      if metrics is not None and use_cache:
+        cache[service_name] = {'metrics': metrics, 'mtime': now}
+        save_cache(logger, STATS_CACHE_FILE, cache)
+
+  if metrics is None:
+    return 0
+  return metrics.get(metric_type, 0)
+
+
+def replicas_count(clients, logger, service_name, count_type):
+  """Get running or desired replica count for a service"""
+  tasks = get_tasks_for_service(clients, logger, service_name)
+  if tasks is None:
+    logger.error(f'service {service_name} is not found')
     return 0
   try:
-    sl = [s for s in reference_client.services.list(filters={'name': service_name}) if s.name == service_name]
-    if len(sl) != 1:
-      logger.error(f'fail to get service {service_name} count of service={len(sl)}')
-      return 0
-    
-    total_cpu = 0
-    total_memory = 0
-    total_memory_percent = 0
-    total_memory_limit = 0
-    container_count = 0
-    
-    for task in sl[0].tasks():
+    desired_count = 0
+    running_count = 0
+    for task in tasks:
       if task.get('DesiredState') == 'running':
-        status = task.get('Status')
-        if status.get('State') == 'running':
-          logger.debug(f'found running task on {task.get("NodeID")}')
-          container_id = task.get('Status', {}).get('ContainerStatus', {}).get('ContainerID', '')
-          if len(container_id) == 0:
-            logger.error(f'fail to get container ID for service "{service_name}" on node "{task.get("NodeID")}"')
-            continue
-          
-          try:
-            container = clients[task.get('NodeID')].containers.get(container_id)
-            # Get stats (non-streaming, no decode parameter)
-            stats = container.stats(stream=False)
-            
-            # Calculate CPU percentage
-            precpu_stats = stats.get('precpu_stats', {})
-            cpu_stats = stats.get('cpu_stats', {})
-            
-            precpu_usage = precpu_stats.get('cpu_usage', {}).get('total_usage', 0)
-            cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
-            precpu_system = precpu_stats.get('system_cpu_usage', 0)
-            cpu_system = cpu_stats.get('system_cpu_usage', 0)
-            
-            cpu_delta = cpu_usage - precpu_usage
-            system_delta = cpu_system - precpu_system
-            cpu_count = cpu_stats.get('online_cpus', len(cpu_stats.get('cpu_usage', {}).get('percpu_usage', [1])))
-            
-            if system_delta > 0 and cpu_delta > 0:
-              cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
-            else:
-              cpu_percent = 0.0
-            
-            # Get memory stats
-            mem_usage = stats['memory_stats'].get('usage', 0)
-            mem_limit = stats['memory_stats'].get('limit', 1)
-            mem_percent = (mem_usage / mem_limit * 100.0) if mem_limit > 0 else 0.0
-            
-            total_cpu += cpu_percent
-            total_memory += mem_usage
-            total_memory_percent += mem_percent
-            total_memory_limit += mem_limit
-            container_count += 1
-            
-          except Exception as e:
-            logger.error(f'fail to get stats for container {container_id}: {e}')
-            continue
-    
-    if container_count == 0:
-      return 0
-    
-    if metric_type == 'cpu':
-      return round(total_cpu / container_count, 2)
-    elif metric_type == 'memory':
-      return int(total_memory / container_count)
-    elif metric_type == 'memory_percent':
-      return round(total_memory_percent / container_count, 2)
-    elif metric_type == 'memory_limit':
-      return int(total_memory_limit / container_count)
+        desired_count += 1
+        if task.get('State') == 'running':
+          running_count += 1
+
+    if count_type == 'running':
+      return running_count
+    elif count_type == 'desired':
+      return desired_count
     else:
-      logger.error(f'unknown metric type: {metric_type}')
+      logger.error(f'unknown count type: {count_type}')
       return 0
-      
-  except Exception as e:
-    logger.exception(f'fail to get stats for service "{service_name}": {e}')
-  return 0
-
-
-def replicas_count(client, logger, service_name, count_type):
-  """Get running or desired replica count for a service"""
-  try:
-    for service in client.services.list():
-      if service.name == service_name:
-        logger.debug(f'found service: {service_name}')
-        desired_count = 0
-        running_count = 0
-        for task in service.tasks():
-          if task.get('DesiredState') == 'running':
-            desired_count += 1
-            status = task.get('Status')
-            if status.get('State') == 'running':
-              running_count += 1
-        
-        if count_type == 'running':
-          return running_count
-        elif count_type == 'desired':
-          return desired_count
-        else:
-          logger.error(f'unknown count type: {count_type}')
-          return 0
-    logger.error(f'service {service_name} is not found')
   except Exception as e:
     logger.exception(f'fail to get replica count for "{service_name}": {e}')
   return 0
 
 
 def main():
+  p_uuid = str(uuid.uuid4())
+  start_time = time()
+
+  logger = logging.getLogger('docker-service')
+  logger.setLevel(os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
+  syslog_handler = handlers.SysLogHandler(address="/dev/log", facility=handlers.SysLogHandler.LOG_LOCAL2)
+  logger.addHandler(syslog_handler)
+
+  # プロセス開始タイミングと引数の記録
+  ensure_cache_dir(logger)
+  try:
+    is_new = not os.path.exists(PROCESS_TIMING_LOG_FILE)
+    with open(PROCESS_TIMING_LOG_FILE, 'a') as f:
+      if is_new:
+        f.write('uuid,timestamp,command_args\n')
+      args_str = " ".join(sys.argv[1:])
+      f.write(f'{p_uuid},{datetime.utcnow().isoformat()},{args_str}\n')
+  except Exception:
+    pass
+
   parser = argparse.ArgumentParser()
   parser.add_argument('servers', metavar='Server', nargs='+',
                       help='list of docker swarm node server')
@@ -482,10 +559,7 @@ def main():
   group.add_argument("--failed-innerservice-count",
                      help="count number of failed serivces in standalone type container and print", metavar='service')
   args = parser.parse_args()
-  logger = logging.getLogger('docker-service')
-  logger.setLevel(os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
-  syslog_handler = handlers.SysLogHandler(address="/dev/log", facility=handlers.SysLogHandler.LOG_LOCAL2)
-  logger.addHandler(syslog_handler)
+
   clients = {}
   dot_docker = os.environ['HOME'] + '/.docker'
   tls_config = docker.tls.TLSConfig(ca_cert=dot_docker + '/ca.pem', verify=dot_docker + '/ca.pem',
@@ -505,34 +579,65 @@ def main():
 
   reference_client = get_reference_client(clients, logger)
 
+  target_service = ""
+  metric_type = ""
+
   if args.discover:
+    target_service = "all"
+    metric_type = "discover"
     print(json.dumps(dict(data=[v for v in discover(reference_client, logger)])))
   elif args.discover_standalone:
+    target_service = "all"
+    metric_type = "discover_standalone"
     print(json.dumps(dict(data=[v for v in discover(reference_client, logger, standalone=True)])))
   elif args.discover_innerservice:
+    target_service = "all"
+    metric_type = "discover_innerservice"
     print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger, args.dispose, args.servers)])))
   elif args.uptime:
+    target_service = args.uptime
     if args.inner:
+      metric_type = "uptime_innerservice"
       print(json.dumps(service_uptime_innerservice(clients, logger, args.uptime, args.inner.replace('%', '@'))))
     else:
-      print(json.dumps(service_uptime(reference_client, logger, args.uptime)))
+      metric_type = "uptime"
+      print(json.dumps(service_uptime(clients, logger, args.uptime)))
   elif args.replicas:
-    print(json.dumps(replicas(reference_client, logger, args.replicas)))
+    target_service = args.replicas
+    metric_type = "replicas_percentage"
+    print(json.dumps(replicas(clients, logger, args.replicas)))
   elif args.stats:
+    target_service = args.stats
+    metric_type = args.metric
     if not args.metric:
       logger.error('--metric is required for --stats')
       return
     print(json.dumps(service_stats(clients, logger, args.stats, args.metric)))
   elif args.replica_count:
+    target_service = args.replica_count
+    metric_type = args.count_type
     if not args.count_type:
       logger.error('--count-type is required for --replica-count')
       return
-    print(json.dumps(replicas_count(reference_client, logger, args.replica_count, args.count_type)))
+    print(json.dumps(replicas_count(clients, logger, args.replica_count, args.count_type)))
   elif args.failed_innerservice_count:
+    target_service = args.failed_innerservice_count
+    metric_type = "failed_innerservice_count"
     print(json.dumps(failed_innerservice_count(clients, logger, args.failed_innerservice_count)))
   else:
     logger.error('command option is required')
+    return
 
+  # 処理完了タイミングで経過時間を記録
+  elapsed = time() - start_time
+  try:
+    is_new = not os.path.exists(METRICS_TIMING_LOG_FILE)
+    with open(METRICS_TIMING_LOG_FILE, 'a') as f:
+      if is_new:
+        f.write('uuid,timestamp,service_name,metric_type,elapsed_seconds\n')
+      f.write(f'{p_uuid},{datetime.utcnow().isoformat()},{target_service},{metric_type},{elapsed:.3f}\n')
+  except Exception as e:
+    logger.warning(f'failed to write metrics timing log: {e}')
 
 if __name__ == "__main__":
     main()
