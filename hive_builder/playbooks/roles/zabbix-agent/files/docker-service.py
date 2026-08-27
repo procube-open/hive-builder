@@ -15,16 +15,12 @@ import hashlib
 from datetime import datetime
 from time import time
 import re
-import uuid
-import sys
 from contextlib import contextmanager, nullcontext
 # logging.basicConfig(level=os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
 DAEMON = None
 CACHE_FILE_DIR = '/tmp/hive-builder-zabbix-cache'
 STATS_CACHE_FILE = CACHE_FILE_DIR + '/service_stats_cache.json'
 STATS_CACHE_FRESHNESS_SEC = 55  # delay=60秒より少し短く設定
-PROCESS_TIMING_LOG_FILE = CACHE_FILE_DIR + '/process_timing.csv'
-METRICS_TIMING_LOG_FILE = CACHE_FILE_DIR + '/metrics_timing.csv'
 SERVICES_SNAPSHOT_CACHE_FILE = CACHE_FILE_DIR + '/services_snapshot_cache.json'
 SERVICES_SNAPSHOT_FRESHNESS_SEC = 15  # docker service ls/ps相当、全サービスで共有する短めの間隔
 
@@ -520,26 +516,6 @@ def replicas_count(clients, logger, service_name, count_type):
 
 
 def main():
-  p_uuid = str(uuid.uuid4())
-  start_time = time()
-
-  logger = logging.getLogger('docker-service')
-  logger.setLevel(os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
-  syslog_handler = handlers.SysLogHandler(address="/dev/log", facility=handlers.SysLogHandler.LOG_LOCAL2)
-  logger.addHandler(syslog_handler)
-
-  # プロセス開始タイミングと引数の記録
-  ensure_cache_dir(logger)
-  try:
-    is_new = not os.path.exists(PROCESS_TIMING_LOG_FILE)
-    with open(PROCESS_TIMING_LOG_FILE, 'a') as f:
-      if is_new:
-        f.write('uuid,timestamp,command_args\n')
-      args_str = " ".join(sys.argv[1:])
-      f.write(f'{p_uuid},{datetime.utcnow().isoformat()},{args_str}\n')
-  except Exception:
-    pass
-
   parser = argparse.ArgumentParser()
   parser.add_argument('servers', metavar='Server', nargs='+',
                       help='list of docker swarm node server')
@@ -559,7 +535,10 @@ def main():
   group.add_argument("--failed-innerservice-count",
                      help="count number of failed serivces in standalone type container and print", metavar='service')
   args = parser.parse_args()
-
+  logger = logging.getLogger('docker-service')
+  logger.setLevel(os.environ.get('HIVE_LOG_LEVEL', logging.INFO))
+  syslog_handler = handlers.SysLogHandler(address="/dev/log", facility=handlers.SysLogHandler.LOG_LOCAL2)
+  logger.addHandler(syslog_handler)
   clients = {}
   dot_docker = os.environ['HOME'] + '/.docker'
   tls_config = docker.tls.TLSConfig(ca_cert=dot_docker + '/ca.pem', verify=dot_docker + '/ca.pem',
@@ -579,65 +558,34 @@ def main():
 
   reference_client = get_reference_client(clients, logger)
 
-  target_service = ""
-  metric_type = ""
-
   if args.discover:
-    target_service = "all"
-    metric_type = "discover"
     print(json.dumps(dict(data=[v for v in discover(reference_client, logger)])))
   elif args.discover_standalone:
-    target_service = "all"
-    metric_type = "discover_standalone"
     print(json.dumps(dict(data=[v for v in discover(reference_client, logger, standalone=True)])))
   elif args.discover_innerservice:
-    target_service = "all"
-    metric_type = "discover_innerservice"
     print(json.dumps(dict(data=[v for v in discover_innerservice(clients, logger, args.dispose, args.servers)])))
   elif args.uptime:
-    target_service = args.uptime
     if args.inner:
-      metric_type = "uptime_innerservice"
       print(json.dumps(service_uptime_innerservice(clients, logger, args.uptime, args.inner.replace('%', '@'))))
     else:
-      metric_type = "uptime"
       print(json.dumps(service_uptime(clients, logger, args.uptime)))
   elif args.replicas:
-    target_service = args.replicas
-    metric_type = "replicas_percentage"
     print(json.dumps(replicas(clients, logger, args.replicas)))
   elif args.stats:
-    target_service = args.stats
-    metric_type = args.metric
     if not args.metric:
       logger.error('--metric is required for --stats')
       return
     print(json.dumps(service_stats(clients, logger, args.stats, args.metric)))
   elif args.replica_count:
-    target_service = args.replica_count
-    metric_type = args.count_type
     if not args.count_type:
       logger.error('--count-type is required for --replica-count')
       return
     print(json.dumps(replicas_count(clients, logger, args.replica_count, args.count_type)))
   elif args.failed_innerservice_count:
-    target_service = args.failed_innerservice_count
-    metric_type = "failed_innerservice_count"
     print(json.dumps(failed_innerservice_count(clients, logger, args.failed_innerservice_count)))
   else:
     logger.error('command option is required')
-    return
 
-  # 処理完了タイミングで経過時間を記録
-  elapsed = time() - start_time
-  try:
-    is_new = not os.path.exists(METRICS_TIMING_LOG_FILE)
-    with open(METRICS_TIMING_LOG_FILE, 'a') as f:
-      if is_new:
-        f.write('uuid,timestamp,service_name,metric_type,elapsed_seconds\n')
-      f.write(f'{p_uuid},{datetime.utcnow().isoformat()},{target_service},{metric_type},{elapsed:.3f}\n')
-  except Exception as e:
-    logger.warning(f'failed to write metrics timing log: {e}')
 
 if __name__ == "__main__":
     main()
