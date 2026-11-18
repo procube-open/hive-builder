@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>5.0</version>
-    <date>2020-07-23T07:13:48Z</date>
-    <groups>
-        <group>
+    <version>8.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>a571c0d144b14fd4a87a9d9b2aa9fcd6</uuid>
             <name>Templates/Applications</name>
-        </group>
-    </groups>
+        </template_group>
+    </template_groups>
     <templates>
         <template>
+            <uuid>499ba87e40234842bc315c0088d79cb1</uuid>
             <template>SystemD service monitoring template</template>
             <name>SystemD service monitoring template</name>
             <description>Discovery enabled systemd services, checks status every 1m, and checks systemd service active time to determine if service has restarted.</description>
@@ -17,53 +18,56 @@
                     <name>Templates/Applications</name>
                 </group>
             </groups>
-            <applications>
-                <application>
-                    <name>systemd</name>
-                </application>
-            </applications>
             <items>
-              <item>
-                  <name>Failed Service Count</name>
-                  <key>systemd.service.failed.count</key>
-                  <history>1d</history>
-                  <trends>1d</trends>
-                  <description>Returns the number of failed service</description>
-                  <applications>
-                      <application>
-                          <name>systemd</name>
-                      </application>
-                  </applications>
-                  <triggers>
-                      <trigger>
-                          <expression>{last()}&gt;0</expression>
-                          <name>At least one of the services is in a failed state</name>
-                          <priority>HIGH</priority>
-                          <manual_close>YES</manual_close>
-                      </trigger>
-                  </triggers>
-              </item>
+                <item>
+                    <uuid>94a6fa2b1d064fbfac3dbc0f43f1fc75</uuid>
+                    <name>Failed Service Count</name>
+                    <key>systemd.service.failed.count</key>
+                    <history>1d</history>
+                    <trends>1d</trends>
+                    <description>Returns the number of failed service</description>
+                    <tags>
+                        <tag>
+                            <tag>Application</tag>
+                            <value>systemd</value>
+                        </tag>
+                    </tags>
+                    <triggers>
+                        <trigger>
+                            <uuid>f62b487f63464785b8f1005db9c7b052</uuid>
+                            <expression>last(/SystemD service monitoring template/systemd.service.failed.count)&gt;0</expression>
+                            <name>At least one of the services is in a failed state</name>
+                            <priority>HIGH</priority>
+                            <manual_close>YES</manual_close>
+                        </trigger>
+                    </triggers>
+                </item>
             </items>
             <discovery_rules>
                 <discovery_rule>
+                    <uuid>f78d12d1be394a198b7d8efc9c00dacb</uuid>
                     <name>Service Discovery</name>
                     <key>systemd.service.discovery</key>
                     <delay>5m</delay>
                     <lifetime>1d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>0999b37989044e78b2a247a42737743e</uuid>
                             <name>{#SERVICE} Restart</name>
                             <key>systemd.service.restart[{#SERVICE}]</key>
                             <history>1d</history>
                             <trends>1d</trends>
-                            <applications>
-                                <application>
-                                    <name>systemd</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>systemd</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last()}&lt;&gt;0</expression>
+                                    <uuid>36e6c10d4e244f3481f3ab88f7e08613</uuid>
+                                    <expression>last(/SystemD service monitoring template/systemd.service.restart[{#SERVICE}])&lt;&gt;0</expression>
                                     <name>{#SERVICE} service has restarted</name>
                                     <priority>WARNING</priority>
                                     <description>Triggers an alert if a service has restarted</description>

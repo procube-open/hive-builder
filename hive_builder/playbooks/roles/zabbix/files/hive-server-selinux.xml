@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>5.0</version>
-    <date>2020-04-28T22:07:03Z</date>
-    <groups>
-        <group>
+    <version>8.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>1b3bbd53e76f4e9cb3a0828d076b81d6</uuid>
             <name>Hives</name>
-        </group>
-    </groups>
+        </template_group>
+    </template_groups>
     <templates>
         <template>
+            <uuid>56b8a94e8146477398d9357c50f2c85e</uuid>
             <template>Hive Server SELinux</template>
             <name>Hive Server SELinux</name>
             <description>Check SELinux alert</description>
@@ -17,24 +18,23 @@
                     <name>Hives</name>
                 </group>
             </groups>
-            <applications>
-                <application>
-                    <name>SELinux</name>
-                </application>
-            </applications>
             <items>
                 <item>
+                    <uuid>68ee9181735f4c549acbd0ff500af8d0</uuid>
                     <name>SELinux alert</name>
                     <key>ausearch</key>
                     <delay>10m</delay>
-                    <applications>
-                        <application>
-                            <name>SELinux</name>
-                        </application>
-                    </applications>
+                    <history>90d</history>
+                    <tags>
+                        <tag>
+                            <tag>Application</tag>
+                            <value>SELinux</value>
+                        </tag>
+                    </tags>
                     <triggers>
                         <trigger>
-                            <expression>{last(#1)}&gt;0</expression>
+                            <uuid>7d140a3b486d4ca7b2e88946fa3dff6b</uuid>
+                            <expression>last(/Hive Server SELinux/ausearch,#1)&gt;0</expression>
                             <recovery_mode>NONE</recovery_mode>
                             <name>Detect SELinux alert</name>
                             <priority>WARNING</priority>

@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>5.0</version>
-    <date>2020-12-31T02:54:34Z</date>
-    <groups>
-        <group>
+    <version>8.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>bba803d21a78438f8dd7a8468fa08335</uuid>
             <name>Repository server</name>
-        </group>
-    </groups>
+        </template_group>
+    </template_groups>
     <templates>
         <template>
+            <uuid>0ced5929d36e4a56adf408c4d9704123</uuid>
             <template>Hive Repository Server</template>
             <name>Hive Repository Server</name>
             <description>Check docker volume usage</description>
@@ -17,31 +18,25 @@
                     <name>Repository server</name>
                 </group>
             </groups>
-            <applications>
-                <application>
-                    <name>Docker</name>
-                </application>
-                <application>
-                    <name>Error Log</name>
-                </application>
-            </applications>
             <items>
                 <item>
+                    <uuid>262212f4b52f4dbbb94216a775007eba</uuid>
                     <name>Error Log Detecting for Services</name>
                     <type>ZABBIX_ACTIVE</type>
                     <key>logrt[/var/log/service-error.log]</key>
                     <history>30d</history>
-                    <trends>0</trends>
                     <value_type>LOG</value_type>
-                    <applications>
-                        <application>
-                            <name>Error Log</name>
-                        </application>
-                    </applications>
                     <logtimefmt>yyyy/MM/dd hh:mm:ss</logtimefmt>
+                    <tags>
+                        <tag>
+                            <tag>Application</tag>
+                            <value>Error Log</value>
+                        </tag>
+                    </tags>
                     <triggers>
                         <trigger>
-                            <expression>{count(8h)}&gt;0</expression>
+                            <uuid>e59a17b53e0b4f60af808b53883997dd</uuid>
+                            <expression>count(/Hive Repository Server/logrt[/var/log/service-error.log],8h)&gt;0</expression>
                             <name>Error Log Detected for Services</name>
                             <priority>WARNING</priority>
                         </trigger>
@@ -51,22 +46,28 @@
             <discovery_rules>
 {% for hive in hive_names %}
                 <discovery_rule>
+                    <uuid>{{ ('Hive Repository Server:0:7955934d246042aba43937bf92e70737:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                     <name>Docker Inner-service discovery {{ hive }}</name>
                     <key>user.discovery.docker-innerservice.{{ hive }}</key>
                     <delay>1h</delay>
+                    <lifetime>30d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>{{ ('Hive Repository Server:0:ec0f2c4c9ec646deb1ca3b1c1d55318d:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                             <name>Docker Inner-service uptime {{ '{#INNER}' }}@{{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
                             <key>docker-innerservice-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#INNER}' }}]</key>
                             <delay>5m</delay>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Docker</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last(#1)}&lt;28800</expression>
+                                    <uuid>{{ ('Hive Repository Server:0:be9efe80670b4df0b65b0ce181e4d10b:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
+                                    <expression>last(/Hive Repository Server/docker-innerservice-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#INNER}' }}],#1)&lt;28800</expression>
                                     <name>Service {{ '{#INNER}' }} in container {{ '{#SERVICE_NAME}' }} restarted ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
@@ -75,38 +76,47 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
+                    <uuid>{{ ('Hive Repository Server:1:4e5854566acc4b7bb618440a9c615c12:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                     <name>Docker Swarm Service discovery {{ hive }}</name>
                     <key>user.discovery.docker-service.{{ hive }}</key>
                     <delay>1h</delay>
+                    <lifetime>30d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>{{ ('Hive Repository Server:1:f6810dcfa5344ec38b9a0ebe370c3a90:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                             <name>Docker Swarm Service replicas {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
                             <key>docker-service-replicas.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Docker</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last(#1)}&lt;100</expression>
+                                    <uuid>{{ ('Hive Repository Server:1:247aac4a4970484898c9e9587b5527b6:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
+                                    <expression>last(/Hive Repository Server/docker-service-replicas.{{ hive }}[{{ '{#SERVICE_NAME}' }}],#1)&lt;100</expression>
                                     <name>Service {{ '{#SERVICE_NAME}' }} replicas running percetage less than 100 ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
                             </trigger_prototypes>
                         </item_prototype>
                         <item_prototype>
+                            <uuid>{{ ('Hive Repository Server:1:5e82a42ba20c423dad965dc9bd5f13f3:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                             <name>Docker Swarm Service uptime {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
                             <key>docker-service-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
                             <delay>5m</delay>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Docker</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last(#1)}&lt;28800</expression>
+                                    <uuid>{{ ('Hive Repository Server:1:fc554567443a47f481e17f0b213aebe8:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
+                                    <expression>last(/Hive Repository Server/docker-service-uptime.{{ hive }}[{{ '{#SERVICE_NAME}' }}],#1)&lt;28800</expression>
                                     <name>Service {{ '{#SERVICE_NAME}' }} restarted ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
@@ -115,21 +125,27 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
+                    <uuid>{{ ('Hive Repository Server:2:8a82cfdcdfe84fcc940b3ce6c9d52893:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                     <name>Docker Swarm Standalone Service discovery {{ hive }}</name>
                     <key>user.discovery.docker-standalone-service.{{ hive }}</key>
                     <delay>1h</delay>
+                    <lifetime>30d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>{{ ('Hive Repository Server:2:72489623c95e496fb6b9c73704ca8952:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                             <name>Docker Failed Innerservice count in {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
                             <key>docker-failed-innerservice-count.{{ hive }}[{{ '{#SERVICE_NAME}' }}]</key>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Docker</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last(#1)}&gt;0</expression>
+                                    <uuid>{{ ('Hive Repository Server:2:d8d7bbcc8ac14e749e824fd3517dee13:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
+                                    <expression>last(/Hive Repository Server/docker-failed-innerservice-count.{{ hive }}[{{ '{#SERVICE_NAME}' }}],#1)&gt;0</expression>
                                     <name>At least one of the services in standalone type container {{ '{#SERVICE_NAME}' }} is in a failed state ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
@@ -138,23 +154,29 @@
                     </item_prototypes>
                 </discovery_rule>
                 <discovery_rule>
+                    <uuid>{{ ('Hive Repository Server:3:0c798d9144ef425cb76f52a36f5277e7:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                     <name>Volume usage discovery {{ hive }}</name>
                     <key>user.discovery.docker-volume.{{ hive }}</key>
                     <delay>1h</delay>
+                    <lifetime>30d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>{{ ('Hive Repository Server:3:989d31791a4f4d3ea74f91c3d611040e:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
                             <name>Docker volume {{ '{#NAME}' }} in {{ '{#SERVICE_NAME}' }} ({{ hive }})</name>
                             <key>docker-volume.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#PATH}' }}]</key>
                             <delay>10m</delay>
                             <units>%</units>
-                            <applications>
-                                <application>
-                                    <name>Docker</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Docker</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{last(#3)}&gt;90</expression>
+                                    <uuid>{{ ('Hive Repository Server:3:41ab631fc9e74d71a5e26bf3f17b120f:' + hive) | hash('md5') | regex_replace('^(.{12}).(.{3}).(.*)$', '\\g<1>4\\g<2>8\\g<3>') }}</uuid>
+                                    <expression>last(/Hive Repository Server/docker-volume.{{ hive }}[{{ '{#SERVICE_NAME}' }},{{ '{#PATH}' }}],#3)&gt;90</expression>
                                     <name>Exceed 90% Docker volume {{ '{#NAME}' }} in {{ '{#SERVICE_NAME}' }} usage ({{ hive }})</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>

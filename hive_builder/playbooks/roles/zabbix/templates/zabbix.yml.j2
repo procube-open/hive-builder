@@ -1,6 +1,6 @@
 services:
   zabbix-server:
-    image: {{ hive_zabbix_server_tag | default('zabbix/zabbix-server-mysql:alpine-5.2-latest') }}
+    image: {{ hive_zabbix_server_tag | default('zabbix/zabbix-server-mysql:alpine-8.0-latest') }}
     container_name: zabbix-server
     environment:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
@@ -9,6 +9,7 @@ services:
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
       ZBX_VALUECACHESIZE: "64M"
+      ZBX_TIMEOUT: "30"
     ports:
       - "10051:10051"
     restart: unless-stopped
@@ -16,12 +17,13 @@ services:
       default:
         ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(2) | ipaddr('address') }}"
   zabbix-web:
-    image: {{ hive_zabbix_web_tag | default('procube/zabbix-web-nginx-mysql:latest ') }}
+    image: {{ hive_zabbix_web_tag | default('zabbix/zabbix-web-nginx-mysql:alpine-8.0-latest') }}
     container_name: zabbix-web
     environment:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       PHP_TZ: "{{ hive_timezone | default('Etc/GMT') }}"
       DB_SERVER_HOST: "zabbix-db"
+      ZBX_SERVER_HOST: "zabbix-server"
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
@@ -32,7 +34,7 @@ services:
       default:
         ipv4_address: "{{ hive_safe_zabbix_subnet | ipaddr(3) | ipaddr('address') }}"
   zabbix-db:
-    image: mariadb:10.4
+    image: mariadb:10.11
     container_name: zabbix-db
     environment:
       TZ: "{{ hive_timezone | default('Etc/GMT') }}"
@@ -40,6 +42,7 @@ services:
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
       MYSQL_DATABASE: zabbix
+      MARIADB_AUTO_UPGRADE: "1"
       # maridb container spend long time to initialize timezone info of the database.
       # it can be skip by following envinronment variable.
       # MYSQL_INITDB_SKIP_TZINFO: "yes"
@@ -47,12 +50,9 @@ services:
       - data:/var/lib/mysql
       - config:/etc/mysql/
     hostname: mariadb
-    ##  Don't use charset utf8mb4, it cause folloing error for varchar(1024) key field in items table
-    ## ** Creating 'zabbix' schema in MySQL
-    ## ERROR 1071 (42000) at line 356: Specified key was too long; max key length is 3072 bytes
     command:
-    - "--character-set-server=utf8mb3"
-    - "--collation-server=utf8mb3_unicode_ci"
+    - "--character-set-server=utf8mb4"
+    - "--collation-server=utf8mb4_bin"
     expose:
       - "3306"
     restart: unless-stopped

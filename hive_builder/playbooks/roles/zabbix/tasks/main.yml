@@ -11,17 +11,13 @@
     dest: "{{ hive_home_dir }}/zabbix/docker-compose.yml"
     mode: 0755
 
-# - name: get ip list of servers
-#   when: hive_shared_repository is defined
-#   block:
-#   - set_fact:
-#       raw_servers_ip_list: []
-#   - set_fact:
-#       raw_servers_ip_list: "{{ raw_servers_ip_list + item }}"
-#     when: item.split(' ')[1] in groups['servers']
-#     loop: "{{ lookup('file', hive_shared_repository_path + '/hosts').splitlines() }}"
 - vars:
     ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  module_defaults:
+    hive_zabbix:
+      server_url: "http://localhost:{{ hive_safe_zabbix_port }}"
+      login_user: Admin
+      login_password: zabbix
   block:
   - name: get ip list of repository
     when: hive_shared_repository is defined
@@ -46,18 +42,23 @@
     community.docker.docker_compose_v2:
       project_src: "{{ hive_home_dir }}/zabbix"
 
-  - name: install zabbix api
-    become: False
-    pip:
-      name: zabbix-api
-      state: present
-      virtualenv: "{{ hive_home_dir }}/docker"
-
+  - name: wait for Zabbix database initialization and upgrade
+    uri:
+      url: "http://localhost:{{ hive_safe_zabbix_port }}/api_jsonrpc.php"
+      method: POST
+      body_format: json
+      body:
+        jsonrpc: "2.0"
+        id: 1
+        method: apiinfo.version
+        params: {}
+    register: hive_safe_zabbix_ready
+    until: (hive_safe_zabbix_ready.json.result | default('')).startswith('8.0.')
+    retries: 60
+    delay: 10
   - name: remove default Zabbix Server
-    zabbix_host:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
+    hive_zabbix:
+      resource: host
       host_name: Zabbix server
       host_groups:
       - Zabbix servers
@@ -67,71 +68,31 @@
     delay: 10
     register: zabbix_api_result
   - name: Create Hive, Repository group
-    zabbix_group:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
+    hive_zabbix:
+      resource: hostgroup
       state: present
       host_groups:
         - Hives
         - Repository server
-  - name: Get template links on the Linux by Zabbix agent
-    zabbix_template_info:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
-      template_name: "{{ hive_zabbix_template | default('Linux by Zabbix agent') }}"
-      format: json
-      omit_date: yes
-    register: linux_template_json
+        - Linux servers
   - name: Configure macros on the Linux by Zabbix agent
-    zabbix_template:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
+    hive_zabbix:
+      resource: template_macro
       template_name: "{{ hive_zabbix_template | default('Linux by Zabbix agent') }}"
-      macros:
-        - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
-          value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
-      link_templates: "{{ linux_template_json.template_json.zabbix_export.templates[0].templates | map(attribute='name')}}"
-      state: present
-  # upload may fail if template changed with following error
-  #  failed: [p-hive0.pdns] (item=hive-repository-server.xml) => changed=false
-  #  ansible_loop_var: item
-  #  item: hive-repository-server.xml
-  #   msg: |-
-  #    changed :...
-  # to avoid this following step
-  # 1. first delete the template
-  # 2. upload by ansible
-  # 3. download and replace template XML(avoid error caused by difference of order of elements)
-  - name: generate hive-repository-server.xml from template
-    set_fact:
-      hive_repository_server_xml: "{{ lookup('template', 'hive-repository-server.xml.j2') }}"
+      macro_name: '{$VFS.FS.FSNAME.NOT_MATCHES}'
+      macro_value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
+  - name: upload generated Zabbix templates
+    hive_zabbix:
+      resource: template
+      template_xml: "{{ lookup('template', item) }}"
+    loop:
+      - hive-repository-server.xml.j2
+      - Template_Docker_Swarm_Services.xml.j2
     vars:
       hive_names: "{{ hive_safe_zabbix_hive_names | default(hive_zabbix_hive_names | default([hive_name])) }}"
-  - name: upload hive-repository-server template
-    zabbix_template:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
-      template_xml: "{{ hive_repository_server_xml }}"
-  - name: generate Template_Docker_Swarm_Services.xml from template
-    set_fact:
-      docker_swarm_services_xml: "{{ lookup('template', 'Template_Docker_Swarm_Services.xml.j2') }}"
-    vars:
-      hive_names: "{{ hive_safe_zabbix_hive_names | default(hive_zabbix_hive_names | default([hive_name])) }}"
-  - name: upload Docker Swarm Services template
-    zabbix_template:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
-      template_xml: "{{ docker_swarm_services_xml }}"
   - name: upload templates
-    zabbix_template:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
+    hive_zabbix:
+      resource: template
       template_xml: "{{ lookup('file', item) }}"
     loop:
       - hive-server.xml
@@ -139,10 +100,8 @@
       - Template_App_systemd_Services.xml
 
   - name: register hive hosts to zabbix
-    zabbix_host:
-      server_url: http://localhost:{{ hive_safe_zabbix_port }}
-      login_user: admin
-      login_password: zabbix
+    hive_zabbix:
+      resource: host
       host_name: "{% if item in groups['repository'] and hive_shared_repository is defined %}shared-repository{% else %}{{ item }}{% endif %}"
       host_groups:
       - Linux servers

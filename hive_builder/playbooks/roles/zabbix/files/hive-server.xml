@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
-    <version>5.0</version>
-    <date>2020-04-28T22:07:03Z</date>
-    <groups>
-        <group>
+    <version>8.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>1b3bbd53e76f4e9cb3a0828d076b81d6</uuid>
             <name>Hives</name>
-        </group>
-    </groups>
+        </template_group>
+    </template_groups>
     <templates>
         <template>
+            <uuid>b4a5847291604ddbb6cc08e28ddf5f42</uuid>
             <template>Hive Server</template>
             <name>Hive Server</name>
             <description>Check drbd status</description>
@@ -17,34 +18,31 @@
                     <name>Hives</name>
                 </group>
             </groups>
-            <applications>
-                <application>
-                    <name>DRBD Resource</name>
-                </application>
-                <application>
-                    <name>Error Log</name>
-                </application>
-            </applications>
             <discovery_rules>
                 <discovery_rule>
+                    <uuid>259ed6c8555940e9912efdcbc514f1f7</uuid>
                     <name>DRBD Resource discovery</name>
                     <key>user.discovery.drbd-resource</key>
                     <delay>3h</delay>
+                    <lifetime>30d</lifetime>
+                    <enabled_lifetime_type>DISABLE_NEVER</enabled_lifetime_type>
                     <item_prototypes>
                         <item_prototype>
+                            <uuid>df056ebb315b42d6b80119bbb5f9aedf</uuid>
                             <name>DRBD Resource {#RESOURCE_NAME}</name>
                             <key>drbd-resource[{#RESOURCE_NAME}]</key>
                             <delay>3m</delay>
-                            <trends>0</trends>
                             <value_type>TEXT</value_type>
-                            <applications>
-                                <application>
-                                    <name>DRBD Resource</name>
-                                </application>
-                            </applications>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>DRBD Resource</value>
+                                </tag>
+                            </tags>
                             <trigger_prototypes>
                                 <trigger_prototype>
-                                    <expression>{str(&quot;UpToDate&quot;)}=0 and {str(&quot;Diskless client&quot;)}=0</expression>
+                                    <uuid>74c9da48d9aa4d84a125b9c41bc9149d</uuid>
+                                    <expression>find(/Hive Server/drbd-resource[{#RESOURCE_NAME}],,"like","UpToDate")=0 and find(/Hive Server/drbd-resource[{#RESOURCE_NAME}],,"like","Diskless client")=0</expression>
                                     <name>DRBD resource {#RESOURCE_NAME} status is not UpToDate/Diskless client</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
