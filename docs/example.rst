@@ -48,12 +48,13 @@ zipファイルをダウンロードした場合、解凍してください。�
 
 仮想環境の activate
 =========================
-hive 用の仮想環境を作成し、activate します。仮想環境ツールが pyenv で python 3.9.5 がインストールされている場合、以下のコマンドで activate できます。
+hive 用の仮想環境を Python 3.11 以上で作成し、activate します。
+Python 3.11 がインストールされている場合、以下のコマンドを実行してください。
 
 ::
 
-  pyenv virtualenv 3.9.5 hive
-  pyenv local hive
+  python3.11 -m venv hive
+  source hive/bin/activate
 
 virtualenv, pipenv, conda を利用されている場合は、それぞれの方法で仮想環境を activate してください。
 

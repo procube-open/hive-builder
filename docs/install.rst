@@ -10,11 +10,11 @@
 インターネット上の各種リポジトリに http, https でアクセスできる必要があります。
 プロキシ経由でのみアクセスできる環境の場合、「プロキシ環境下での構築」を参照して事前準備を行ってください。
 
-mother マシンの OS は、CentOS, Windows Subsystem for Linux, Mac OS, Ubuntu などの環境で以下を満たしている必要があります。
+mother マシンの OS は、AlmaLinux, Windows Subsystem for Linux, Mac OS, Ubuntu などの環境で以下を満たしている必要があります。
 
 - openssl コマンドが利用できること
 - pip が利用できること
-- python 3.8 以上が利用できること
+- Python 3.11 以上が利用できること
 - git コマンドが利用できること
 - docker コマンドが利用できること
 
@@ -24,35 +24,25 @@ OSごとにインストール方法が異なる手順もありますので注意
 Step 1. python3, docker, sshpass コマンドのインストール
 =============================================================
 hive-builder では、python3, docker, sshpass コマンドが必要です。
-python3 は python 3.8 以上である必要があります。各OSごとの手順に従って
+python3 は Python 3.11 以上である必要があります。各OSごとの手順に従って
 インストールしてください。
 
 .. note::
 
-    Cent OS でサポートしているのは CentOS 7/8 です。CentOS 6 は非サポートです。
+    Python 3.9 / 3.10 は hive-builder の実行環境としてサポートしません。
+    OS 標準の Python が 3.11 未満の場合は、Python 3.11 以上を別途インストールしてください。
 
-1-A. Centos 7 の場合
+1-A. RHEL 互換 OS の場合
 ----------------------------------------
 
-以下のコマンドを root ユーザで実行して python3.8, docker コマンドをインストールしてください。
-Centos 7 の場合は sshpass コマンドは不要です。
+Python 3.11 パッケージを提供する AlmaLinux 9 などでは、以下のコマンドを
+root ユーザで実行して Python と Docker CLI をインストールしてください。
 
 ::
 
-  yum install -y centos-release-scl
-  yum install -y rh-python38 which docker-client
-  scl enable rh-python38 bash
-
-1-B. Centos 8 の場合
-----------------------------------------
-
-以下のコマンドを root ユーザで実行して python3.9, docker コマンドをインストールしてください。
-Centos 8 の場合は sshpass コマンドは不要です。
-
-::
-
-  yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  yum install -y python39 docker-ce-cli
+  dnf install -y dnf-plugins-core
+  dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  dnf install -y python3.11 python3.11-pip docker-ce-cli
 
 .. note::
 
@@ -62,24 +52,18 @@ Centos 8 の場合は sshpass コマンドは不要です。
     逆に CentOS 標準の docker-client パッケージがインストールされていると、
     hive-builder がインストールする docker-ce と競合して構築に失敗しますので、注意してください。
 
-1-C. Windows の場合
+1-B. Windows の場合
 --------------------------------------------
 Windows 利用する場合は WSL(Windows Subsystem for Linux) 上で実行する必要があります。
 WSL を公式サイト https://docs.microsoft.com/ja-jp/windows/wsl/install-win10 に従ってインストールしてください。
-その後、以下のコマンドを WSL の root ユーザで実行して python3, docker, sshpass  をインストールしてください。
+その後、Ubuntu 24.04 以降など Python 3.11 以上を提供する WSL 環境で、
+以下のコマンドを root ユーザで実行して python3, docker, sshpass をインストールしてください。
 
 ::
 
   apt update
   apt upgrade
-  apt install -y libffi-dev libbz2-dev liblzma-dev libsqlite3-dev libncurses5-dev libgdbm-dev zlib1g-dev libreadline-dev libssl-dev tk-dev build-essential libncursesw5-dev libc6-dev openssl git
-  wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz
-  tar -zxf Python-3.9.5.tgz
-  cd Python-3.9.5
-  ./configure --enable-optimizations
-  make install
-  apt install docker sshpass
-  apt install docker.io
+  apt install -y python3 python3-venv python3-pip openssl git docker.io sshpass
 
 ansible でサーバへのログインに使用する ssh 鍵のファイルについて、
 owner は自分で modeは 0400 となっていて、他人から参照できない状態である必要があります。
@@ -97,18 +81,18 @@ context_dir を ~/hive-context などに設定することで回避できます�
 この操作はステージごとに必要であり、context_dir はステージごとに異なる
 必要があります。
 
-1-D. Mac OS の場合
+1-C. Mac OS の場合
 ------------------------------
 Python と sshpass コマンドのインストールには Homebrew が必要です。Homebrewが未インストールの場合は
 公式ページ https://brew.sh/index_ja に従って Homebrew をインストールしてください。
 
-以下のコマンドで Python3.9 と sshpass コマンドをインストールしてください。
+以下のコマンドで Python 3.11 と sshpass コマンドをインストールしてください。
 
 ::
 
-  brew install python@3.9 sshpass
+  brew install python@3.11 sshpass
 
-後述の仮想環境を作成するときの python3 コマンドには /usr/local/Cellar/python@3.9/3.9.5/bin/python3.9 を使用してください。
+後述の仮想環境を作成するときは、``"$(brew --prefix python@3.11)/bin/python3.11"`` を使用してください。
 
 docker コマンドのインストールの手順は以下のページに従ってください。
 https://docs.docker.com/docker-for-mac/install/
@@ -119,20 +103,16 @@ hive-builder は docker コマンドを必要としますが、端末のdocker �
 docker desktop for mac は VM を起動しますので、リソースを消費します。
 他に docker を必要とすることがなければ、落としておいてください。
 
-1-E. raspbian の場合
+1-D. Raspberry Pi OS の場合
 ------------------------------
-以下のコマンドを root ユーザで実行して python3, docker, sshpass  をインストールしてください。
+Python 3.11 以上を提供する Bookworm 以降で、以下のコマンドを root ユーザで実行して
+python3, docker, sshpass をインストールしてください。
 
 ::
 
   apt-get update
   apt-get upgrade
-  apt install -y libffi-dev libbz2-dev liblzma-dev libsqlite3-dev libncurses5-dev libgdbm-dev zlib1g-dev libreadline-dev libssl-dev tk-dev build-essential libncursesw5-dev libc6-dev openssl git sshpass
-  wget https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz
-  tar -zxf Python-3.9.5.tgz
-  cd Python-3.9.5
-  ./configure --enable-optimizations
-  make install
+  apt install -y python3 python3-venv python3-pip openssl git sshpass
   curl -sSL https://get.docker.com | sh
   usermod -aG docker pi
 
@@ -165,9 +145,9 @@ hive-builder をインストールするための仮想環境を作成したほ�
 .. note::
 
     python3 の複数のバージョンがインストールされている場合は、上記の「python3」の
-    部分では明示的に最新バージョンを指定してください。例えば、 CentOS 8 の場合は、
-    python39 コマンドを使用してください。Mac OS の場合は、
-    /usr/local/Cellar/python@3.9/3.9.5/bin/python3.9 を使用してください。
+    部分では Python 3.11 以上を明示的に指定してください。例えば、AlmaLinux 9 の場合は
+    python3.11 コマンドを使用してください。Mac OS の場合は、
+    ``"$(brew --prefix python@3.11)/bin/python3.11"`` を使用してください。
 
 Step 4. hive-builder のインストール
 ==========================================
