@@ -12,7 +12,7 @@ from json import JSONDecodeError
 import os
 import argparse
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 import re
 from contextlib import contextmanager, nullcontext
@@ -35,7 +35,7 @@ def get_reference_client(clients, logger):
 # python 3.6 does not support fromisoformat
 def fromisoformat(str):
   # strptime does not support nano second
-  return datetime.strptime(re.sub(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}).*$', r'\1', str), '%Y-%m-%dT%H:%M:%S.%f')
+  return datetime.strptime(re.sub(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}).*$', r'\1', str), '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=timezone.utc)
 
 
 def service_uptime(clients, logger, service_name):
@@ -52,7 +52,7 @@ def service_uptime(clients, logger, service_name):
         if not timestamp:
           continue
         logger.debug(f'found runinig task start_time={timestamp}')
-        s_uptime = int((datetime.utcnow() - fromisoformat(timestamp)).total_seconds())
+        s_uptime = int((datetime.now(timezone.utc) - fromisoformat(timestamp)).total_seconds())
         if min == -1 or s_uptime < min:
           min = s_uptime
     return min

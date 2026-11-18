@@ -22,7 +22,7 @@ def volumes(client, logger):
           logger.debug(f'found volume: {json.dumps(volume)}')
           yield {'{#SERVICE_NAME}': service.name, '{#NAME}': volume.get('Source'), '{#PATH}': volume.get('Target')}
   except Exception as e:
-    logger.exception(f'fail to get services', e)
+    logger.exception('fail to get services: %s', e)
 
 
 def main():
