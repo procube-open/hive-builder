@@ -418,26 +418,41 @@ class phaseWithDockerSocket(phaseBase):
       raise Error(f'fail to read ssh_config {ssh_config_path} error, you may never done build-infra: {grep_proc.stderr}')
     ssh_tunnel_procs = []
     http_proxy = context.vars.get('http_proxy')
-    for host_name in map(lambda x: x.decode(encoding='utf-8').split(' ')[1], grep_proc.stdout.splitlines()):
-      socket_path = f'{context.vars["temp_dir"]}/docker.sock@{host_name}'
-      if pathlib.Path(socket_path).is_socket():
+    hosts = [line.decode(encoding='utf-8').split()[1] for line in grep_proc.stdout.splitlines()]
+    sockets = [(host, pathlib.Path(context.vars['temp_dir']) / f'docker.sock@{host}') for host in hosts]
+    for host_name, socket_path in sockets:
+      if os.path.lexists(socket_path):
         raise Error(f'fail to create socket {socket_path}, another hive process may doing build-images/deploy-services' +
                     ' or the file has been left because previus hive process aborted suddenly')
-      args = ['ssh', '-N', '-F', ssh_config_path, '-L', socket_path + ':/var/run/docker.sock', host_name]
-      if http_proxy is not None:
-        args += ['-R', context.vars['http_proxy_port'] + ':' + http_proxy]
-      ssh_tunnel_procs.append((socket_path, subprocess.Popen(args)))
     try:
+      for host_name, socket_path in sockets:
+        args = ['ssh', '-N', '-o', 'ExitOnForwardFailure=yes', '-o', 'ConnectTimeout=10',
+                '-F', ssh_config_path, '-L', str(socket_path) + ':/var/run/docker.sock']
+        if http_proxy is not None:
+          args += ['-R', str(context.vars['http_proxy_port']) + ':' + http_proxy]
+        args.append(host_name)
+        proc = subprocess.Popen(args)
+        ssh_tunnel_procs.append((socket_path, proc))
+        deadline = time.monotonic() + 30
+        while True:
+          if proc.poll() is not None:
+            raise Error(f'SSH forwarding for {host_name} exited with status {proc.returncode}')
+          if socket_path.is_socket():
+            break
+          if time.monotonic() >= deadline:
+            raise Error(f'timed out waiting for SSH socket {socket_path}')
+          time.sleep(0.1)
       super().do_one(context)
     finally:
       for socket_path, ssh_tunnel_proc in ssh_tunnel_procs:
-        ssh_tunnel_proc.send_signal(signal.SIGTERM)
-        while ssh_tunnel_proc.poll() is None:
+        if ssh_tunnel_proc.poll() is None:
+          ssh_tunnel_proc.send_signal(signal.SIGTERM)
           try:
-            ssh_tunnel_proc.wait(timeout=1)
+            ssh_tunnel_proc.wait(timeout=5)
           except subprocess.TimeoutExpired:
-            pass
-        os.remove(socket_path)
+            ssh_tunnel_proc.kill()
+            ssh_tunnel_proc.wait()
+        socket_path.unlink(missing_ok=True)
 
 
 class buildImages(phaseWithDockerSocket):
