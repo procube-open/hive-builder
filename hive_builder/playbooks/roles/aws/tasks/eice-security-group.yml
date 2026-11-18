@@ -1,0 +1,29 @@
+---
+- name: find Instance Connect security group
+  amazon.aws.ec2_security_group_info:
+    region: "{{ hive_region }}"
+    filters:
+      vpc-id: "{{ hive_safe_aws_vpc_id }}"
+      group-name: "{{ hive_safe_eice_name }}"
+  register: hive_safe_eice_groups
+
+- name: protect security groups not owned by this stage
+  assert:
+    that: (item.tags | default({}) | combine(hive_safe_eice_tags)) == (item.tags | default({}))
+    fail_msg: "Security group {{ item.group_id }} is not owned by this hive stage; refusing to change it."
+  loop: "{{ hive_safe_eice_groups.security_groups }}"
+
+- name: create Instance Connect security group
+  amazon.aws.ec2_security_group:
+    name: "{{ hive_safe_eice_name }}"
+    description: "SSH from EC2 Instance Connect Endpoint"
+    vpc_id: "{{ hive_safe_aws_vpc_id }}"
+    region: "{{ hive_region }}"
+    tags: "{{ hive_safe_eice_tags }}"
+    rules: []
+    rules_egress:
+      - proto: tcp
+        from_port: "{{ hive_safe_sshd_port | int }}"
+        to_port: "{{ hive_safe_sshd_port | int }}"
+        cidr_ip: "{{ hive_cidr }}"
+  register: hive_safe_eice_group

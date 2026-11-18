@@ -17,6 +17,7 @@ mother マシンの OS は、AlmaLinux, Windows Subsystem for Linux, Mac OS, Ubu
 - Python 3.11 以上が利用できること
 - git コマンドが利用できること
 - docker コマンドが利用できること
+- AWS プロバイダでは AWS CLI v2（2.12.0 以降）が利用できること（導入と認証設定は :doc:`aws` を参照）
 
 インストールの手順を示します。
 OSごとにインストール方法が異なる手順もありますので注意してください。

@@ -1,0 +1,18 @@
+---
+- name: describe Instance Connect Endpoints in this VPC
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'describe-instance-connect-endpoints', '--filters', 'Name=vpc-id,Values=' + hive_safe_aws_vpc_id] }}"
+  register: hive_safe_eice_info
+  changed_when: false
+
+- name: collect active Instance Connect Endpoints
+  set_fact:
+    hive_safe_eices: "{{ (hive_safe_eice_info.stdout | from_json).InstanceConnectEndpoints | rejectattr('State', 'equalto', 'delete-complete') | list }}"
+
+- name: protect Endpoints not owned by this stage
+  assert:
+    that: (hive_safe_eice_actual_tags | combine(hive_safe_eice_tags)) == hive_safe_eice_actual_tags
+    fail_msg: "Endpoint {{ item.InstanceConnectEndpointId }} in {{ hive_safe_aws_vpc_id }} is not owned by this hive stage; refusing to use or delete it."
+  vars:
+    hive_safe_eice_actual_tags: "{{ item.Tags | default([]) | items2dict(key_name='Key', value_name='Value') }}"
+  loop: "{{ hive_safe_eices }}"

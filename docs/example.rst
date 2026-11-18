@@ -83,17 +83,19 @@ AWS の設定
 GCPプロバイダを使用する場合、このセクションをスキップして、「GCPの設定」に進んんでください。
 
 inventory/hive.yml に AWS の環境のパラメータを設定します。
-services.staging.region にリージョンを指定し、services.staging.subnets
+stages.staging.region にリージョンを指定し、stages.staging.subnets
 の available_zone にアカウントが利用できる3つの可用性ゾーンを指定してください。
 サンプルでは東京リージョンが設定されていますが、可用性ゾーンについては、
 4つのうちどの3個が利用できるかがアカウントごとに異なるので、注意してください。
 
-また、以下のコマンドで hive の環境に AWS EC2 API の鍵を設定してください。
+mother に AWS CLI v2（2.12.0 以降）をインストールし、以下の環境変数を設定してください（詳細は :doc:`aws`）。
+inventory の ``region`` を省略した場合は ``AWS_DEFAULT_REGION`` が使用されます。
 
 ::
 
-  hive set aws_access_key_id アクセスキーID
-  hive set aws_secret_access_key アクセスキー
+  export AWS_ACCESS_KEY_ID="アクセスキーID"
+  export AWS_SECRET_ACCESS_KEY="シークレットアクセスキー"
+  export AWS_DEFAULT_REGION="ap-northeast-1"
  
 GCPの設定
 =========================

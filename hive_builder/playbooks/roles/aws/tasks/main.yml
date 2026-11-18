@@ -1,10 +1,18 @@
 ---
+- name: check AWS prerequisites
+  import_tasks: preflight.yml
+
+- name: explain AWS check mode
+  debug:
+    msg: "AWS resource changes and connection waits are skipped in check mode."
+  when: ansible_check_mode
+
 - name: "build aws"
   import_tasks: build-aws.yml
-  when: not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
+  when: not ansible_check_mode and not (hive_destroy  | default(false)) and not (hive_halt  | default(false))
 - name: "destroy aws"
   import_tasks: destroy-aws.yml
-  when: hive_destroy  | default(false)
+  when: not ansible_check_mode and (hive_destroy | default(false))
 - name: "stop aws ec2 instance"
   import_tasks: stop-aws.yml
-  when: hive_halt  | default(false)
+  when: not ansible_check_mode and (hive_halt | default(false))

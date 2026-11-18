@@ -69,7 +69,9 @@
     mode: 0644
     block: |
       Host {{ aws_host }}
-        HostName {{ hive_safe_eip.public_ip }}
+        HostName {{ hostvars[aws_host].hive_private_ip }}
+        Port {{ hive_safe_sshd_port }}
+        ProxyCommand aws ec2-instance-connect open-tunnel --instance-connect-endpoint-id {{ hive_safe_eice_id | quote }} --private-ip-address %h --remote-port %p --region {{ hive_region | quote }}
         UserKnownHostsFile {{ hive_context_dir }}/known_hosts
         StrictHostKeyChecking yes
         User {{ hive_safe_admin }}

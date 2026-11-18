@@ -100,3 +100,7 @@ hive コマンドを使わずに ssh/scp を実行する場合は、コンテキ
 
   scp -F .hive/production/ssh_config hive0.pdns:/etc/hosts .
 
+AWS プロバイダの生成設定は EC2 Instance Connect Endpoint 経由で接続するため、
+直接の ssh/scp にも AWS CLI v2 と環境変数の AWS 認証情報が必要です。
+直接実行では ``hive set`` の旧認証設定へのフォールバックは行われません。
+詳細は :doc:`aws` を参照してください。

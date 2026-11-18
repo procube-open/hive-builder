@@ -9,6 +9,10 @@
     state: present
   register: hive_safe_aws_vpc
 
+- name: remember VPC for Instance Connect
+  set_fact:
+    hive_safe_aws_vpc_id: "{{ hive_safe_aws_vpc.vpc.id }}"
+
 - name: setup internet gateway for VPC
   ec2_vpc_igw:
     vpc_id: "{{ hive_safe_aws_vpc.vpc.id }}"
@@ -19,34 +23,8 @@
       Project: "{{ hive_name }}"
   register: hive_safe_igw
 
-- name: initialize security group rules
-  set_fact:
-    hive_safe_inbound_rules: "{{ hive_ec2_group_rules | default([{'proto': 'all', 'group_name': 'default'}]) }}"
-
-- name: add default TCP rules
-  set_fact:
-    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'tcp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
-  loop: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
-  when: hive_ec2_group_rules is not defined
-
-- name: add default UDP rules
-  set_fact:
-    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'udp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
-  loop: "{{ hive_published_ports_udp }}"
-  when: hive_ec2_group_rules is not defined
-
-- name: set for published port and name tag to default security group for VPC
-  ec2_group:
-    state: present
-    name: default
-    tags:
-      Name: "group-{{ hive_safe_vpc_name }}"
-      Project: "{{ hive_name }}"
-    vpc_id: "{{hive_safe_aws_vpc.vpc.id }}"
-    description: "default VPC security group"
-    region: "{{ hive_region }}"
-    rules: "{{ hive_safe_inbound_rules }}"
-  register: hive_safe_group
+- name: prepare Instance Connect security group
+  include_tasks: eice-security-group.yml
 
 - name: setup subnet for VPC
   ec2_vpc_subnet:
@@ -60,6 +38,44 @@
       Project: "{{ hive_name }}"
   loop: "{{ hive_subnets }}"
   register: hive_safe_subnets_info
+
+- name: build Instance Connect Endpoint
+  include_tasks: build-eice.yml
+
+- name: initialize security group rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_ec2_group_rules | default([{'proto': 'all', 'group_name': 'default'}]) }}"
+
+- name: add default TCP rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'tcp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
+  when:
+    - hive_ec2_group_rules is not defined
+    - item | int != hive_safe_sshd_port | int
+
+- name: add default UDP rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'udp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ hive_published_ports_udp }}"
+  when: hive_ec2_group_rules is not defined
+
+- name: allow SSH from Instance Connect Endpoint
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'tcp', 'from_port': hive_safe_sshd_port | int, 'to_port': hive_safe_sshd_port | int, 'group_id': hive_safe_eice_group.group_id}] }}"
+
+- name: set for published port and name tag to default security group for VPC
+  ec2_group:
+    state: present
+    name: default
+    tags:
+      Name: "group-{{ hive_safe_vpc_name }}"
+      Project: "{{ hive_name }}"
+    vpc_id: "{{hive_safe_aws_vpc.vpc.id }}"
+    description: "default VPC security group"
+    region: "{{ hive_region }}"
+    rules: "{{ hive_safe_inbound_rules }}"
+  register: hive_safe_group
 
 - name: gather default route table facts
   ec2_vpc_route_table_info:

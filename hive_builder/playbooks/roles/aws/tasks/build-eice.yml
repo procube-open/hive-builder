@@ -1,0 +1,48 @@
+---
+- name: find existing Instance Connect Endpoint
+  include_tasks: eice-info.yml
+
+- name: verify existing Endpoint configuration
+  assert:
+    that:
+      - hive_safe_eices | length <= 1
+      - item.SubnetId == hive_safe_subnets_info.results[0].subnet.id
+      - item.SecurityGroupIds | sort == [hive_safe_eice_group.group_id]
+      - not item.PreserveClientIp
+      - item.IpAddressType | default('ipv4') == 'ipv4'
+      - item.State in ['create-in-progress', 'create-complete', 'update-complete']
+    fail_msg: "Endpoint configuration or state differs from the managed configuration; refusing to replace it: {{ item }}"
+  loop: "{{ hive_safe_eices }}"
+
+- name: create Instance Connect Endpoint
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'create-instance-connect-endpoint', '--subnet-id', hive_safe_subnets_info.results[0].subnet.id, '--security-group-ids', hive_safe_eice_group.group_id, '--no-preserve-client-ip', '--tag-specifications', hive_safe_eice_tag_specifications | to_json] }}"
+  vars:
+    hive_safe_eice_tag_specifications:
+      - ResourceType: instance-connect-endpoint
+        Tags: "{{ hive_safe_eice_tags | dict2items(key_name='Key', value_name='Value') }}"
+  register: hive_safe_eice_created
+  when: hive_safe_eices | length == 0
+  changed_when: true
+
+- name: remember Instance Connect Endpoint ID
+  set_fact:
+    hive_safe_eice_id: "{{ hive_safe_eices[0].InstanceConnectEndpointId if hive_safe_eices | length > 0 else (hive_safe_eice_created.stdout | from_json).InstanceConnectEndpoint.InstanceConnectEndpointId }}"
+
+- name: wait for Instance Connect Endpoint creation
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'describe-instance-connect-endpoints', '--instance-connect-endpoint-ids', hive_safe_eice_id] }}"
+  register: hive_safe_eice_wait
+  changed_when: false
+  until: >-
+    hive_safe_eice_wait.rc == 0 and
+    ((hive_safe_eice_wait.stdout | from_json).InstanceConnectEndpoints | length > 0) and
+    (hive_safe_eice_wait.stdout | from_json).InstanceConnectEndpoints[0].State
+    not in ['create-in-progress', 'update-in-progress']
+  retries: 60
+  delay: 5
+
+- name: require a ready Instance Connect Endpoint
+  assert:
+    that: (hive_safe_eice_wait.stdout | from_json).InstanceConnectEndpoints[0].State in ['create-complete', 'update-complete']
+    fail_msg: "Instance Connect Endpoint creation failed: {{ hive_safe_eice_wait.stdout }}"

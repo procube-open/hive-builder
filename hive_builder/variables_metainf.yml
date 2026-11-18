@@ -277,11 +277,11 @@ repository_docker_socket:
   name_in_ansible: hive_repository_docker_socket
   default: "{temp_dir}/repository_docker.sock"
 aws_access_key_id:
-  description: access key for AWS used only when provier is AWS
+  description: "deprecated AWS access key fallback; prefer AWS_ACCESS_KEY_ID"
   name_in_environment: AWS_ACCESS_KEY_ID
   persistent_scope: stage
 aws_secret_access_key:
-  description: access secret key for AWS used only when provier is AWS
+  description: "deprecated AWS secret key fallback; prefer AWS_SECRET_ACCESS_KEY"
   name_in_environment: AWS_SECRET_ACCESS_KEY
   persistent_scope: stage
 foward_zabbix:

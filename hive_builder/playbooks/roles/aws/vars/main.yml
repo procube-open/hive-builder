@@ -1,6 +1,13 @@
 ---
 # Service Acccount Email only works with Machine Account-based authentication
 hive_safe_vpc_name: "{{ hive_vpc_name | default( 'vpc-' + hive_name ) }}"
+hive_safe_eice_name: "eice-{{ hive_safe_vpc_name }}"
+hive_safe_eice_tags:
+  Name: "{{ hive_safe_eice_name }}"
+  Project: "{{ hive_name }}"
+  HiveStage: "{{ hive_stage }}"
+  HiveBuilderRole: instance-connect-endpoint
+hive_safe_aws_cli: [aws, --region, "{{ hive_region }}", --output, json, --no-cli-pager, --no-cli-auto-prompt]
 hive_safe_hosts: "{{ ( groups['hives'] | intersect(groups[hive_stage]) ) if hive_shared_repository is defined else ( groups['servers'] | intersect(groups[hive_stage]) ) }}"
 hive_safe_image_id: "{{ hostvars[aws_host].hive_vm_image_name | default('ami-00d73f83fa9a60285') }}"
 # Version hisotry memo

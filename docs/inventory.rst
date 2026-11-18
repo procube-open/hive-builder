@@ -380,8 +380,8 @@ aws プロバイダ固有の属性には以下のものがあります。
       - リポジトリサーバのインスタンスタイプ
     * - region
       - ap-northeast-1
-      - 必須
-      - 構築先のリージョン
+      - AWS_DEFAULT_REGION
+      - 構築先のリージョン。指定した場合は環境変数より優先
     * - disk_encrypted
       - - True
         - False
@@ -407,17 +407,23 @@ aws プロバイダ固有の属性には以下のものがあります。
       - | デフォルト以外のAMIを使用する場合のAMI ID
         | （AMIを変更する場合はルートデバイス名を設定する必要あり）
 
-aws プロバイダを使用する場合は、以下のコマンドで hive の環境に AWS EC2 API の鍵を設定する必要があります。
+aws プロバイダを使用する場合は、mother に AWS CLI v2（2.12.0 以降）をインストールし、
+以下の環境変数を設定してください。認証の互換性と必要な権限は :doc:`aws` を参照してください。
 
 ::
 
-  hive set aws_access_key_id アクセスキーID
-  hive set aws_secret_access_key アクセスキー
+  export AWS_ACCESS_KEY_ID="アクセスキーID"
+  export AWS_SECRET_ACCESS_KEY="シークレットアクセスキー"
+  export AWS_DEFAULT_REGION="ap-northeast-1"
 
 aws プロバイダでは hive_ec2_group_rules 変数にルールオブジェクトのリストを指定することで、
 セキュリティグループのインバウンドルールに独自のものを設定できます。
 （デフォルトでは、サービスの ports 属性に従ってインバウンドルールが設定されます。
-ただし、 10000 以上の番号は外部に公開されません。）
+ただし、 10000 以上の番号と SSH ポートは標準ルールでは外部に公開されません。）
+
+SSH は EC2 Instance Connect Endpoint を経由します。
+独自ルールには Endpoint の SG からの SSH 許可が自動追加されますが、
+独自ルール内の外部 SSH 許可は維持されるため、必要に応じて削除してください。
 
 ルールオブジェクトの属性は以下の通り。
 

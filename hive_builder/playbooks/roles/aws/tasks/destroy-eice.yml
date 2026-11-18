@@ -1,0 +1,89 @@
+---
+- name: find owned Instance Connect Endpoint
+  include_tasks: eice-info.yml
+
+- name: find Instance Connect security group
+  amazon.aws.ec2_security_group_info:
+    region: "{{ hive_region }}"
+    filters:
+      vpc-id: "{{ hive_safe_aws_vpc_id }}"
+      group-name: "{{ hive_safe_eice_name }}"
+  register: hive_safe_eice_groups
+
+- name: protect security groups not owned by this stage
+  assert:
+    that: (item.tags | default({}) | combine(hive_safe_eice_tags)) == (item.tags | default({}))
+    fail_msg: "Security group {{ item.group_id }} is not owned by this hive stage; refusing to delete it."
+  loop: "{{ hive_safe_eice_groups.security_groups }}"
+
+- name: delete Instance Connect Endpoint
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'delete-instance-connect-endpoint', '--instance-connect-endpoint-id', item.InstanceConnectEndpointId] }}"
+  loop: "{{ hive_safe_eices }}"
+  when: item.State != 'delete-in-progress'
+  changed_when: true
+
+- name: wait for Instance Connect Endpoint deletion
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'describe-instance-connect-endpoints', '--filters', 'Name=vpc-id,Values=' + hive_safe_aws_vpc_id] }}"
+  register: hive_safe_eice_deleted
+  changed_when: false
+  until: >-
+    hive_safe_eice_deleted.rc == 0 and
+    ((hive_safe_eice_deleted.stdout | from_json).InstanceConnectEndpoints |
+    rejectattr('State', 'equalto', 'delete-complete') |
+    rejectattr('State', 'equalto', 'delete-failed') | list | length == 0)
+  retries: 60
+  delay: 5
+  when: hive_safe_eices | length > 0
+
+- name: require successful Endpoint deletion
+  assert:
+    that: (hive_safe_eice_deleted.stdout | from_json).InstanceConnectEndpoints | selectattr('State', 'equalto', 'delete-failed') | list | length == 0
+    fail_msg: "Instance Connect Endpoint deletion failed: {{ hive_safe_eice_deleted.stdout }}"
+  when: hive_safe_eices | length > 0
+
+- name: find instance security group
+  amazon.aws.ec2_security_group_info:
+    region: "{{ hive_region }}"
+    filters:
+      vpc-id: "{{ hive_safe_aws_vpc_id }}"
+      group-name: default
+  register: hive_safe_instance_groups
+  when: hive_safe_eice_groups.security_groups | length > 0
+
+- name: describe instance security group rules
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'describe-security-group-rules', '--filters', 'Name=group-id,Values=' + hive_safe_instance_groups.security_groups[0].group_id] }}"
+  register: hive_safe_instance_rules
+  changed_when: false
+  when:
+    - hive_safe_eice_groups.security_groups | length > 0
+    - hive_safe_instance_groups.security_groups | length > 0
+
+- name: remove ingress references to the Instance Connect security group
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'revoke-security-group-ingress', '--group-id', item.GroupId, '--security-group-rule-ids', item.SecurityGroupRuleId] }}"
+  loop: "{{ (hive_safe_instance_rules.stdout | default('{\"SecurityGroupRules\": []}') | from_json).SecurityGroupRules }}"
+  when:
+    - not item.IsEgress
+    - item.ReferencedGroupInfo is defined
+    - item.ReferencedGroupInfo.GroupId | default('') == hive_safe_eice_groups.security_groups[0].group_id
+  changed_when: true
+
+- name: wait for Instance Connect network interfaces to be released
+  command:
+    argv: "{{ hive_safe_aws_cli + ['ec2', 'describe-network-interfaces', '--filters', 'Name=group-id,Values=' + item.group_id] }}"
+  loop: "{{ hive_safe_eice_groups.security_groups }}"
+  register: hive_safe_eice_enis
+  changed_when: false
+  until: hive_safe_eice_enis.rc == 0 and (hive_safe_eice_enis.stdout | from_json).NetworkInterfaces | length == 0
+  retries: 60
+  delay: 5
+
+- name: delete Instance Connect security group
+  amazon.aws.ec2_security_group:
+    group_id: "{{ item.group_id }}"
+    region: "{{ hive_region }}"
+    state: absent
+  loop: "{{ hive_safe_eice_groups.security_groups }}"

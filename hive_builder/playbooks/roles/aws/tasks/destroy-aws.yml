@@ -53,6 +53,12 @@
     region: "{{ hive_region }}"
   register: hive_safe_aws_vpc_info
 
+- name: delete Instance Connect resources before subnets
+  include_tasks: destroy-eice.yml
+  vars:
+    hive_safe_aws_vpc_id: "{{ hive_safe_aws_vpc_info.vpcs[0].vpc_id }}"
+  when: hive_safe_aws_vpc_info.vpcs | length > 0
+
 - name: delete subnets
   ec2_vpc_subnet:
     state: absent

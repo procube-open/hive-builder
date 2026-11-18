@@ -1,0 +1,29 @@
+---
+- name: require an AWS region
+  assert:
+    that: hive_region | default('') | length > 0
+    fail_msg: "Set AWS_DEFAULT_REGION or the AWS inventory region before running AWS operations."
+
+- name: require a complete AWS credential pair
+  assert:
+    that:
+      - lookup('env', 'AWS_ACCESS_KEY_ID') | length > 0
+      - lookup('env', 'AWS_SECRET_ACCESS_KEY') | length > 0
+    fail_msg: "Export both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (and AWS_SESSION_TOKEN for temporary credentials). A complete legacy hive set pair is supported only when no AWS credential environment variables are set."
+    quiet: true
+
+- name: check AWS CLI version
+  command:
+    argv: [aws, --version]
+  register: hive_safe_aws_cli_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: require AWS CLI v2 with Instance Connect support
+  assert:
+    that:
+      - hive_safe_aws_cli_version.rc == 0
+      - hive_safe_aws_cli_version.stdout is match('aws-cli/2\.')
+      - (hive_safe_aws_cli_version.stdout | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('0.0.0', true)) is version('2.12.0', '>=')
+    fail_msg: "Install or update AWS CLI v2 (2.12.0 or later) on mother: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"

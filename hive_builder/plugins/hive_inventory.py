@@ -102,7 +102,7 @@ DOCUMENTATION = r'''
         image_name:
           description: "the source image of the hive host(availabe when provider is a IaaS)"
         region:
-          description: "the region where hive hosts are located (availabe when provider is a IaaS)"
+          description: "the region where hive hosts are located (AWS defaults to AWS_DEFAULT_REGION)"
         prepared_resource_group:
           description: "do not create/destory resource group (available when provider is azure)"
         not_support_az:
@@ -232,7 +232,7 @@ class Stage:
   def __init__(self, name, stage_name, option, inventory):
     self.stage_name = stage_name
     self.name = name
-    self.stage = option
+    self.stage = option.copy()
     self.inventory = inventory
     if self.stage_name not in ['private', 'staging', 'production']:
       raise AnsibleParserError(f'stage must be one of "private", "staging", "production", but specified {self.stage_name}')
@@ -244,6 +244,10 @@ class Stage:
     self.provider = self.stage['provider']
     if self.provider not in ['vagrant', 'aws', 'azure', 'gcp', 'openstack', 'prepared', 'kickstart']:
       raise AnsibleParserError(f'provider must be one of "vagrant", "aws", "azure", "gcp", "openstack", "prepared", "kickstart", but specified {self.provider}')
+    if self.provider == 'aws' and not self.stage.get('region'):
+      region = os.environ.get('AWS_DEFAULT_REGION')
+      if region:
+        self.stage['region'] = region
     if self.provider != 'kickstart' and 'kickstart_config' in self.stage:
       raise AnsibleParserError('kickstart_config cannot be specified when provider is not kickstart')
     if self.provider == 'vagrant':

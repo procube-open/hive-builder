@@ -34,6 +34,16 @@ class Error(Exception):
   pass
 
 
+AWS_CREDENTIAL_VARIABLES = {
+    'aws_access_key_id': 'AWS_ACCESS_KEY_ID',
+    'aws_secret_access_key': 'AWS_SECRET_ACCESS_KEY'}
+
+
+def redact_aws_credentials(values):
+  return {k: '<redacted>' if k in AWS_CREDENTIAL_VARIABLES else v
+          for k, v in values.items()}
+
+
 def directory_cast(directory):
   if directory.endswith('/'):
     directory = directory[:-1]
@@ -101,7 +111,8 @@ class setPersistent(commandHandlerBase):
     casted_value = context.get_cast(name)(context.args.value)
     scope = context.set_persistent(name, casted_value)
     context.save_persistent()
-    context.logger.info(f'set persistently {casted_value} to {name} on {scope}')
+    logged_value = '<redacted>' if name in AWS_CREDENTIAL_VARIABLES else casted_value
+    context.logger.info(f'set persistently {logged_value} to {name} on {scope}')
 
   def setup_parser(self, subparsers, variables_metainf):
     super().setup_parser(subparsers, variables_metainf)
@@ -131,7 +142,7 @@ class hiveContext:
     self.overwritables = []
     self.load_defaults()
     self.overwritables = []
-    self.logger.debug(f'varaiables initialized as {self.vars}')
+    self.logger.debug(f'varaiables initialized as {redact_aws_credentials(self.vars)}')
 
   def load_variables_metainf(self):
     variables_metainf_path = os.path.dirname(
@@ -154,7 +165,7 @@ class hiveContext:
       with open(persistent_values_path, 'r+') as envf:
         self.persistent_values = yaml.load(envf, Loader=yaml.SafeLoader)
       self.logger.debug('persistent values {0} is loaded from {1}'.format(
-          self.persistent_values, persistent_values_path))
+          redact_aws_credentials(self.persistent_values), persistent_values_path))
     else:
       self.persistent_values = {}
     # update from persistent values
@@ -312,7 +323,14 @@ class ansbileCommandBase(commandHandlerBase):
   def collect_environment_vars(self, vars, variables_metainf, ansible_cfg_file_path):
     # override when phase sapecific ansible variale
     environment_vars = dict((v['name_in_environment'], vars[k])
-                            for k, v in variables_metainf.items() if k in vars and 'name_in_environment' in v)
+                            for k, v in variables_metainf.items()
+                            if k in vars and 'name_in_environment' in v and k not in AWS_CREDENTIAL_VARIABLES)
+    # Never complete a partial environment credential pair using a different identity.
+    if not any(k in os.environ for k in (*AWS_CREDENTIAL_VARIABLES.values(), 'AWS_SESSION_TOKEN')):
+      if all(vars.get(k) for k in AWS_CREDENTIAL_VARIABLES):
+        environment_vars.update({v: vars[k] for k, v in AWS_CREDENTIAL_VARIABLES.items()})
+        self.logger.warning('AWS credentials from hive set are deprecated; export '
+                            'AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY instead.')
     environment_vars['ANSIBLE_CONFIG'] = ansible_cfg_file_path
     return environment_vars
 
@@ -345,7 +363,7 @@ class ansbileCommandBase(commandHandlerBase):
           context.vars, context.variables_metainf, ansible_cfg_file_path)
       for k, v in environment_vars.items():
         os.environ[k] = str(v)
-      context.logger.debug(f'environment variables: {os.environ}')
+      context.logger.debug(f'exported environment variable names: {list(environment_vars)}')
 
   def setup_parser(self, subparsers, variables_metainf):
     super().setup_parser(subparsers, variables_metainf)
