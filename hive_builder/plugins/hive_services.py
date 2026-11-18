@@ -9,8 +9,6 @@ hive inventory: dynamic inventory plugin for hive
 
 from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.errors import AnsibleParserError
-from ansible.parsing.yaml.objects import AnsibleMapping, AnsibleSequence, AnsibleUnicode
-from ansible.module_utils.six import text_type
 from hive_builder.hive import hiveContext
 from ansible.utils.display import Display
 
@@ -88,7 +86,7 @@ class InventoryModule(BaseInventoryPlugin):
         raise AnsibleParserError(f'"element of "available_on" must be one of {STAGES}, but {s}')
       self.inventory.add_group(s)
     services = self.get_option('services')
-    if type(services) != AnsibleMapping:
+    if not isinstance(services, dict):
       raise AnsibleParserError(f'"services" must be dict type, but {type(services)}')
     device_id_map = self.context.vars.get('drbd_device_map', {})
     published_port_map = self.context.vars.get('published_port_map', {})
@@ -101,7 +99,7 @@ class InventoryModule(BaseInventoryPlugin):
     networks = self.get_option('networks')
     no_default = True
     if networks is not None:
-      if type(networks) != AnsibleMapping:
+      if not isinstance(networks, dict):
         raise AnsibleParserError(f'"networks" must be dict type')
       for name, options in networks.items():
         if name == 'hive_default_network':
@@ -109,7 +107,7 @@ class InventoryModule(BaseInventoryPlugin):
         network = Network(name, options, available_on)
         network.parse(inventory)
     if no_default:
-      network = Network('hive_default_network', AnsibleMapping(), available_on)
+      network = Network('hive_default_network', {}, available_on)
       network.parse(inventory)
 
 
@@ -136,7 +134,7 @@ class Network:
       inventory.add_host(self.name, group=s)
     if self.options is None:
       return
-    if type(self.options) != AnsibleMapping:
+    if not isinstance(self.options, dict):
       raise AnsibleParserError(f'value must be dict type in network {self.name}')
     for option_name, option_value in self.options.items():
       if option_name not in NETWORK_PARAMS:
@@ -151,7 +149,7 @@ class Service:
     self.available_on = available_on
 
   def parse(self, inventory, device_id_map, published_port_map):
-    if type(self.options) != AnsibleMapping:
+    if not isinstance(self.options, dict):
       raise AnsibleParserError(f'value must be dict type in service {self.name}')
     inventory.add_host(self.name, group='services')
     for option_name, option_value in self.options.items():
@@ -167,8 +165,8 @@ class Service:
     for s in self.available_on:
       inventory.add_host(self.name, group=s)
     if 'volumes' in self.options or self.options.get('standalone', False):
-      volumes_value = self.options.get('volumes', AnsibleSequence([]))
-      if type(volumes_value) != AnsibleSequence:
+      volumes_value = self.options.get('volumes', [])
+      if not isinstance(volumes_value, list):
         raise AnsibleParserError(f'"volumes" must be list type in service {self.name}, but {type(volumes_value)}')
       volumes = []
       if self.options.get('standalone', False):
@@ -187,9 +185,9 @@ class Service:
           command = ['sh', '-c', 'mount -t cgroup2 cgroup2 /sys/fs/cgroup && exec /sbin/init']
           inventory.set_variable(self.name, 'hive_command', command)
       for volume in volumes_value:
-        if type(volume) == AnsibleUnicode:
-          raise AnsibleParserError(f'we do not support short syntax {text_type(volume)} in volume at service {self.name}')
-        elif type(volume) == AnsibleMapping:
+        if isinstance(volume, str):
+          raise AnsibleParserError(f'we do not support short syntax {volume} in volume at service {self.name}')
+        elif isinstance(volume, dict):
           if 'source' not in volume or 'target' not in volume:
               raise AnsibleParserError(f'both "source" and "target" must be specified in volume at service {self.name}')
           if 'nfs' in volume:
@@ -222,7 +220,7 @@ class Service:
                     break
                 if 'device_id' not in volume['drbd']:
                   raise AnsibleParserError(f'too many drbd volumes or garbage device_id are remain in "device_id_map" of persistent hive variable')
-            device_id_map[text_type(volume['source'])] = volume['drbd']['device_id']
+            device_id_map[str(volume['source'])] = volume['drbd']['device_id']
             self.add_volume(inventory, {'name': volume['source'], 'drbd': volume['drbd']},
                             'drbd_volumes', volume['drbd'].get('available_on', self.available_on))
           volume_value = {}
@@ -240,10 +238,10 @@ class Service:
 
     if 'image' in self.options:
       image_value = self.options['image']
-      if type(image_value) == AnsibleUnicode:
+      if isinstance(image_value, str):
         # self.options['image'] can be {{hive_registry}}/image_some_another_service to refer build image
         inventory.set_variable(self.name, 'hive_image', image_value)
-      elif type(image_value) == AnsibleMapping:
+      elif isinstance(image_value, dict):
         # this container needs build.
         image_name = f'image_{self.name}'
         inventory.add_host(image_name, group='images')
@@ -268,9 +266,9 @@ class Service:
     if 'ports' in self.options:
       ports = []
       for portdef in self.options['ports']:
-        if type(portdef) == AnsibleMapping:
+        if isinstance(portdef, dict):
           pass
-        elif type(portdef) == AnsibleUnicode:
+        elif isinstance(portdef, str):
           slash = portdef.split('/')
           protocol = 'tcp'
           if len(slash) > 1:
@@ -284,7 +282,7 @@ class Service:
           raise AnsibleParserError(f'element of "ports" must be dict type or str type in service {self.name}, but type is {type(portdef)}')
         if portdef['protocol'] not in ['tcp', 'udp', 'sctp']:
           raise AnsibleParserError(f'unknown protocol {portdef["protocol"]} is specified {self.name}.')
-        published_port_key = self.name + text_type(portdef['target_port'])
+        published_port_key = self.name + str(portdef['target_port'])
         if 'published_port' in portdef:
           if portdef['published_port'] in published_port_map.values() and portdef['published_port'] != published_port_map.get(published_port_key):
             display.warning(

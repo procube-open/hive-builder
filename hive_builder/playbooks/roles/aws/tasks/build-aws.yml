@@ -19,7 +19,22 @@
       Project: "{{ hive_name }}"
   register: hive_safe_igw
 
-- debug: var=hive_safe_inbound_rules
+- name: initialize security group rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_ec2_group_rules | default([{'proto': 'all', 'group_name': 'default'}]) }}"
+
+- name: add default TCP rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'tcp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports }}"
+  when: hive_ec2_group_rules is not defined
+
+- name: add default UDP rules
+  set_fact:
+    hive_safe_inbound_rules: "{{ hive_safe_inbound_rules + [{'proto': 'udp', 'to_port': item, 'from_port': item, 'cidr_ip': '0.0.0.0/0'}] }}"
+  loop: "{{ hive_published_ports_udp }}"
+  when: hive_ec2_group_rules is not defined
+
 - name: set for published port and name tag to default security group for VPC
   ec2_group:
     state: present
@@ -79,6 +94,17 @@
   loop_control:
     loop_var: aws_host
 
+- name: initialize EFS targets
+  set_fact:
+    hive_safe_efs_targets: []
+  when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0
+
+- name: collect EFS targets
+  set_fact:
+    hive_safe_efs_targets: "{{ hive_safe_efs_targets + [{'subnet_id': item.subnet.id}] }}"
+  loop: "{{ hive_safe_subnets_info.results }}"
+  when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0
+
 - name: create EFS file system
   efs:
     state: present
@@ -87,12 +113,7 @@
     tags:
       Name: "efs-{{ hive_name }}"
       Project: "{{ hive_name }}"
-    targets: |-
-      {% set targets = [] %}
-      {% for subnet in (hive_safe_subnets_info.results | map(attribute='subnet') | list) %}
-      {%   set _ = targets.append({'subnet_id': subnet.id}) %}
-      {% endfor %}
-      {{ targets }}
+    targets: "{{ hive_safe_efs_targets | default([]) }}"
     encrypt: "{{ hive_mirrored_disk_encrypted | default(False) }}"
     kms_key_id: "{{ (hive_kms_key_id | default(omit)) if (hive_mirrored_disk_encrypted | default(False)) else omit }}"
   when: (groups['nfs_volumes'] | intersect(groups[hive_stage]) | length) > 0

@@ -22,17 +22,3 @@ hive_safe_image_id: "{{ hostvars[aws_host].hive_vm_image_name | default('ami-00d
 # DBRD module compiled on 2020-12-13
 # kmod-drbd-9.0.24_4.14.209_160.335.amzn2.x86_64-1.x86_64.rpm
 
-hive_safe_inbound_rules: |-
-  {% if hive_ec2_group_rules is defined %}
-  {{ hive_ec2_group_rules }}
-  {% else %}
-  {%   set outputs = [{'proto':'all', 'group_name': 'default'}] %}
-  {%   for port in [hive_safe_sshd_port] + hive_published_ports_tcp + hive_safe_shared_repository_ports%}
-  {%     set _ = outputs.append({'proto':'tcp', 'to_port': port, 'from_port': port, 'cidr_ip': '0.0.0.0/0'})%}
-  {%   endfor %}
-  {%   for port in hive_published_ports_udp %}
-  {%     set _ = outputs.append({'proto':'udp', 'to_port': port, 'from_port': port, 'cidr_ip': '0.0.0.0/0'})%}
-  {%   endfor -%}
-  {{ outputs }}
-  {% endif %}
-

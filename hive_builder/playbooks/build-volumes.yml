@@ -5,23 +5,20 @@
   become: True
   vars:
     hive_safe_drbd_volumes: >-
-      {% if hive_limit is defined -%}
-        {{ groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
-      {% else -%}
-        {{ groups['drbd_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
-      {% endif %}
+      {{ (groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage]))
+         | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'volume_\1') | list)
+         if hive_limit is defined else
+         (groups['drbd_volumes'] | default([]) | intersect(groups[hive_stage])) }}
     hive_safe_nfs_volumes: >-
-      {% if hive_limit is defined -%}
-        {{ groups['nfs_volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
-      {% else -%}
-        {{ groups['nfs_volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
-      {% endif %}
+      {{ (groups['nfs_volumes'] | default([]) | intersect(groups[hive_stage]))
+         | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'volume_\1') | list)
+         if hive_limit is defined else
+         (groups['nfs_volumes'] | default([]) | intersect(groups[hive_stage])) }}
     hive_safe_volumes: >-
-      {% if hive_limit is defined -%}
-        {{ groups['volumes'] | default([]) | intersect(groups[hive_stage]) | intersect(hive_limit.split(',')  | map('regex_replace', '^(.*)$', 'volume_\1') | list) | list}}
-      {% else -%}
-        {{ groups['volumes']  | default([]) | intersect(groups[hive_stage]) | list}}
-      {% endif %}
+      {{ (groups['volumes'] | default([]) | intersect(groups[hive_stage]))
+         | intersect(hive_limit.split(',') | map('regex_replace', '^(.*)$', 'volume_\1') | list)
+         if hive_limit is defined else
+         (groups['volumes'] | default([]) | intersect(groups[hive_stage])) }}
 
   tasks:
   - include_role:
