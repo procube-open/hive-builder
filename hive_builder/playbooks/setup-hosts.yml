@@ -33,6 +33,13 @@
       setup:
       tags: [ 'always' ]
       when: ansible_facts == {}
+    - name: require a supported host OS
+      assert:
+        that:
+          - ansible_os_family == 'RedHat'
+          - ansible_distribution_major_version in ['9', '10']
+        fail_msg: "Supported host operating systems are EL9 and EL10; found {{ ansible_distribution }} {{ ansible_distribution_major_version }}."
+      tags: [ 'always' ]
   roles:
     - role: tls-certificate
       tags: ["tls-certificate"]
@@ -83,6 +90,15 @@
       setup:
       tags: [ 'always' ]
       when: ansible_facts == {}
+    - name: refresh kernel facts after the reboot handler
+      setup:
+        filter: ansible_kernel
+      when: hive_safe_expected_kernel is defined
+    - name: verify the selected boot kernel is running
+      assert:
+        that: ansible_kernel == hive_safe_expected_kernel
+        fail_msg: "Expected kernel {{ hive_safe_expected_kernel }}, running {{ ansible_kernel }}"
+      when: hive_safe_expected_kernel is defined and not ansible_check_mode
   roles:
     - role: follow-swarm-service
       tags: ["follow-swarm-service"]

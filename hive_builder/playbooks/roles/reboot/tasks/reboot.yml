@@ -1,0 +1,25 @@
+---
+- name: require matching DRBD modules before reboot
+  command:
+    argv:
+      - modinfo
+      - -k
+      - "{{ hive_safe_expected_kernel | default(ansible_kernel) }}"
+      - -F
+      - vermagic
+      - drbd
+  register: hive_safe_reboot_drbd
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - hive_mirrored_disk_size is defined or hive_provider in ['kickstart', 'prepared']
+- name: verify DRBD was built for the selected boot kernel
+  assert:
+    that: hive_safe_reboot_drbd.stdout.split() | first == (hive_safe_expected_kernel | default(ansible_kernel))
+    fail_msg: "DRBD vermagic does not match the selected boot kernel; refusing to reboot."
+  when:
+    - not ansible_check_mode
+    - hive_mirrored_disk_size is defined or hive_provider in ['kickstart', 'prepared']
+- name: reboot into the prepared kernel
+  reboot:
+    reboot_timeout: 600

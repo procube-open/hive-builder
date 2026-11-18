@@ -20,61 +20,8 @@
     insertafter: EOF
     regexp: '^exclude='
     line: 'exclude=kernel*'
-- name: check kernel version
-  shell: uname -r
-  register: uname_result
-  check_mode: False
-  changed_when: False
-
-
-- debug: var=ansible_distribution
-- debug: var=ansible_distribution_release
-# Azure VM
-# image_name:
-#   offer: RHEL
-#   publisher: RedHat
-#   sku: '86-gen2'
-#   version: latest
-# redhat-release: Red Hat Enterprise Linux release 8.6 (Ootpa)
-# ansible_distribution: RedHat
-# ansible_distribution_release: Ootpa
-# [hiveadmin@hive3 ~]$ sudo dnf list --disableexcludes=main --showduplicates kernel
-# Last metadata expiration check: 0:01:16 ago on Wed 30 Nov 2022 09:55:04 AM UTC.
-# Installed Packages
-# kernel.x86_64    4.18.0-372.9.1.el8     @anaconda                              
-# kernel.x86_64    4.18.0-372.32.1.el8_6  @rhel-8-for-x86_64-baseos-eus-rhui-rpms
-
-# AWS EC2 instance
-# image_name: ami-040ba52d44ed0d114
-# redhat-release: AlmaLinux release 8.4 (Electric Cheetah)
-# ansible_distribution: AlmaLinux
-# ansible_distribution_release: Electric Cheetah
-# (docker) [ec2-user@s-hive0 ~]$ sudo dnf list --disableexcludes=main --showduplicates kernel
-# Last metadata expiration check: 0:04:06 ago on Thu 01 Dec 2022 09:20:26 AM JST.
-# Installed Packages
-# kernel.x86_64    4.18.0-305.19.1.el8_4  @BaseOS
-# kernel.x86_64    4.18.0-425.3.1.el8     @baseos
-
-- name: update kernel for drbd (implicit)
-  yum:
-    name:
-      - "kernel-{{ ansible_kernel }}"
-      - "kernel-modules-extra-{{ ansible_kernel }}"
-    disable_excludes: main
-    state: latest
-  when: hive_kernel_version is not defined 
-    and ansible_distribution in ['CentOS', 'RedHat', 'AlmaLinux']
-    and inventory_hostname in groups['hives']
-  notify: require reboot
-- name: update kernel for drbd (explicit)
-  yum:
-    name:
-      - "kernel-{{ hive_kernel_version }}"
-      - "kernel-modules-extra-{{ hive_kernel_version }}"
-    disable_excludes: main
-    state: latest
-  when: hive_kernel_version is defined and inventory_hostname in groups['hives']
-  notify: require reboot
+- import_tasks: kernel.yml
+  when: inventory_hostname in groups['hives']
 - name: install packages
   yum:
     state: present
@@ -93,6 +40,7 @@
       - rsyslog
       - rsyslog-logrotate
       - python3-libselinux
+      - policycoreutils-python-utils
 - name: setup pip.conf
   copy:
     dest: /etc/pip.conf
@@ -113,7 +61,7 @@
     state: "{{ hive_safe_selinux }}"
   notify: require reboot
   vars:
-    ansible_python_interpreter: "{{ '/usr/bin/python' if ansible_distribution == 'Amazon' else '/usr/libexec/platform-python' }}"
+    ansible_python_interpreter: /usr/libexec/platform-python
 - name: enable services
   service: "name={{ item }} enabled=yes state=started"
   with_items:

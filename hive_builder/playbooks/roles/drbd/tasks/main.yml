@@ -13,36 +13,47 @@
   become: true
   when: hive_safe_selinux != 'disabled'
 
-# Ansible module unarchive supports extracting files from URL.
-# But there is not a way how to increase timeout in case of network
-# issues. Module get_url has default timeout 10 seconds for URL requests
-# and it can be changed.
-# https://github.com/CentOS-PaaS-SIG/contra-env-setup/pull/12
+- name: find DRBD release for the selected boot kernel
+  hive_drbd_release:
+    kernel: "{{ hive_safe_expected_kernel | default(ansible_kernel) | trim }}"
+  register: hive_safe_drbd_release
+  when: hive_drbd_download_url is not defined
+- name: select DRBD archive
+  set_fact:
+    hive_safe_drbd_url: "{{ hive_drbd_download_url if hive_drbd_download_url is defined else hive_safe_drbd_release.download_url }}"
+- name: select isolated DRBD extraction directory
+  set_fact:
+    hive_safe_drbd_dir: "/root/drbd/{{ hive_safe_drbd_url | hash('sha256') }}"
+- name: create DRBD extraction directory
+  file:
+    path: "{{ hive_safe_drbd_dir }}"
+    state: directory
+    mode: '0700'
 - name: download drbd rpm tarball
   get_url:
-    url: >-
-      {{ hive_drbd_download_url | default(
-        'https://github.com/procube-open/drbd9-rpm-automated/releases/download/'
-        ~ 'drbd-9.3.2-v9.34.0-'
-        ~ (ansible_kernel | trim)
-        ~ '/drbd-9.3.2-v9.34.0-'
-        ~ (ansible_kernel | trim)
-        ~ '.tar.gz') }}
-    dest: /root/drbd9-rpm.tar.gz
+    url: "{{ hive_safe_drbd_url }}"
+    dest: "{{ hive_safe_drbd_dir }}/archive.tar.gz"
+    checksum: "{{ hive_safe_drbd_release.checksum | default(omit) }}"
+    timeout: 120
 - name: extract drbd rpm files
   unarchive:
-    src: /root/drbd9-rpm.tar.gz
+    src: "{{ hive_safe_drbd_dir }}/archive.tar.gz"
     remote_src: yes
-    dest: /root/
+    dest: "{{ hive_safe_drbd_dir }}"
 - name: gather rpm file list
-  shell: ls -1 /root/RPMS/*/*.rpm
-  check_mode: False
-  changed_when: False
+  find:
+    paths: "{{ hive_safe_drbd_dir }}/RPMS"
+    patterns: '*.rpm'
+    recurse: true
   register: hive_safe_rpms
+- name: require DRBD RPMs in the selected archive
+  assert:
+    that: hive_safe_rpms.matched > 0
+    fail_msg: "No DRBD RPMs found in {{ hive_safe_drbd_url }}"
 - name: install packages
   yum:
     state: present
-    name: "{{ hive_safe_rpms.stdout_lines }}"
+    name: "{{ hive_safe_rpms.files | map(attribute='path') | list }}"
     disable_gpg_check: true
   register: drbd_install
 - name: install LVM tools

@@ -8,6 +8,7 @@ hive_default_mirrored_disk_device:
     - /dev/vdb
     - /dev/xvdb
     - /dev/nvme1n1
+    - /dev/nvme0n1
     - /dev/sda
   vgname: drbdvg
   poolname: drbdpool

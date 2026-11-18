@@ -13,11 +13,16 @@
   loop: "{{ disk.device_order }}"
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
   failed_when: False
-# Select device with no partitions (empty disk for DRBD), fallback to first device with partitions defined
+# Only an explicit device configuration may reuse a partitioned disk.
 - set_fact:
     hive_safe_mirrored_device: >-
-      {{ (hive_safe_devices.results | selectattr('partitions','defined') | selectattr('partitions', 'equalto', []) | list | first | default(None)) or
-         (hive_safe_devices.results | selectattr('partitions','defined') | first) }}
+      {{ (hive_safe_devices.results | selectattr('partitions','defined') | selectattr('partitions', 'equalto', []) | list | first | default({})) or
+         ((hive_safe_devices.results | selectattr('partitions','defined') | first | default({})) if hive_mirrored_disk_devices is defined else {}) }}
+  when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
+- name: require a safe mirrored disk before partitioning
+  assert:
+    that: hive_safe_mirrored_device.disk is defined
+    fail_msg: "No empty mirrored disk found. Attach an empty data disk or explicitly configure hive_mirrored_disk_devices; partitioned disks are not selected automatically."
   when: not (hive_no_mirrored_device | default(False)) and vgdisplay_result.rc != 0
 # from https://askubuntu.com/questions/201164/proper-alignment-of-partitions-on-an-advanced-format-hdd-using-parted
 # Parted is just being overly conservative. The usual practice these days is to align partitions

@@ -172,15 +172,25 @@ setup-hosts コマンドでは -T オプションで適用する role を限定�
 https://download.docker.com/linux/centos/docker-ce.repo を yum リポジトリとして登録後、 yum でインストール。
 
 (2) procube のオープンソース
-https://github.com/procube-open/drbd9-rpm からカーネルのバージョンに従ってダウンロード。
+https://github.com/procube-open/drbd9-rpm-automated/releases から
+起動対象カーネルのバージョンに完全一致する RPM アーカイブを自動選択します。
+EL9、EL10 の違いと CPU アーキテクチャもカーネル名に含めて照合し、
+ドラフト・プレリリースは使用しません。DRBD 本体・ツールのバージョンは固定しません。
+対応する公開資材がない場合は別カーネルの RPM を流用せず、構築を停止します。
+必要に応じて ``hive_kernel_version`` または ``hive_drbd_download_url`` を指定してください。
 
-- Amazon Linux の場合、9.0.22/drbd9-rpm-amzn2
-- カーネルのバージョンが 3.10.0-1127 より小さい場合、 9.0.20/drbd9-rpm
-- 上記以外の場合、9.0.22/drbd9-rpm
+既定では OS リポジトリで提供される最新カーネルと extra modules をインストールし、
+そのカーネル用の DRBD RPM を導入してから再起動します。
+``hive_kernel_version`` を指定した場合は、そのカーネルを起動対象にします。
+対応する DRBD モジュールが導入されていない場合は、再起動も停止します。
+
+構築対象 OS は EL9、EL10 のみです。EL8 はサポートしません。
+OS 付属の Python と標準 Ansible モジュールを使用し、
+システム Python の置き換えや専用の互換処理は行いません。
 
 (3) zabbix repository
-https://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm
-をインストール。
+https://repo.zabbix.com/zabbix/8.0/release/rhel/ から
+対象 EL バージョンに対応する Zabbix 8.0 リポジトリをインストール。
 
 hive サーバ設定 PLAY
 ---------------------

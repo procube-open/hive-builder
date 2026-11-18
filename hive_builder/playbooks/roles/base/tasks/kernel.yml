@@ -1,0 +1,39 @@
+---
+- name: install the selected kernel and extra modules
+  yum:
+    name: "{{ ['kernel-' + hive_kernel_version, 'kernel-modules-extra-' + hive_kernel_version] if hive_kernel_version is defined else ['kernel', 'kernel-modules-extra'] }}"
+    state: "{{ 'present' if hive_kernel_version is defined else 'latest' }}"
+    disable_excludes: main
+    update_cache: true
+- name: find installed kernel versions
+  command:
+    argv:
+      - rpm
+      - --query
+      - kernel
+      - --queryformat
+      - "%{VERSION}-%{RELEASE}.%{ARCH}\n"
+  register: hive_safe_installed_kernels
+  changed_when: false
+  check_mode: false
+  when: hive_kernel_version is not defined
+- name: select the expected running kernel
+  set_fact:
+    hive_safe_expected_kernel: "{{ hive_kernel_version if hive_kernel_version is defined else hive_safe_installed_kernels.stdout_lines | community.general.version_sort | last }}"
+- name: find the default boot kernel
+  command: grubby --default-kernel
+  register: hive_safe_default_kernel
+  changed_when: false
+  check_mode: false
+- name: select the expected boot kernel
+  command:
+    argv:
+      - grubby
+      - --set-default
+      - "/boot/vmlinuz-{{ hive_safe_expected_kernel }}"
+  when: hive_safe_default_kernel.stdout != '/boot/vmlinuz-' + hive_safe_expected_kernel
+- name: require reboot into the selected kernel after installing DRBD
+  debug:
+    msg: "Will boot {{ hive_safe_expected_kernel }} after host setup"
+  changed_when: ansible_kernel != hive_safe_expected_kernel
+  notify: require reboot

@@ -1,6 +1,5 @@
 ---
 - name: reboot
-  reboot:
-    reboot_timeout: 300
+  include_tasks: "{{ role_path }}/tasks/reboot.yml"
   listen: require reboot
   when: not ansible_check_mode and not (inventory_hostname in groups['repository'] and hive_shared_repository is defined)
