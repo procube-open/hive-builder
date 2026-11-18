@@ -24,3 +24,4 @@ MANIFEST
 /docs/_*
 /.venv
 poetry.lock
+tests
