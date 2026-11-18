@@ -66,9 +66,9 @@
       hostname: "{{ inventory_hostname }}"
       env: "{{(hive_env | default({})) | combine(hive_safe_proxy_settings) }}"
       privileged: "{{ hive_privileged | default(omit) }}"
-      entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
+      entrypoint: "{{ omit if hive_standalone | default(False) else [] }}"
       working_dir: "{{ hive_working_dir | default(omit) }}"
-      command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      command: "{{ omit if hive_standalone | default(False) else hive_safe_sleep_command }}"
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
       command_handling: correct
@@ -88,9 +88,9 @@
       hostname: "{{ inventory_hostname }}"
       env: "{{(hive_env | default({})) | combine(hive_safe_proxy_settings) }}"
       privileged: "{{ hive_privileged | default(omit) }}"
-      entrypoint: "{%if hive_standalone | default(False) %}{{omit}}{%else%}[]{%endif%}"
+      entrypoint: "{{ omit if hive_standalone | default(False) else [] }}"
       working_dir: "{{ hive_working_dir | default(omit) }}"
-      command: "{%if hive_standalone | default(False) %}{{omit}}{%else%}{{ hive_safe_sleep_command }}{%endif%}"
+      command: "{{ omit if hive_standalone | default(False) else hive_safe_sleep_command }}"
       stop_signal: "{{ hive_stop_signal | default(omit) }}"
       user: "{{ hive_user | default(omit) }}"
       command_handling: correct
