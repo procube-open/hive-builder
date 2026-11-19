@@ -162,7 +162,7 @@ setup-hosts コマンドでは -T オプションで適用する role を限定�
       - zabbix
       - dockerhub
       - zabbix server
-    * - zabbix/zabbix-web-mysql
+    * - procube/zabbix-web-nginx-mysql
       - zabbix
       - dockerhub
       - zabbix web UI
